@@ -255,7 +255,7 @@ minCountPerSample = 1 #min read count per sample
 minAvgPerCat = 10 #min average read per category
 
 # Specify the contrast
-focal.contrast <-  dds.A.m.geno # Change accordingly
+focal.contrast <-  dds.A.f.geno # Change accordingly
 
 # Specify the samples for each category of the focal contrasts (some tricky ones commented here)
 # this is based on the order of the sample names
@@ -265,12 +265,12 @@ focal.contrast <-  dds.A.m.geno # Change accordingly
 # denominator <- samplename[seq(1, 24, by = 2)] #A-NR
 
 # dds.A.m.geno
-numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
-denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
+# numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
+# denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
 
 # dds.A.f.geno
-# numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
-# denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
+numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
+denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
 
 # dds.C.m.geno
 # numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
@@ -426,6 +426,49 @@ Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
 ## change this to the correct file name
-# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", sep = "\t", # Fix file name accordingly
+# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv", sep = "\t", # Fix file name accordingly
 #             row.names = FALSE, col.names = TRUE)
+##########
+
+
+# \\||// #
+# Assign significant genes
+##########
+# If not already in environment, read in df to specify the results df to be used 
+# Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", header = TRUE)
+
+# Rename to something sensible for downstream analyses
+A.m.geno <- Results.df
+
+# Function to sort significant and non-significant genes by adding logical column
+assign_sig <- function(contrast_df){
+  contrast_df <- na.omit(contrast_df)
+  contrast_df$Sig = FALSE
+  for(i in 1:nrow(contrast_df)){
+    if(contrast_df$padj[i] < alpha.threshold){
+      contrast_df$Sig[i] = TRUE
+    }
+  }
+  dim(contrast_df[contrast_df$Sig == TRUE, ])
+  return(contrast_df)
+}
+
+# note: need to rm() observations with padj == NA
+# change df name as needed
+A.m.geno <- assign_sig(A.m.geno)
+dim(A.m.geno[A.m.geno$Sig == TRUE, ]) # right number?
+
+
+# this is only for A.m.geno
+# order A.m.geno by p-values & get the 200 lowest
+# A.m.geno <- A.m.geno[order(A.m.geno$padj),]
+# colnames(A.m.geno)[colnames(A.m.geno) == "Sig"] = "Top.Sig"
+# A.m.geno$Sig <- FALSE
+# A.m.geno[1:200,]$Sig <- TRUE
+# droplevels(A.m.geno)
+
+
+## change this to the correct file name
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
 ##########
