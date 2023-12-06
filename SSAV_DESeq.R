@@ -246,3 +246,185 @@ dds.A.NR.m.Red.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR.m.Red.f,
 ##########
 
 
+# \\||// #
+# Set parameters and details for the focal contrast (modify/rerun for each desired contrast)
+##########
+
+# Adjust filtering criteria
+minCountPerSample = 1 #min read count per sample
+minAvgPerCat = 10 #min average read per category
+
+# Specify the contrast
+focal.contrast <-  dds.A.m.geno # Change accordingly
+
+# Specify the samples for each category of the focal contrasts (some tricky ones commented here)
+# this is based on the order of the sample names
+
+# A.REDvNR
+# numerator <- samplename[seq(2, 24, by = 2)] #A-Red
+# denominator <- samplename[seq(1, 24, by = 2)] #A-NR
+
+# dds.A.m.geno
+numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
+denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
+
+# dds.A.f.geno
+# numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
+# denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
+
+# dds.C.m.geno
+# numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
+# denominator <- samplename[seq(25, 36, by =2)] # C.nr.males
+
+# dds.Red.m.trt (there is no significant genes here, so maybe that's why this term was not defined)
+# numerator <- samplename[seq(4, 24, by = 4)] # A.Red.m
+# denominator <- samplename[seq(26, 36, by = 2)] # C.Red.m
+
+# dds.NR.m.trt
+# numerator <- samplename[seq(3, 24, by = 4)] # A.NR.m
+# denominator <- samplename[seq(25, 36, by = 2)] # C.NR.m
+
+# dds.A.Red.sex
+# numerator <- samplename[seq(4, 24, by = 4)]
+# denominator <-samplename[seq(2, 24, by = 4)]
+
+# dds.A.NR.sex
+# numerator <- samplename[seq(3, 24, by = 4)]
+# denominator <-samplename[seq(1, 24, by = 4)]
+
+# # dds.A.Red.m.NR.f.sex
+# numerator <- samplename[seq(4, 24, by = 4)]
+# denominator <- samplename[seq(1, 24, by =4)]
+
+# dds.A.NR.m.Red.f.sex
+# numerator <- samplename[seq(3, 24, by = 4)]
+# denominator <- samplename[seq(2, 24, by =4)]
+
+# print "samplename" to see which samples you need
+# what is this for? just to see?
+# numerator <- samplename[25:28] # print this to make sure it's right! (e.g. simple: samplename[1:12]; e.g. specific samplename[c(7:12, 25:30)]  )
+# denominator <- samplename[13:16] # print this to make sure it's right! (e.g. simple: samplename[1:12]; e.g. specific samplename[c(7:12, 25:30)]  )
+
+# Analysis details
+# print "str(sampleTable)" to see your options here
+factor.numerator.denominator = c("geno", "Red", "NR") # that is c("factor", "numerator", "denominator"); flip if desired
+alpha.threshold = 0.05 # this sets alpha for the adjusted pvalue; default is 0.1.
+##########
+
+
+# Run the focal contrast
+##########
+
+# 1. get read counts 
+countdf = DESeq2::counts(focal.contrast) #read counts of all the genes for each sample
+
+# 2a. Create logical vector for whether there's a low count in any sample of either the numerator or denominator
+# prod() returns the product of all the values present in its arguments
+# TRUE if low count and FALSE if the count is above threshold
+lowCountAnySample.numerator = sapply(1:(dim(countdf)[1]), function (x) prod(countdf[x, numerator]) < minCountPerSample)  
+lowCountAnySample.denominator = sapply(1:(dim(countdf)[1]), function (x) prod(countdf[x, denominator]) < minCountPerSample)  
+lowCountAnySample.Either =  lowCountAnySample.numerator | lowCountAnySample.denominator
+
+# 2b. Create logical vector for whether there's a good average count in both numerator and denominator
+# calculate the mean reads of each gene across the samples
+avgCounts.numerator = rowMeans(countdf[, numerator]) 
+avgCounts.denominator = rowMeans(countdf[, denominator]) 
+# create the logical vectors
+goodAvgCount.numerator = avgCounts.numerator > minAvgPerCat
+goodAvgCount.denominator = avgCounts.denominator > minAvgPerCat
+goodAvgCount.Both = goodAvgCount.numerator & goodAvgCount.denominator
+
+# 2c. Create logical vector indicating fulfillment of goodAvgCount.Both and NOT having lowCountAnySample.Either
+# remove any genes that do not have avg. read count > threshold or any genes with low read count for any sample
+keep.these = goodAvgCount.Both & (!lowCountAnySample.Either) 
+
+# 2.d Inspect what you're about to discard
+sum(lowCountAnySample.numerator) # number of genes with low read count for the numerator samples
+sum(lowCountAnySample.denominator) # number of genes with low read count for the denominator samples
+sum(lowCountAnySample.numerator & lowCountAnySample.denominator) # number that are the same genes
+mean(avgCounts.numerator) # mean before filtering
+mean(avgCounts.denominator) # mean before filtering
+mean(avgCounts.numerator)/mean(avgCounts.denominator) # ratio of those means
+# many other things you could do here to know what you're tossing out 
+
+# 3. Filter according to the above
+focal.contrast.filtered = focal.contrast[keep.these,]
+
+# 4. Do the analysis for that focal contrast using those filtered data
+DESeq.Analysis = DESeq(focal.contrast.filtered) # Change to "focal.contrast" to bypass all filtering.
+
+# 5a. Get the results of that analysis
+DESeq.Results = results(DESeq.Analysis,
+                        contrast = factor.numerator.denominator, # that is c("factor", "numerator", "denominator"); 
+                        # by defult, it will take the last term in the design (e.g. the interaction term, if that's last)
+                        alpha = alpha.threshold) 
+
+# 5b. Remove Y genes
+# read in .tsv files of X and Y geneIDs (see end of DsRed "transcriptomics.txt")
+Ychr <- read.delim("~/Desktop/UofT/PRJ1/data/Y.chromosome.genes.tsv", sep = '\t', header = TRUE)
+# Make the FlyBaseIDs into rownames and index by this new column
+DESeq.Results$FlyBaseID = rownames(DESeq.Results)
+DESeq.Results <- DESeq.Results[!(DESeq.Results$FlyBaseID %in% Ychr$geneID),]
+
+# 6. Look at the metadata for DEseq's independent filtering 
+plot(metadata(DESeq.Results)$filterNumRej, 
+     type="b", ylab="number of rejections",
+     xlab="quantiles of filter")
+lines(metadata(DESeq.Results)$lo.fit, col="red")
+abline(v=metadata(DESeq.Results)$filterTheta)
+
+# 7. Have a basic look 
+summary(DESeq.Results)
+plotMA(DESeq.Results, ylim=c(-5,5), colSig = "red", colNonSig = "lightgray")
+
+
+##########
+
+
+# PCA - modify/use this to explore global differences among samples (before and after filtering)
+##########
+
+# check STATS notes to understand VST
+# Swap out different dds.* designs from above or use focal.contrast or focal.contrast.filtered
+vsd <- vst(focal.contrast, blind=FALSE) # Use focal.contrast and focal.contrast.filtered to see the effect of filtering on the data
+# head(assay(vsd), 3)
+
+# Then swap out different 'intgroup' variables as needed...
+pcaData <- plotPCA(vsd, intgroup=c("sex", "rep"), returnData=TRUE) # the argument 'intgroup' should specify columns of colData(dds.*)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+# ...and 'color'/'shape' variables as needed...
+ggplot(pcaData, aes(PC1, PC2, color=rep, shape=sex)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) +
+  coord_fixed()
+
+# pcaData[order(pcaData$PC1),]
+##########
+
+
+# \\||// #
+# change se_trt/geno and exp_trt/geno accordingly
+# Organize results into data frame (may need to adjust some column names)
+##########
+
+# Make the rownames a column in the df for indexing later
+DESeq.Results$FlyBaseID = rownames(DESeq.Results) # fix accordingly (e.g. FlyBaseID)
+
+
+# Grab the desired variables from the DESeq contrasts above  
+Results.df <- data.frame(cbind(DESeq.Results$log2FoldChange, 
+                               DESeq.Results$lfcSE, 
+                               DESeq.Results$padj,
+                               DESeq.Results$FlyBaseID # fix accordingly (e.g. FlyBaseID)
+))
+colnames(Results.df) <- c("exp_geno", "se_geno", "padj", "FlyBaseID") # fix accordingly (e.g. maybe c()[1] == "exp_trt", and/or c()[4] == "FlyBaseID")
+str(Results.df)
+Results.df$exp_geno <- as.numeric(Results.df$exp_geno) # fix accordingly
+Results.df$se_geno <- as.numeric(Results.df$se_geno) # fix accordingly
+Results.df$padj <- as.numeric(Results.df$padj)
+str(Results.df)
+
+write.table(Results.df, file = "~/Desktop/UofT/PRJ1/results_R/Results.A.Red.m.NR.fem.sex.txt", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
+##########
