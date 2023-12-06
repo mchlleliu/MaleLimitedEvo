@@ -390,10 +390,10 @@ vsd <- vst(focal.contrast, blind=FALSE) # Use focal.contrast and focal.contrast.
 # head(assay(vsd), 3)
 
 # Then swap out different 'intgroup' variables as needed...
-pcaData <- plotPCA(vsd, intgroup=c("sex", "rep"), returnData=TRUE) # the argument 'intgroup' should specify columns of colData(dds.*)
+pcaData <- plotPCA(vsd, intgroup=c("geno", "rep"), returnData=TRUE) # the argument 'intgroup' should specify columns of colData(dds.*)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 # ...and 'color'/'shape' variables as needed...
-ggplot(pcaData, aes(PC1, PC2, color=rep, shape=sex)) +
+ggplot(pcaData, aes(PC1, PC2, color=rep, shape=geno)) +
   geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) +
@@ -425,6 +425,7 @@ Results.df$se_geno <- as.numeric(Results.df$se_geno) # fix accordingly
 Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
-write.table(Results.df, file = "~/Desktop/UofT/PRJ1/results_R/Results.A.Red.m.NR.fem.sex.txt", sep = "\t", # Fix file name accordingly
-            row.names = FALSE, col.names = TRUE)
+## change this to the correct file name
+# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", sep = "\t", # Fix file name accordingly
+#             row.names = FALSE, col.names = TRUE)
 ##########
