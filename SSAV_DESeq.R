@@ -9,6 +9,9 @@
 
 # rm(list=ls()) # Clears the environment 
 
+# set path to data files
+Data_path <- "~/Desktop/UofT/PRJ1/ReadCount_KG_renamed/"
+files <- list.files(Data_path)
 
 # Packages
 ##########
@@ -50,3 +53,4 @@ library(cowplot)
 library(ggstatsplot)
 
 ##########
+
