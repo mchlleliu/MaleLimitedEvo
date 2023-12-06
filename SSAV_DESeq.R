@@ -11,6 +11,7 @@
 
 # set path to data files
 Data_path <- "~/Desktop/UofT/PRJ1/ReadCount_KG_renamed/"
+setwd(Data_path)
 
 # Packages
 ##########
@@ -116,6 +117,14 @@ A.m$sex <- droplevels(A.m$sex)
 C.m <- sampleTable[(sampleTable$trt == "C"),] # There are only Male samples for C
 C.m$trt <- droplevels(C.m$trt)
 
+# Red.m
+Red.m <- Males[(Males$geno == "Red"),]
+Red.m$geno <- droplevels(Red.m$geno)
+
+# NR.m
+NR.m <- Males[(Males$geno == "NR"),]
+NR.m$geno <- droplevels(NR.m$geno)
+
 # A.f.C.m (contrast A females and C males)
 A.f.C.m <- rbind(A.f, C.m) # For contrasting A.f to C.m
 A.f.C.m_Red <- A.f.C.m[(A.f.C.m$geno == "Red"),] # within Red
@@ -168,6 +177,72 @@ A.Red.m.NR.f$geno <- droplevels(A.Red.m.NR.f$geno)
 A.NR.m.Red.f <- rbind(A.NR.m, A.Red.f)
 A.NR.m.Red.f$geno <- droplevels(A.NR.m.Red.f$geno)
 
+##########
+
+
+# Set up the different contrast designs
+# (sets up data and run DESeq2 with all the different comparisons that you want)
+##########
+
+# All data - for first PCA look (A.REDvNR)
+dds.all <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                      design = ~ rep + trt2 + geno)
+
+# For geno differences in A.f
+dds.A.f.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.f, 
+                                           design = ~ rep + geno) 
+
+# For geno differences in A.m
+dds.A.m.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.m, 
+                                           design = ~ rep + geno) 
+
+# For geno differences in C.m
+dds.C.m.geno <- DESeqDataSetFromHTSeqCount(sampleTable = C.m, 
+                                           design = ~ rep + geno) 
+
+# For trt differences in NR.m
+dds.NR.m.trt <- DESeqDataSetFromHTSeqCount(sampleTable = NR.m,
+                                           design = ~ rep + trt)
+
+# For trt differences in Red.m
+dds.Red.m.trt <- DESeqDataSetFromHTSeqCount(sampleTable = Red.m,
+                                            design = ~ rep + trt)
+
+# Males
+dds.Males <- DESeqDataSetFromHTSeqCount(sampleTable = Males,
+                                        design = ~ rep + geno + trt) 
+
+# A.f versus C.m within Red
+dds.A.f.C.m_Red <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.C.m_Red,
+                                              design = ~ rep + sex) 
+
+# A.f versus C.m within Red
+dds.A.f.nr_A.m.r <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.nr_A.m.r,
+                                               design = ~ rep + sex) 
+
+# A.f versus C.m within NR
+dds.A.f.C.m_NR <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.C.m_NR,
+                                             design = ~ rep + sex) 
+
+# Interaction
+dds.Int <- DESeqDataSetFromHTSeqCount(sampleTable = Males,
+                                      design = ~ rep + geno + trt + geno:trt) 
+
+# For sex differences in A.Red
+dds.A.Red.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.Red,
+                                            design = ~ rep + sex)
+
+# For sex differences in A.NR
+dds.A.NR.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR,
+                                           design = ~ rep + sex)
+
+# For SBGE in natural pair (Red males and NR females)
+dds.A.Red.m.NR.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.Red.m.NR.f,
+                                                   design = ~ rep + sex)
+
+# For SBGE in unnatural pair (Red females and NR males)
+dds.A.NR.m.Red.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR.m.Red.f,
+                                                   design = ~ rep + sex)
 ##########
 
 
