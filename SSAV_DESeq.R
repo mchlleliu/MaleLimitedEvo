@@ -426,8 +426,8 @@ Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
 ## change this to the correct file name
-# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv", sep = "\t", # Fix file name accordingly
-#             row.names = FALSE, col.names = TRUE)
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_raw.tsv", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
 ##########
 
 
@@ -438,7 +438,7 @@ str(Results.df)
 # Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", header = TRUE)
 
 # Rename to something sensible for downstream analyses
-A.m.geno <- Results.df
+A.f.geno <- Results.df
 
 # Function to sort significant and non-significant genes by adding logical column
 assign_sig <- function(contrast_df){
@@ -455,8 +455,8 @@ assign_sig <- function(contrast_df){
 
 # note: need to rm() observations with padj == NA
 # change df name as needed
-A.m.geno <- assign_sig(A.m.geno)
-dim(A.m.geno[A.m.geno$Sig == TRUE, ]) # right number?
+A.f.geno <- assign_sig(A.f.geno)
+dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
 
 
 # this is only for A.m.geno
@@ -469,6 +469,6 @@ dim(A.m.geno[A.m.geno$Sig == TRUE, ]) # right number?
 
 
 ## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
