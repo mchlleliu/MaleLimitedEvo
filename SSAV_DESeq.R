@@ -96,3 +96,78 @@ sampleTable <- data.frame(sampleName = samplename,
 str(sampleTable) # Check that factors are factors, else use e.g.: sampleTable$rep <- factor(sampleTable$rep)
 
 ##########
+
+# Split data frame up into different subsets 
+##########
+
+# trt A data (list of sample names, and files)
+A <- sampleTable[(sampleTable$trt == "A"),] 
+A$trt <- droplevels(A$trt)
+
+# A.f data
+A.f <- A[(A$sex == "Female"),]
+A.f$sex <- droplevels(A.f$sex)
+
+# A.m data
+A.m <- A[(A$sex == "Male"),]
+A.m$sex <- droplevels(A.m$sex)
+
+# C.m
+C.m <- sampleTable[(sampleTable$trt == "C"),] # There are only Male samples for C
+C.m$trt <- droplevels(C.m$trt)
+
+# A.f.C.m (contrast A females and C males)
+A.f.C.m <- rbind(A.f, C.m) # For contrasting A.f to C.m
+A.f.C.m_Red <- A.f.C.m[(A.f.C.m$geno == "Red"),] # within Red
+A.f.C.m_Red$geno <- droplevels(A.f.C.m_Red$geno)
+A.f.C.m_NR <- A.f.C.m[(A.f.C.m$geno == "NR"),] # within NR
+A.f.C.m_NR$geno <- droplevels(A.f.C.m_NR$geno)
+
+# A.f.nr_A.m.r (contrast A nonRed females and A red males)
+A.f.nr <- A.f[(A.f$geno == "NR"),]
+A.m.r <- A.m[(A.m$geno == "Red"),]
+A.f.nr_A.m.r <- rbind(A.f.nr, A.m.r)
+
+# A.Red
+A.Red <- A[(A$geno == "Red"),]
+A.Red$geno <- droplevels(A.Red$geno)
+
+# A.NR
+A.NR <- A[(A$geno == "NR"),]
+A.NR$geno <- droplevels(A.NR$geno)
+
+# Just Males (A and C)
+Males <- sampleTable[(sampleTable$sex == "Male"),] 
+Males$sex <- droplevels(Males$sex)
+
+# Just Females (A)
+Females <- sampleTable[(sampleTable$sex == "Female"),] 
+Females$sex <- droplevels(Females$sex)
+
+# A.Red.m
+A.Red.m <- Males[(Males$geno == "Red") & Males$trt == "A",]
+A.Red.m$geno <- droplevels(A.Red.m$geno)
+
+# A.NR.m
+A.NR.m <- Males[(Males$geno == "NR") & Males$trt == "A",]
+A.NR.m$geno <- droplevels(A.NR.m$geno)
+
+# A.Red.f
+A.Red.f <- Females[(Females$geno == "Red"),]
+A.Red.f$geno <- droplevels(A.Red.f$geno)
+
+# A.NR.f
+A.NR.f <- Females[(Females$geno == "NR"),]
+A.NR.f$geno <- droplevels(A.NR.f$geno)
+
+# A.Red.m.NR.f
+A.Red.m.NR.f <- rbind(A.Red.m, A.NR.f)
+A.Red.m.NR.f$geno <- droplevels(A.Red.m.NR.f$geno)
+
+# A.NR.m.Red.f
+A.NR.m.Red.f <- rbind(A.NR.m, A.Red.f)
+A.NR.m.Red.f$geno <- droplevels(A.NR.m.Red.f$geno)
+
+##########
+
+
