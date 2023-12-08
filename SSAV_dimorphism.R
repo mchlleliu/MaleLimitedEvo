@@ -75,8 +75,6 @@ A.Red.m.NR.f.SBGE <- SBGE_log2FC
 ##########
 
 
-
-
 # Compare with ASE population
 ##########
 # Merge Natural and Unnatural SBGE estimates.
