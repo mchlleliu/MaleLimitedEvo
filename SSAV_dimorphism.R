@@ -73,3 +73,53 @@ A.Red.m.NR.f.SBGE <- SBGE_log2FC
 # write.table(SBGE_log2FC, file = "~/Desktop/UofT/SSAV_RNA/Results/SBGE.A.Red.m.NR.f.tsv", sep = "\t", # Fix file name accordingly
 #             row.names = FALSE, col.names = TRUE)
 ##########
+
+
+
+
+# Compare with ASE population
+##########
+# Merge Natural and Unnatural SBGE estimates.
+Sex_Bias_Nat_UnNat <- merge(A.Red.m.NR.f.SBGE, A.NR.m.Red.f.SBGE, by = "FlyBaseID", all = T)
+# rename columns to something more sensible
+colnames(Sex_Bias_Nat_UnNat) <- c("FlyBaseID",
+                                  "log2FC_Nat", "lfcSE_Nat", "p_Nat", "SBGE_simp.Nat", "SBGE_comp.Nat",
+                                  "log2FC_UnNat", "lfcSE_UnNat", "p_UnNat", "SBGE_simp.UnNat", "SBGE_comp.UnNat")
+
+# Find difference between Natural and Unnatural log2FC estimates
+Sex_Bias_Nat_UnNat$diff <- Sex_Bias_Nat_UnNat$log2FC_Nat - Sex_Bias_Nat_UnNat$log2FC_UnNat
+
+# merge with outsourced log2FC estimates
+Sex_Bias_Nat_UnNat <- merge(Sex_Bias_Nat_UnNat, ASE, by = "FlyBaseID", all = T)
+Sex_Bias_Nat_UnNat <- merge(Sex_Bias_Nat_UnNat, SDIU, by = "FlyBaseID", all = T)
+
+
+# compare with ASE population
+Sex_Bias_Nat_UnNat$diff_Nat.ASE <- Sex_Bias_Nat_UnNat$log2FC_Nat - Sex_Bias_Nat_UnNat$exp_SBGE_ase
+Sex_Bias_Nat_UnNat$diff_UnNat.ASE <- Sex_Bias_Nat_UnNat$log2FC_UnNat - Sex_Bias_Nat_UnNat$exp_SBGE_ase
+
+# compare with OSADA population
+Sex_Bias_Nat_UnNat$diff_Nat.OSADA <- Sex_Bias_Nat_UnNat$log2FC_Nat - Sex_Bias_Nat_UnNat$Whole.SBGE.Osada
+Sex_Bias_Nat_UnNat$diff_UnNat.OSADA <- Sex_Bias_Nat_UnNat$log2FC_UnNat - Sex_Bias_Nat_UnNat$Whole.SBGE.Osada
+
+
+# UnNat_ASE, Nat_ASE, Nat_UnNat, Nat_OSADA, UnNat_OSADA
+Nat_UnNat <- ggplot(Sex_Bias_Nat_UnNat[!is.na(Sex_Bias_Nat_UnNat$log2FC_Nat) & !is.na(Sex_Bias_Nat_UnNat$log2FC_UnNat) &
+                                         !is.na(Sex_Bias_Nat_UnNat$exp_SBGE_ase),], # & 
+                    #Sex_Bias_Nat_UnNat$FlyBaseID %in% All.geno[!is.na(All.geno$Sig) & All.geno$Sig,]$FlyBaseID,],
+                    aes(x = exp_SBGE_ase, y = diff)) + 
+  geom_point(size = 2, shape = 16, alpha = 0.7, colour = "grey") +
+  geom_smooth() +
+  scale_x_continuous(breaks = seq(-15, 15, 2.5)) +
+  labs(y = "Red.m/NR.f - NR.m/Red.f", x="SBGE(ASE)") +
+  geom_hline(yintercept = 0, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = 0, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7)
+
+##########
+
+
+## conclusions: 
+# degree of dimorphism in OSADA population (DGRP flies x Mel6 Benin, West Africa) more similar to SSAV.
+# ASE population more dimorphic compared to SSAV and OSADA populations.
+# Natural pair less correlation to dimorphism in ASE and OSADA populations compared to UnNatural pair
+
