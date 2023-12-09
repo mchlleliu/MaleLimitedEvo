@@ -61,3 +61,5 @@ SSAV_InnoMor <- all_genes_InnoMorrow[!is.na(all_genes_InnoMorrow$IsInnoMorr)
                                      & all_genes_InnoMorrow$IsInnoMorr & all_genes_InnoMorrow$Sig,]
 write_clip(SSAV_InnoMor$FlyBaseID) # write to clipboard for GO analysis.
 
+## to do:
+# look at sex-specific phenotype effects --> Connallon & Clark 2011
