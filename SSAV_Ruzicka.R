@@ -2,24 +2,25 @@
 #
 #                             Grieshop et al. 2023
 #             DsRed experimental evolution - transcriptomics analysis
-#                         Innocenti and Morrow 2010 X SSAV genes
+#                         Ruzicka et al. 2019 X SSAV genes
 # 
 # 
 ###################################
 
-# Enrichment test for SA candidates in Innocenti and Morrow
+# Enrichment test for SA candidates in Ruzicka et al. genes
 ##########
-all_genes_InnoMorrow <- tibble(all.genes)
-all_genes_InnoMorrow <- all_genes_InnoMorrow %>% 
+all_genes_Ruz <- tibble(all.genes)
+all_genes_Ruz <- all_genes_Ruz %>% 
   mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
          Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
          Sig = Sig.Af | Sig.Am,
-         IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
+         IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
-test <- fisher.test(x = all_genes_InnoMorrow$Sig, y = all_genes_InnoMorrow$IsInnoMorr)
+test <- fisher.test(x = all_genes_Ruz$Sig, y = all_genes_Ruz$IsRuz)
 
-mos_plot_InnoMorr <- ggbarstats(
-  all_genes_InnoMorrow, IsInnoMorr, Sig,
+mos_plot_Ruz <- ggbarstats(
+  all_genes_Ruz[!is.na(all_genes_Ruz$Sig) & 
+                  !is.na(all_genes_Ruz$IsRuz),], IsRuz, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -27,7 +28,7 @@ mos_plot_InnoMorr <- ggbarstats(
   ), 
   xlab = NULL
 ) +
-  scale_fill_manual(labels = c("SA_InnoMorr", "notSA_InnoMorr"),
+  scale_fill_manual(labels = c("in_Ruz", "not_in_Ruz"),
                     values = c("darkorchid4", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
   scale_x_discrete(labels = c("Background", "Candidates")) +
   theme(plot.title.position = c("panel"),
@@ -48,18 +49,18 @@ mos_plot_InnoMorr <- ggbarstats(
   )
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests//Inno_Morrow.pdf",  # The directory you want to save the file in
-    width = 10, # The width of the plot in inches
-    height = 7) # The height of the plot in inches
-mos_plot_InnoMorr
-dev.off()
 ##########
 
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Ruz_mosaic.pdf",  # The directory you want to save the file in
+    width = 10, # The width of the plot in inches
+    height = 7) # The height of the plot in inches
+mos_plot_Ruz
+dev.off()
 
 
-SSAV_InnoMor <- all_genes_InnoMorrow[!is.na(all_genes_InnoMorrow$IsInnoMorr) 
-                                     & all_genes_InnoMorrow$IsInnoMorr & all_genes_InnoMorrow$Sig,]
-write_clip(SSAV_InnoMor$FlyBaseID) # write to clipboard for GO analysis.
+SSAV_Ruz <- all_genes_Ruz[!is.na(all_genes_Ruz$IsRuz) 
+                                     & all_genes_Ruz$IsRuz & all_genes_Ruz$Sig,]
+write_clip(SSAV_Ruz$FlyBaseID) # write to clipboard for GO analysis.
 
 ## to do:
 # look at sex-specific phenotype effects --> Connallon & Clark 2011
