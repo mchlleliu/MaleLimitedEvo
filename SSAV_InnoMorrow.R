@@ -47,14 +47,14 @@ mos_plot_InnoMorr <- ggbarstats(
         plot.margin = margin(6,6,6,6)
   )
 
+##########
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests//Inno_Morrow.pdf",  # The directory you want to save the file in
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Inno_Morrow.pdf",  # The directory you want to save the file in
     width = 10, # The width of the plot in inches
     height = 7) # The height of the plot in inches
 mos_plot_InnoMorr
 dev.off()
-##########
-
 
 
 SSAV_InnoMor <- all_genes_InnoMorrow[!is.na(all_genes_InnoMorrow$IsInnoMorr) 
