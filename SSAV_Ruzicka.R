@@ -56,11 +56,3 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Ruz_mosaic.pdf",  # T
     height = 7) # The height of the plot in inches
 mos_plot_Ruz
 dev.off()
-
-
-SSAV_Ruz <- all_genes_Ruz[!is.na(all_genes_Ruz$IsRuz) 
-                                     & all_genes_Ruz$IsRuz & all_genes_Ruz$Sig,]
-write_clip(SSAV_Ruz$FlyBaseID) # write to clipboard for GO analysis.
-
-## to do:
-# look at sex-specific phenotype effects --> Connallon & Clark 2011

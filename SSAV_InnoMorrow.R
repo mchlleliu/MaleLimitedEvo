@@ -55,11 +55,3 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Inno_Morrow.pdf",  # 
     height = 7) # The height of the plot in inches
 mos_plot_InnoMorr
 dev.off()
-
-
-SSAV_InnoMor <- all_genes_InnoMorrow[!is.na(all_genes_InnoMorrow$IsInnoMorr) 
-                                     & all_genes_InnoMorrow$IsInnoMorr & all_genes_InnoMorrow$Sig,]
-write_clip(SSAV_InnoMor$FlyBaseID) # write to clipboard for GO analysis.
-
-## to do:
-# look at sex-specific phenotype effects --> Connallon & Clark 2011
