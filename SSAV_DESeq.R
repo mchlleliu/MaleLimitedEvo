@@ -255,7 +255,7 @@ minCountPerSample = 1 #min read count per sample
 minAvgPerCat = 10 #min average read per category
 
 # Specify the contrast
-focal.contrast <-  dds.A.f.geno # Change accordingly
+focal.contrast <-  dds.C.m.geno # Change accordingly
 
 # Specify the samples for each category of the focal contrasts (some tricky ones commented here)
 # this is based on the order of the sample names
@@ -269,12 +269,12 @@ focal.contrast <-  dds.A.f.geno # Change accordingly
 # denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
 
 # dds.A.f.geno
-numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
-denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
+# numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
+# denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
 
 # dds.C.m.geno
-# numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
-# denominator <- samplename[seq(25, 36, by =2)] # C.nr.males
+numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
+denominator <- samplename[seq(25, 36, by =2)] # C.nr.males
 
 # dds.Red.m.trt (there is no significant genes here, so maybe that's why this term was not defined)
 # numerator <- samplename[seq(4, 24, by = 4)] # A.Red.m
@@ -299,11 +299,6 @@ denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
 # dds.A.NR.m.Red.f.sex
 # numerator <- samplename[seq(3, 24, by = 4)]
 # denominator <- samplename[seq(2, 24, by =4)]
-
-# print "samplename" to see which samples you need
-# what is this for? just to see?
-# numerator <- samplename[25:28] # print this to make sure it's right! (e.g. simple: samplename[1:12]; e.g. specific samplename[c(7:12, 25:30)]  )
-# denominator <- samplename[13:16] # print this to make sure it's right! (e.g. simple: samplename[1:12]; e.g. specific samplename[c(7:12, 25:30)]  )
 
 # Analysis details
 # print "str(sampleTable)" to see your options here
@@ -426,7 +421,7 @@ Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
 ## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_raw.tsv", sep = "\t", # Fix file name accordingly
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_raw.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
 
@@ -438,7 +433,7 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_raw.tsv
 # Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", header = TRUE)
 
 # Rename to something sensible for downstream analyses
-A.f.geno <- Results.df
+C.m.geno <- Results.df
 
 # Function to sort significant and non-significant genes by adding logical column
 assign_sig <- function(contrast_df){
@@ -455,8 +450,8 @@ assign_sig <- function(contrast_df){
 
 # note: need to rm() observations with padj == NA
 # change df name as needed
-A.f.geno <- assign_sig(A.f.geno)
-dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
+C.m.geno <- assign_sig(C.m.geno)
+dim(C.m.geno[C.m.geno$Sig == TRUE, ]) # right number?
 
 
 # this is only for A.m.geno
@@ -469,6 +464,6 @@ dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
 
 
 ## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
