@@ -27,7 +27,6 @@ quad_count <- function(dat, x, y, lim){
           # (this is a bit weird, but needed so the numbers can be plotted at the right coordinates)
           UP = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III up-left or quadrant IV up-right
             top & abs(.[[x]]) < abs(.[[y]])) %>%  # quadrant I up-right or quadrant II up-left
-    
     mutate(perc = n/sum(n)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
@@ -138,8 +137,8 @@ colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID", "Re
 tmp.NR <- NR.m.trt
 colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID", "NR.Sig")
 
-corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
+corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
+corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
 ########
 
 # plotting based on SBGE categories
@@ -153,7 +152,7 @@ more_fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "a.more.fbg",],
                       "red3", "black", "darkgrey",
                       "SSAV/Control in Red males", 
                       "SSAV/Control in NonRed males", 
-                      2.5, "Highly FB (n = 158)")
+                      2.5, "Highly FB (n = 159)")
 
 
 fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "b.fbg",], 
@@ -161,7 +160,7 @@ fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "b.fbg",],
                  "red3", "black", "darkgrey",
                  "SSAV/Control in Red males", 
                  "SSAV/Control in NonRed males", 
-                 2.5, "Femaled-biased (n = 3,234)")
+                 2.5, "Femaled-biased (n = 3,281)")
 
 
 ubg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "c.ubg",], 
@@ -169,7 +168,7 @@ ubg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "c.ubg",],
                  "red3", "black", "darkgrey",
                  "SSAV/Control in Red males", 
                  "SSAV/Control in NonRed males", 
-                 2.5, "Unbiased (n = 3,197)")
+                 2.5, "Unbiased (n = 3,223)")
 
 
 mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "d.mbg",], 
@@ -177,7 +176,7 @@ mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "d.mbg",],
                  "red3", "black", "darkgrey",
                  "SSAV/Control in Red males", 
                  "SSAV/Control in NonRed males", 
-                 2.5, "Male-biased (n = 3,086)")
+                 2.5, "Male-biased (n = 3,110)")
 
 
 more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",], 
@@ -185,23 +184,23 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
                       "red3", "black", "darkgrey",
                       "SSAV/Control in Red males", 
                       "SSAV/Control in NonRed males", 
-                      2.5, "Highly MB (n = 2,365)")
+                      2.5, "Highly MB (n = 2,372)")
 ########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/blank.pdf",   # The directory you want to save the file in
-    width = 10, # The width of the plot in inches
-    height = 10) # The height of the plot in inches
-ggarrange(AmAff, NA, AmAfm,
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/RedvsNR_bySBGEcat.pdf",   # The directory you want to save the file in
+    width = 20, # The width of the plot in inches
+    height = 30) # The height of the plot in inches
+ggarrange(more_fbg, NA, fbg,
           NA, NA, NA,
-          AmCmf, NA, AmCmm,
+          ubg, NA, mbg,
           NA, NA, NA,
-          AfCmf, NA, AfCmm,
+          more_mbg, NA, NA,
           labels = c("A)", NA, "B)",
                      NA,NA,NA,
                      "C)", NA, "D)",
                      NA,NA,NA,
-                     "E)", NA, "F)"),
+                     "E)", NA, NA),
           ncol = 3, nrow = 5,
           widths = c(1, 0.05, 1),
           heights = c(1, 0.05, 1, 0.05, 1),
