@@ -2,10 +2,11 @@
 #
 #                             Grieshop et al. 2023
 #             DsRed experimental evolution - transcriptomics analysis
-#            Correlation of Red/NR changes in SSAV vs Control samples
+#          Correlation of SSAV/Control changes in Red vs NonRed samples
 # 
 # 
 ###################################
+
 
 # the two functions below are used in the corr plot function below
 
@@ -82,28 +83,24 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 #            lim = x and y axes limit
 #            title = of graph
 plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
-  # do correlation test
-  pear_cor <- cor.test(dat[[x]], dat[[y]],method = "pearson")
   # count the percentages
   quad_n <- quad_count(dat, x, y, lim)
   # manage the colour of points
   quad_col <- colour_quadrant(dat, x, y, colx, coly, colNonCon)
-  
   # plot
   corr <- ggplot(dat, aes_string(x = x, y = y)) +
     geom_point(size = 2, shape = 16, alpha = 0.5, color = quad_col$quadrant) +  
+    
+    # add lines to separate quadrants
     geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
-    # geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
-    # geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
+    geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
+    geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
+    
+    # add percentages
+    geom_text(aes(label = paste(round(perc*100,digits= 2),"%",sep="")), data = quad_n, size = 10) +
     coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
-    # add correlation
-    geom_label(aes(x = 1.5, y = -1.5, 
-                   label = c(paste("r:", round(pear_cor$estimate, digits = 3), 
-                                   "\n[", round(pear_cor$conf.int[1], digits = 3),
-                                   ",", round(pear_cor$conf.int[2], digits = 3), 
-                                   "]", sep = " "))), data = quad_n, size = 10) +
     labs(x = print(xlab), 
          y = print(ylab) ,
          title = print(title)) +
@@ -133,85 +130,80 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   return(corr) # return plot
 }
 
-
-
-
-# set up data frames for correlation plot
+# Set up data frames for plotting
 ########
-tmp.males <- A.m.geno
-colnames(tmp.males) <- c("m.exp_geno", "m.se_geno", "m.padj", "FlyBaseID", "m.TopSig", "m.Sig")
-head(tmp.males)
+tmp.Red <- Red.m.trt
+colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID", "Red.Sig")
 
-tmp.females <- A.f.geno
-colnames(tmp.females) <- c("f.exp_geno", "f.se_geno", "f.padj", "FlyBaseID", "f.Sig")
-head(tmp.females)
+tmp.NR <- NR.m.trt
+colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID", "NR.Sig")
 
-tmp.C.males <- C.m.geno
-colnames(tmp.C.males) <- c("C.m.exp_geno", "C.m.se_geno", "C.m.padj", "FlyBaseID", "C.m.Sig")
-
-########
-
-
-# plotting female candidate SA genes
-########
-
-# SSAV females vs Control males
-corr.plot <- merge(tmp.females, tmp.C.males, by = "FlyBaseID", all = T)
+corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
-CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ],
-                   x = "f.exp_geno", y = "C.m.exp_geno", 
-                   "black", "black", "red3",
-                   "Red/NR in SSAV females", "Red/NR in Control males", 
-                   2.5, "")
+########
 
-# SSAV females vs SSAV males
-corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
-AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ], 
-                   "f.exp_geno", "m.exp_geno", 
-                   "black", "black", "red3", 
-                   "Red/NR in SSAV females", "Red/NR in SSAV males", 
-                   2.5, "")
+# plotting based on SBGE categories
+########
+# you can subset & plot just the candidate genes e.g. = 
+# corr.plot[corr.plot$SBGE_comp == "a.more.fbg" & 
+#           corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID
 
+more_fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "a.more.fbg",], 
+                      "Red.exp_trt", "NR.exp_trt", 
+                      "red3", "black", "darkgrey",
+                      "SSAV/Control in Red males", 
+                      "SSAV/Control in NonRed males", 
+                      2.5, "Highly FB (n = 158)")
+
+
+fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "b.fbg",], 
+                 "Red.exp_trt", "NR.exp_trt", 
+                 "red3", "black", "darkgrey",
+                 "SSAV/Control in Red males", 
+                 "SSAV/Control in NonRed males", 
+                 2.5, "Femaled-biased (n = 3,234)")
+
+
+ubg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "c.ubg",], 
+                 "Red.exp_trt", "NR.exp_trt", 
+                 "red3", "black", "darkgrey",
+                 "SSAV/Control in Red males", 
+                 "SSAV/Control in NonRed males", 
+                 2.5, "Unbiased (n = 3,197)")
+
+
+mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "d.mbg",], 
+                 "Red.exp_trt", "NR.exp_trt", 
+                 "red3", "black", "darkgrey",
+                 "SSAV/Control in Red males", 
+                 "SSAV/Control in NonRed males", 
+                 2.5, "Male-biased (n = 3,086)")
+
+
+more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",], 
+                      "Red.exp_trt", "NR.exp_trt", 
+                      "red3", "black", "darkgrey",
+                      "SSAV/Control in Red males", 
+                      "SSAV/Control in NonRed males", 
+                      2.5, "Highly MB (n = 2,365)")
 ########
 
 
-# plotting male candidate (200 lowest p-val) SA genes
-########
-
-# SSAV males vs Control males
-corr.plot <- merge(tmp.males, tmp.C.males, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
-CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
-                            "m.exp_geno", "C.m.exp_geno",  
-                            "black", "black", "red3",
-                            "Red/NR in SSAV males", "Red/NR in Control males", 
-                            2.5, "")
-
-# SSAV males vs SSAV females
-corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
-AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
-                            "m.exp_geno", "f.exp_geno", 
-                            "black", "black", "red3",
-                            "Red/NR in SSAV males", "Red/NR in SSAV females", 
-                            2.5, "")
-
-########
-
-
-# Save the plots
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/SSAV_Control_4x4.pdf",   # The directory you want to save the file in
-    width = 20, # The width of the plot in inches
-    height = 20) # The height of the plot in inches
-ggarrange(AmAf_fem_cand, NA, AfAm_male_cand,
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/blank.pdf",   # The directory you want to save the file in
+    width = 10, # The width of the plot in inches
+    height = 10) # The height of the plot in inches
+ggarrange(AmAff, NA, AmAfm,
           NA, NA, NA,
-          CmAf_fem_cand, NA, CmAm_male_cand,
+          AmCmf, NA, AmCmm,
+          NA, NA, NA,
+          AfCmf, NA, AfCmm,
           labels = c("A)", NA, "B)",
                      NA,NA,NA,
-                     "C)", NA, "D)"),
-          ncol = 3, nrow = 3,
+                     "C)", NA, "D)",
+                     NA,NA,NA,
+                     "E)", NA, "F)"),
+          ncol = 3, nrow = 5,
           widths = c(1, 0.05, 1),
-          heights = c(1, 0.05, 1),
+          heights = c(1, 0.05, 1, 0.05, 1),
           font.label = list(size = 30))
 dev.off()
