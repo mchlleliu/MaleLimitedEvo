@@ -28,11 +28,20 @@ all_genes_Ruz <- all_genes_Ruz %>%
          Sig = Sig.Af | Sig.Am,
          IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
-test <- fisher.test(x = all_genes_Ruz$Sig, y = all_genes_Ruz$IsRuz)
+# no difference if only looking at Chr2 either.
+all_genes_Ruz_Chr2 <- merge(all_genes_Ruz, Chrs, by = "FlyBaseID", all = T)
+all_genes_Ruz_Chr2 <- all_genes_Ruz_Chr2[!is.na(all_genes_Ruz_Chr2$Sig) & 
+                                           all_genes_Ruz_Chr2$Chr == "2",]
 
-mos_plot_Ruz <- ggbarstats(
-  all_genes_Ruz[!is.na(all_genes_Ruz$Sig) & 
-                  !is.na(all_genes_Ruz$IsRuz),], IsRuz, Sig,
+test <- fisher.test(x = all_genes_Ruz_Chr2$Sig, y = all_genes_Ruz_Chr2$IsRuz)
+
+# enrichment for all genes in SSAV males and females, vs Ruzicka all genes
+mos_plot_Ruz
+
+# enrichment for Chr 2 genes in SSAV males and females, vs Ruzicka Chr 2 genes
+mos_plot_Ruz_Chr2 <- ggbarstats(
+  all_genes_Ruz_Chr2[!is.na(all_genes_Ruz_Chr2$Sig) & 
+                  !is.na(all_genes_Ruz_Chr2$IsRuz),], IsRuz, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",

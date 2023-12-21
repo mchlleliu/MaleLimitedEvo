@@ -28,10 +28,19 @@ all_genes_InnoMorrow <- all_genes_InnoMorrow %>%
          Sig = Sig.Af | Sig.Am,
          IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
 
-test <- fisher.test(x = all_genes_InnoMorrow$Sig, y = all_genes_InnoMorrow$IsInnoMorr)
+# only Chr 2 genes
+all_genes_InnoMorrow_Chr2 <- merge(all_genes_InnoMorrow, Chrs, by = "FlyBaseID", all = T)
+all_genes_InnoMorrow_Chr2 <- all_genes_InnoMorrow_Chr2[!is.na(all_genes_InnoMorrow_Chr2$Sig) &
+                                                                all_genes_InnoMorrow_Chr2$Chr == "2",]
 
-mos_plot_InnoMorr <- ggbarstats(
-  all_genes_InnoMorrow, IsInnoMorr, Sig,
+test <- fisher.test(x = all_genes_InnoMorrow_Chr2$Sig, y = all_genes_InnoMorrow_Chr2$IsInnoMorr)
+
+# enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
+mos_plot_InnoMorr
+
+# enrichment for Chr2 genes in SSAV males and females, vs Innocenti & Morrow Chr2 genes
+mos_plot_InnoMorr_Chr2 <- ggbarstats(
+  all_genes_InnoMorrow_Chr2, IsInnoMorr, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
