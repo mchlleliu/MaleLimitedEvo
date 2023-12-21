@@ -138,6 +138,59 @@ mos_plot_Ruz_Chr2 <- ggbarstats(
 ##########
 
 
+
+# Wong and Holman (2023)
+#########
+# Get Wong & Holman TWAS SA candidate genes
+Wong_Holman <- read.csv(file="Data/Wong_Holman_TWAS.csv", header = TRUE)
+colnames(Wong_Holman)[1] <- "FlyBaseID"
+
+all_genes_Wong <- tibble(merge(all.genes, Chrs, by = "FlyBaseID", all = T))
+all_genes_Wong <- all_genes_Wong %>% 
+  mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
+         Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
+         Sig = Sig.Af | Sig.Am,
+         IsWong = FlyBaseID %in% Wong_Holman$FlyBaseID)
+
+all_genes_Wong_Chr2 <- all_genes_Wong[all_genes_Wong$Chr == "2",]
+
+test <- fisher.test(x = all_genes_Wong_Chr2$Sig, y = all_genes_Wong_Chr2$IsWong)
+
+mos_plot_Wong
+mos_plot_Wong_Chr2 <- ggbarstats(
+  all_genes_Wong_Chr2[!is.na(all_genes_Wong_Chr2$Sig) & 
+                       !is.na(all_genes_Wong_Chr2$IsWong),], IsWong, Sig,
+  results.subtitle = FALSE,
+  subtitle = paste0(
+    "Fisher's exact test", ", p-value = ",
+    ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
+  ), 
+  xlab = NULL
+) +
+  scale_fill_manual(labels = c("in_Wong", "not_in_Wong"),
+                    values = c("darkorchid4", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
+  scale_x_discrete(labels = c("Background", "Candidates")) +
+  theme(plot.title.position = c("panel"),
+        legend.title = element_blank(),
+        legend.position = c("bottom"),
+        #legend.justification = c("right", "bottom"),
+        #legend.box.just = "left",
+        #legend.box.background = element_rect(),
+        legend.box.background = element_rect(),
+        #legend.box.margin = margin(4, 6, 6, 6),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=10, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+
+
+#########
+
+
 # Chloe's genomics candidates
 ##########
 # Get SSAV candidates from genomics data
@@ -190,10 +243,9 @@ mos_plot_Chloe_Chr2 <- ggbarstats(
 ##########
 
 
-
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Inno_Morrow.pdf",  # The directory you want to save the file in
     width = 10, # The width of the plot in inches
     height = 7) # The height of the plot in inches
-mos_plot_InnoMorr # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2
+mos_plot_InnoMorr # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2, mos_plot_Wong, mos_plot_Wong_Chr2
 dev.off()
 
