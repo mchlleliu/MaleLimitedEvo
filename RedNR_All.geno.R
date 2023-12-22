@@ -103,11 +103,13 @@ rm(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig) # remove
 
 ########
 
-# [!is.na(All.geno$SBGE_comp) & !is.na(All.geno$Sig) &
-#    All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,]
 
-## plotting code:
+
+
+## plotting codes:
 # store in object: All.exp_geno, A.f.sig.exp_geno, A.m.sig.exp_geno
+# Binned dot-plot
+########
 binPlot_RedNR <- function(dat, perm_dat){
   ggplot(dat, aes(SBGE_comp, exp_geno, color = trt2)) +
   geom_point(aes(color = trt2), size = 1, shape = 16, 
@@ -166,5 +168,51 @@ ggarrange(All.exp_geno + theme(axis.title.x = element_blank(), legend.position =
           heights = c(1, 0.05, 1, 0.05, 1.25), ncol =1, nrow = 5, 
           font.label = list(size = 30)) 
 dev.off()
+##########
+
+
+# LOESS plots
+##########
+plotLoess <- function(dat_loess, sig_genes = NA){
+  if(!is.null(dim(sig_genes))){
+    plot_dat <- dat_loess[dat_loess$FlyBaseID %in% sig_genes$FlyBaseID,]
+  }
+  else{
+    plot_dat <- dat_loess
+  }
+  min_x <- 5 * round((min(plot_dat$exp_SBGE_ase) - 1) / 5)
+  max_x <-  5 * round((max(plot_dat$exp_SBGE_ase) + 1) / 5)
+  loess <- ggplot(data = plot_dat, aes(exp_SBGE_ase, exp_geno, color=trt2)) + 
+    geom_point(size = 2, shape = 16, alpha = 0.7, colour = "grey") +
+    geom_smooth(method = "loess", span = 0.5) +
+    scale_color_manual(name=NULL, values=c("red3","blue3", "darkgreen")) +
+    # scale_x_continuous(limits = c(min_x, max_x), breaks = seq(min_x, max_x, by = 2.5)) +
+    labs(y="exp. diff (Red/NR)", x="SBGE(ASE)") +
+    geom_hline(yintercept = 0, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+    geom_vline(xintercept = -5, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+    geom_vline(xintercept = 0, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+    geom_vline(xintercept = 5, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+    theme_classic() +
+    theme( # legend.title = element_blank(),
+      #       legend.position = c("None"),
+      #       #legend.justification = c("right", "bottom"),
+      #       #legend.box.just = "left",
+      #       #legend.box.background = element_rect(),
+      #       legend.box.background = element_rect(),
+      #       #legend.box.margin = margin(4, 6, 6, 6),
+      legend.text = element_text(size = 20, color = "black"),
+      axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+      axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+      axis.title.x = element_text(size=40, margin = margin(10,0,0,0), color = "black"),
+      axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+      plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+      plot.margin = margin(6,6,6,6)) + coord_cartesian(xlim = c(-10, 10))
+  return(loess)
+}
+
+
+loess_All.geno_Af_sig <- plotLoess(All.geno, A.f.geno[A.f.geno$Sig==TRUE,])
+loess_All.geno_Am_sig <- plotLoess(All.geno, A.m.geno[A.m.geno$Sig==TRUE,])
+loess_All.geno <- plotLoess(All.geno)
 
 ##########
