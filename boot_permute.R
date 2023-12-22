@@ -25,14 +25,14 @@ library(broom)
 # args: perm_dat = the dataset containing a numeric column to permute
 #       x_col = string denoting the column containing the data to permute
 #       myfun = test statistic function
-#       mu = population test stat. default = 0
 #       n_perm = number of permutations. default = 10,000
 #       alternative = alt. for hypothesis testing
 OnePerm <- function(perm_dat, x_col, 
                       myfun = mean, mu = 0, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
+  set.seed(1000)
   x = perm_dat[[x_col]] # get data to permute
-  x = x - mu # find difference between each value to mu
+  x = x - mu
   n = length(x) # number of data points
   obs.stat = myfun(x) # get observed test statistic
   
@@ -47,11 +47,11 @@ OnePerm <- function(perm_dat, x_col,
   
   # assign p-value
   if(alternative[1]=="less"){
-    pval = sum(perm.stat <= obs.stat) / n_perm
+    pval = (sum(perm.stat <= obs.stat) + 1) / (n_perm + 1)
   } else if(alternative[1]=="greater"){
-    pval = sum(perm.stat >= obs.stat) / n_perm
+    pval = (sum(perm.stat >= obs.stat) + 1) / (n_perm + 1)
   } else{
-    pval = sum(abs(perm.stat) >= abs(obs.stat)) / n_perm
+    pval = (sum(abs(perm.stat) > abs(obs.stat)) + 1) /(n_perm + 1)
   }
   
   # store results in data frame object and return
@@ -64,15 +64,16 @@ OnePerm <- function(perm_dat, x_col,
 # args: perm_dat = the dataset containing a numeric column to permute
 #       x_col =string denoting the column containing the data to permute
 #       SBGE_cat = string denoting the column which specifies SBGE bins
-OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat){
+#       n_perm = optional argument for number of permutations. default is 10,000
+OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat, n_perm = 10000){
   dat <- data.frame() # initialize data.frame object to store results
   # make sure the column of categories is set to factor
-  boot_dat[[SBGE_cat]] <- factor(boot_dat[[SBGE_cat]])
+  perm_dat[[SBGE_cat]] <- factor(perm_dat[[SBGE_cat]])
   
   # go through each level (SBGE categories)
-  for(i in levels(boot_dat[[SBGE_cat]])){
+  for(i in levels(perm_dat[[SBGE_cat]])){
     # for each SBGE category, call the permutation function
-    perm_cat <- c(i, perm1samp(boot_dat[boot_dat[[SBGE_cat]] == i,], 
+    perm_cat <- c(i, OnePerm(perm_dat[perm_dat[[SBGE_cat]] == i,], 
                                x_col = x_col, alternative = "two.sided"))
     
     # concatenate results in the data.frame to return
@@ -80,6 +81,8 @@ OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat){
   }
   
   colnames(dat) <- c(SBGE_cat, "obs.stat", "n", "pval", "Sig")
+  dat$obs.stat <- as.numeric(dat$obs.stat)
+  dat$n <- as.numeric(dat$n)
   return(dat)
 }
 
@@ -95,6 +98,7 @@ OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat){
 TwoPerm <- function(perm_dat, x_col, 
                       groupBy, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
+  set.seed(1000)
   # separate data for groups 1 and 2
   trt1 <- data[data[[groupBy]],][[x_col]]
   trt2 <- data[!data[[groypBy]],][[x_col]]
@@ -122,11 +126,11 @@ TwoPerm <- function(perm_dat, x_col,
   
   # assign p-value
   if(alternative[1]=="less"){
-    pval = sum(diff.permuted <= obs.diff) / n_perm
+    pval = (sum(diff.permuted <= obs.diff) + 1) / (n_perm + 1)
   } else if(alternative[1]=="greater"){
-    pval = sum(diff.permuted >= obs.diff) / n_perm
+    pval = (sum(diff.permuted >= obs.diff) + 1) / (n_perm + 1)
   } else{
-    pval = sum(abs(diff.permuted) >= abs(obs.diff)) / n_perm
+    pval = (sum(abs(diff.permuted) >= abs(obs.diff)) + 1) / (n_perm + 1)
   }
   
   
@@ -158,6 +162,9 @@ TwoPerm_SBGE <- function(perm_dat, x_col, groupBy, SBGE_cat){
     dat <- rbind(dat, comp)
   }
   colnames(dat) <- c(SBGE_dat, "obs.diff", "n_TRUE", "n_FALSE", "pval", "Sig")
+  dat$obs.stat <- as.numeric(dat$obs.diff)
+  dat$n_TRUE <- as.numeric(dat$n_TRUE)
+  dat$n_FALSE <- as.numeric(dat$n_FALSE)
   return(dat)
 }
 

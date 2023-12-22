@@ -472,12 +472,6 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candida
 
 # Combine results into one data frame
 ##########
-A.m.geno$trt2 = "Am"
-A.f.geno$trt2 = "Af"
-C.m.geno$trt2 = "Cm"
-All.geno <- rbind(A.m.geno[-5], A.f.geno, C.m.geno)
-
-
 # Genes present in both SSAV males and SSAV females data
 A.m_A.f.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(genes_all_A.m.A.f) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",

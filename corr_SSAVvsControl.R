@@ -7,6 +7,17 @@
 # 
 ###################################
 
+# load packages
+#########
+library(broom)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggblend)
+library(ggpubr)
+#########
+
+
 # the two functions below are used in the corr plot function below
 
 # quad_count: counts the number of point in each of the 8 quadrants
@@ -215,3 +226,4 @@ ggarrange(AmAf_fem_cand, NA, AfAm_male_cand,
           heights = c(1, 0.05, 1),
           font.label = list(size = 30))
 dev.off()
+
