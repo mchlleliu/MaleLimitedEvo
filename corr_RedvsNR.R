@@ -206,3 +206,129 @@ ggarrange(more_fbg, NA, fbg,
           heights = c(1, 0.05, 1, 0.05, 1),
           font.label = list(size = 30))
 dev.off()
+
+
+
+####### Binned dot-plot for SBGE (A/C)
+
+# Prepare dataset
+##########
+Red.m.trt$geno <- "Red"
+NR.m.trt$geno <- "NR"
+binned.plot <- rbind(Red.m.trt, NR.m.trt)
+binned.plot <- merge(binned.plot, ASE, by = "FlyBaseID", all = T)
+binned.plot <- merge(binned.plot, Chrs, by = "FlyBaseID")
+binned.plot <- binned.plot[!is.na(binned.plot$exp_trt) &
+                             !is.na(binned.plot$exp_SBGE_ase) &
+                             !is.na(binned.plot$Chr),]
+
+## One sample permutation test for differences n.e to 0 (see boot_permute.R for function)
+## by SBGE category
+permed_Red.trt <- OnePerm_SBGE(perm_dat = binned.plot[binned.plot$geno == "Red",],
+                                x_col = "exp_trt", SBGE_cat = "SBGE_comp")
+permed_NR.trt <- OnePerm_SBGE(perm_dat = binned.plot[binned.plot$geno == "NR",],
+                               x_col = "exp_trt", SBGE_cat = "SBGE_comp")
+permed_Red.trt$geno <- "Red"
+permed_NR.trt$geno <- "NR"
+permed_RedNR.trt <- rbind(permed_Red.trt, permed_NR.trt)
+permed_RedNR.trt <- permed_RedNR.trt %>%
+  mutate(holm_padj = p.adjust(permed_RedNR.trt$pval, method = "bonferroni")) %>% 
+  mutate(holm_Sig = ifelse(holm_padj < 0.0015, TRUE, FALSE))
+rm(permed_Red.trt, permed_NR.trt) # remove clutter
+
+# Permutation to test difference between Red and NonRed
+# use temporary dataset for permutation
+tmp_RedNR <- binned.plot
+tmp_RedNR$IsRed <- tmp_RedNR$geno == "Red"
+permDiff_RedNR <- TwoPerm_SBGE(perm_dat = tmp_RedNR, 
+                               x_col = "exp_trt", 
+                               groupBy = "IsRed", 
+                               SBGE_cat = "SBGE_comp")
+
+
+#########
+
+
+# Plotting codes
+#########
+# For 2 groups dot plot with regression line
+p <- ggplot(binned.plot, aes(exp_SBGE_ase, exp_trt, color = geno)) +
+  geom_point(size = 0.4, shape = 16, alpha = 0.5) +
+  geom_smooth(method = "lm",
+              formula = y ~ x,
+              show.legend = FALSE) +
+  labs(x = "SBGE (ASE)", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+       y = "Exp. diff. (A/C)") +
+  scale_colour_manual(values = c("#888888", "red3"), # "purple3", "chartreuse3", "orange2"
+                      labels = c("NR-males", "Red-males")) +
+  guides(color = guide_legend(override.aes = list(shape = c(16, 16),
+                                                  size = c(4, 4),
+                                                  alpha = 1))) +
+  geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+  scale_x_continuous(limits = c(-5, 5), breaks = c(-1, 0, 1)) +
+  scale_y_continuous(limits = c(-1.5, 1.5), breaks = c(-1, -0.5, 0, 0.5, 1)) +
+  theme_classic() +
+  theme(plot.title.position = c("panel"),
+        legend.title = element_blank(),
+        legend.position = c("bottom"),
+        #legend.justification = c("right", "bottom"),
+        #legend.box.just = "left",
+        #legend.box.background = element_rect(),
+        legend.box.background = element_rect(),
+        #legend.box.margin = margin(4, 6, 6, 6),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+        axis.title.x = element_text(size=40, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+
+p
+
+
+
+# Binned dot-plot for A-versus-C in males
+b <- ggplot(binned.plot, aes(SBGE_comp, exp_trt, color = geno)) +
+  geom_point(aes(color = geno), size = 1, shape = 16, alpha = 0.3, 
+             position = position_jitterdodge(jitter.width = 0.2)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
+  labs(x = "SBGE (ASE)", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+       y = "Exp. diff. (A/C)") + 
+  scale_colour_manual(values = c("#888888", "red3"),
+                      labels = c("NR-males", "Red-males")) +
+  guides(color = guide_legend(override.aes = list(shape = c(16, 16),
+                                                  size = c(4, 4),
+                                                  alpha = 1))) +
+  # geom_text(data = permed_RedNR.trt %>% mutate(sig1 = if_else(holm_Sig == 1, "*", "")),
+            # aes(x =SBGE_comp, y = 0.95, label = sig1), size = 9, position = position_dodge(width = 0.8), vjust = -4) +
+  geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+  scale_x_discrete(labels = c("Highly FB", "Female-biased", "Unbiased", "Male-biased", "Highly MB")) + # "Highly FB", "Highly MB", Strongly ant.", "Antagonistic", "Neutral", "Concordant", "Strongly con."
+  scale_y_continuous(limits = c(-1.5, 1.5), breaks = c(-1.5, -1, -0.5, 0, 0.5, 1, 1.5)) +
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c("bottom"),
+        #legend.justification = c("right", "bottom"),
+        #legend.box.just = "left",
+        #legend.box.background = element_rect(),
+        legend.box.background = element_rect(),
+        #legend.box.margin = margin(4, 6, 6, 6),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+        axis.title.x = element_text(size=40, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+
+
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/RedvsNR_binned.pdf",   # The directory you want to save the file in
+    width = 12, # The width of the plot in inches
+    height = 8) # The height of the plot in inches
+b
+dev.off()
+
+##########
+

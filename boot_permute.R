@@ -100,8 +100,8 @@ TwoPerm <- function(perm_dat, x_col,
                       alternative = c("two.sided","less","greater")){
   set.seed(1000)
   # separate data for groups 1 and 2
-  trt1 <- data[data[[groupBy]],][[x_col]]
-  trt2 <- data[!data[[groypBy]],][[x_col]]
+  trt1 <- perm_dat[perm_dat[[groupBy]],][[x_col]]
+  trt2 <- perm_dat[!perm_dat[[groupBy]],][[x_col]]
   # number of observations
   n1 <- length(trt1)
   n2 <- length(trt2)
@@ -114,7 +114,8 @@ TwoPerm <- function(perm_dat, x_col,
   # initialize dataframe for permuted groups
   permuted.trt1 <- c()
   permuted.trt2 <- c()
-  for (i in 1:permutations){
+  diff.permuted <- c()
+  for (i in 1:n_perm){
     # shuffle and build permuted test stat for each group
     permuted.trt1 <- sample(rand.samples, length(n1), replace = F)
     permuted.trt2 <- sample(rand.samples, length(n2), replace = F)
@@ -153,7 +154,7 @@ TwoPerm_SBGE <- function(perm_dat, x_col, groupBy, SBGE_cat){
   # loop through each sex-bias category
   for(i in levels(perm_dat[[SBGE_cat]])){
     # for each SBGE category, call the permutation function
-    comp <- c(i, perm2samp(perm_dat[perm_dat[[SBGE_cat]] == i,], 
+    comp <- c(i, TwoPerm(perm_dat[perm_dat[[SBGE_cat]] == i,], 
                            x_col = x_col, 
                            groupBy = groupBy, 
                            alternative = "two.sided"))
@@ -161,8 +162,8 @@ TwoPerm_SBGE <- function(perm_dat, x_col, groupBy, SBGE_cat){
     # concatenate results in the data.frame to return
     dat <- rbind(dat, comp)
   }
-  colnames(dat) <- c(SBGE_dat, "obs.diff", "n_TRUE", "n_FALSE", "pval", "Sig")
-  dat$obs.stat <- as.numeric(dat$obs.diff)
+  colnames(dat) <- c(SBGE_cat, "obs.diff", "n_TRUE", "n_FALSE", "pval", "Sig")
+  dat$obs.diff <- as.numeric(dat$obs.diff)
   dat$n_TRUE <- as.numeric(dat$n_TRUE)
   dat$n_FALSE <- as.numeric(dat$n_FALSE)
   return(dat)
