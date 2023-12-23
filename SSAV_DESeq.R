@@ -450,8 +450,8 @@ assign_sig <- function(contrast_df){
 
 # note: need to rm() observations with padj == NA
 # change df name as needed
-NR.m.trt <- assign_sig(NR.m.trt)
-dim(NR.m.trt[NR.m.trt$Sig == TRUE, ]) # right number?
+A.f.geno <- assign_sig(A.f.geno)
+dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
 
 
 # this is only for A.m.geno
@@ -464,16 +464,7 @@ dim(NR.m.trt[NR.m.trt$Sig == TRUE, ]) # right number?
 
 
 ## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(A.f.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
 
-
-
-# Combine results into one data frame
-##########
-# Genes present in both SSAV males and SSAV females data
-A.m_A.f.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(genes_all_A.m.A.f) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                                 "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-##########

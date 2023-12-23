@@ -208,6 +208,25 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
   return(boot_SE)
 }
 
+TwoBoot_SBGE <- function(boot_dat, x_col, groupBy, SBGE_cat){
+  dat <- data.frame() # initialize data.frame object to store results
+  # make sure the column of categories is set to factor
+  boot_dat[[SBGE_cat]] <- factor(boot_dat[[SBGE_cat]])
+  comp <- c()
+  # loop through each sex-bias category
+  for(i in levels(boot_dat[[SBGE_cat]])){
+    # for each SBGE category, call the permutation function
+    comp <- TwoBoot(boot_dat[boot_dat[[SBGE_cat]] == i,], 
+                         x_col = x_col, 
+                         groupBy = groupBy)
+    comp[[SBGE_cat]] <- i
+    # concatenate results in the data.frame to return
+    dat <- rbind(dat, comp)
+  }
+  colnames(dat) <- c("Sig", "q05", "q50", "q95", SBGE_cat)
+  return(dat)
+}
+
 ##########
 
 
