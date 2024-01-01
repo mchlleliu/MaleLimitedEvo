@@ -30,7 +30,6 @@ library(broom)
 OnePerm <- function(perm_dat, x_col, 
                       myfun = mean, mu = 0, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
-  set.seed(1000)
   x = perm_dat[[x_col]] # get data to permute
   x = x - mu
   n = length(x) # number of data points
@@ -98,43 +97,41 @@ OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat, n_perm = 10000){
 TwoPerm <- function(perm_dat, x_col, 
                       groupBy, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
-  set.seed(1000)
   # separate data for groups 1 and 2
   trt1 <- perm_dat[perm_dat[[groupBy]],][[x_col]]
   trt2 <- perm_dat[!perm_dat[[groupBy]],][[x_col]]
   # number of observations
   n1 <- length(trt1)
   n2 <- length(trt2)
-  
+
   # observed difference in mean
-  obs.diff <- mean(trt1) - mean(trt2)  
+  obs.diff <- mean(trt1) - mean(trt2)
   # shuffle data from trt1 and trt2
-  rand.samples <- sample(c(trt1, trt2), n1 + n2, replace = F) 
-  
+  rand.samples <- sample(c(trt1, trt2), n1 + n2, replace = F)
+
   # initialize dataframe for permuted groups
   permuted.trt1 <- c()
   permuted.trt2 <- c()
   diff.permuted <- c()
   for (i in 1:n_perm){
     # shuffle and build permuted test stat for each group
-    permuted.trt1 <- sample(rand.samples, length(n1), replace = F)
-    permuted.trt2 <- sample(rand.samples, length(n2), replace = F)
-    
+    permuted.trt1 <- sample(rand.samples, n1, replace = F)
+    permuted.trt2 <- sample(rand.samples, n2, replace = F)
+
     # calculated difference in means for each permutation
-    diff.permuted <- append(diff.permuted, 
-                            mean(permuted.trt1) - mean(permuted.trt2)) # permutation test stat
+    diff.permuted <- append(diff.permuted, mean(permuted.trt1) - mean(permuted.trt2))
   }
-  
+
   # assign p-value
   if(alternative[1]=="less"){
     pval = (sum(diff.permuted <= obs.diff) + 1) / (n_perm + 1)
   } else if(alternative[1]=="greater"){
     pval = (sum(diff.permuted >= obs.diff) + 1) / (n_perm + 1)
   } else{
-    pval = (sum(abs(diff.permuted) >= abs(obs.diff)) + 1) / (n_perm + 1)
+    pval = (sum(abs(diff.permuted) > abs(obs.diff)) + 1) / (n_perm + 1)
   }
-  
-  
+
+
   summary.test <- c(obs.diff, n1, n2, pval, pval < 0.05)
   return(summary.test)
 }

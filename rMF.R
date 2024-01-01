@@ -8,6 +8,22 @@
 # 
 ###################################
 
+# packages 
+#########
+library(tidyr)
+library(plyr)
+library(dplyr)
+library(broom)
+library(ggplot2)
+library(ggblend)
+library(ggpubr)
+library(RColorBrewer)
+########
+
+
+
+## prepare dataset
+##########
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
@@ -18,12 +34,13 @@ colnames(Aneil) <- c("FlyBaseID", "rMF", "Var.F", "pVal.F", "Var.M", "pVal.M")
 Aneil <- na.omit(Aneil) # There's an N/A for rMF
 
 # Combine results into one data frame
-##########
 # Genes present in both SSAV males and SSAV females data
 SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
                                  "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-SSAV.geno <- SSAV.geno %>% mutate(Sig = A.m.Sig | A.f.Sig) # column denotes genes that are candidates in males or females
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 SSAV.geno <- merge(SSAV.geno, Aneil, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$rMF),]
 ##########
@@ -114,42 +131,82 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 # mean rMF candidates vs non-candidates
 ########
 # use the boot and permute functions in boot_permute.R
+# run permutation to test for significant difference between candidates vs non-candidates
 perm_rMF <- TwoPerm(SSAV.geno, x_col = "rMF", groupBy = "Sig")
+# bootstrap 95% confidence interval
 boot_rMF <- TwoBoot(SSAV.geno, x_col = "rMF", groupBy = "Sig")
+# plot the CI and mean.
 rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF")
 ########
 
 
 
-# rMF by SBGE categories
-#########
-# for all candidates (combined male and female candidates)
+## ------------- rMF by SBGE categories ----------------
+# Prepare dataset
 SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
 SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) &
                                  !is.na(SSAV.geno_ASE$rMF) &
                                  !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
+
+#########
+# prepare dataset
+SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = T)
+SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & 
+                                 !is.na(SSAV.geno_ASE$rMF) & 
+                                 !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
+
+## for all candidates (combined male and female candidates)
+# run permutation
 perm_rMF_SBGE <- TwoPerm_SBGE(SSAV.geno_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+# bootstrap 95% conf. interval
 boot_rMF_SBGE <- TwoBoot_SBGE(SSAV.geno_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
-rMF_SBGE <- pointSEplot(boot_dat = boot_rMF_SBGE, perm_dat = perm_rMF_SBGE, 
+# plot
+rMF_SBGE <- pointSEplot(boot_dat = boot_rMF_SBGE[boot_rMF_SBGE$SBGE_comp != "a.more.fbg" & 
+                                                   boot_rMF_SBGE$SBGE_comp != "e.more.mbg",], 
+                        perm_dat = perm_rMF_SBGE[perm_rMF_SBGE$SBGE_comp != "a.more.fbg" & 
+                                                   perm_rMF_SBGE$SBGE_comp != "e.more.mbg",],
                         x_col = "rMF", SBGE_cat = "SBGE_comp")
 
 
-# only female candidates
+## only female candidates
+# run permutation
 perm_rMF_SBGE_A.f <- TwoPerm_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.f.Sig),], 
                                   x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
+# bootstrap 95% conf. interval
 boot_rMF_SBGE_A.f <- TwoBoot_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.f.Sig),],
                                   x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
-rMF_SBGE_A.f <- pointSEplot(boot_dat = boot_rMF_SBGE_A.f, perm_dat = perm_rMF_SBGE_A.f, 
+# plot
+rMF_SBGE_A.f <- pointSEplot(boot_dat = boot_rMF_SBGE_A.f[boot_rMF_SBGE_A.f$SBGE_comp != "a.more.fbg" & 
+                                                           boot_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
+                            perm_dat = perm_rMF_SBGE_A.f[perm_rMF_SBGE_A.f$SBGE_comp != "a.more.fbg" & 
+                                                           perm_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
                         x_col = "rMF", SBGE_cat = "SBGE_comp") # might just cut off the Highly SB genes
 
 
-# only male candidates
+## only male candidates
+# run permutation
 perm_rMF_SBGE_A.m <- TwoPerm_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.Sig),], 
                                   x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
+# bootstrap 95% conf. interval
 boot_rMF_SBGE_A.m <- TwoBoot_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.Sig),],
                                   x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
-rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m, perm_dat = perm_rMF_SBGE_A.m, 
+# plot
+rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m[boot_rMF_SBGE_A.m$SBGE_comp != "a.more.fbg" & 
+                                                           boot_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",], 
+                            perm_dat = perm_rMF_SBGE_A.m[perm_rMF_SBGE_A.m$SBGE_comp != "a.more.fbg" & 
+                                                           perm_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",],
                             x_col = "rMF", SBGE_cat = "SBGE_comp") # might just cut off the Highly SB genes
 
 #########
 
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/rMF_all_notSBGE.pdf",   # The directory you want to save the file in
+    width = 12, # 12, 24 The width of the plot in inches
+    height = 10) # 10 The height of the plot in inches
+rMF_all
+# ggarrange(rMF_SBGE_A.f, NA, rMF_SBGE_A.m,
+#           labels = c("A)", NA, "B)"),
+#           widths = c(1, 0.05, 1),
+#           ncol = 3,
+#           font.label = list(size = 30))
+dev.off()

@@ -57,8 +57,8 @@ permed_A.m.geno$trt2 <- "Am"
 permed_C.m.geno$trt2 <- "Cm"
 permed_All.geno <- rbind(permed_A.f.geno, permed_A.m.geno, permed_C.m.geno)
 permed_All.geno <- permed_All.geno %>%
-  mutate(holm_padj = p.adjust(permed_All.geno$pval, method = "bonferroni")) %>% 
-  mutate(holm_Sig = ifelse(holm_padj < 0.0015, TRUE, FALSE))
+  mutate(holm_padj = p.adjust(permed_All.geno$pval, method = "holm")) %>% 
+  mutate(holm_Sig = ifelse(holm_padj < 0.005, TRUE, FALSE))
 rm(permed_A.f.geno, permed_A.m.geno, permed_C.m.geno) # remove clutter
 
 
@@ -77,8 +77,8 @@ permed_A.m.geno_AfSig$trt2 <- "Am"
 permed_C.m.geno_AfSig$trt2 <- "Cm"
 permed_All.geno_AfSig <- rbind(permed_A.f.geno_AfSig, permed_A.m.geno_AfSig, permed_C.m.geno_AfSig)
 permed_All.geno_AfSig <- permed_All.geno_AfSig %>%
-  mutate(holm_padj = p.adjust(permed_All.geno_AfSig$pval, method = "bonferroni")) %>% 
-  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.0015), TRUE, FALSE))
+  mutate(holm_padj = p.adjust(permed_All.geno_AfSig$pval, method = "holm")) %>% 
+  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, FALSE))
 rm(permed_A.f.geno_AfSig, permed_A.m.geno_AfSig, permed_C.m.geno_AfSig) # remove clutter
 
 
@@ -97,8 +97,8 @@ permed_A.m.geno_AmSig$trt2 <- "Am"
 permed_C.m.geno_AmSig$trt2 <- "Cm"
 permed_All.geno_AmSig <- rbind(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig)
 permed_All.geno_AmSig <- permed_All.geno_AmSig %>%
-  mutate(holm_padj = p.adjust(permed_All.geno_AmSig$pval, method = "bonferroni")) %>% 
-  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.0015), TRUE, FALSE))
+  mutate(holm_padj = p.adjust(permed_All.geno_AmSig$pval, method = "holm")) %>% 
+  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, FALSE))
 rm(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig) # remove clutter
 
 ########
@@ -216,3 +216,5 @@ loess_All.geno_Am_sig <- plotLoess(All.geno, A.m.geno[A.m.geno$Sig==TRUE,])
 loess_All.geno <- plotLoess(All.geno)
 
 ##########
+
+
