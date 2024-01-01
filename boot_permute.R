@@ -30,19 +30,20 @@ library(broom)
 OnePerm <- function(perm_dat, x_col, 
                       myfun = mean, mu = 0, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
-  x = perm_dat[[x_col]] # get data to permute
-  x = x - mu
-  n = length(x) # number of data points
-  obs.stat = myfun(x) # get observed test statistic
+  x <- perm_dat[[x_col]] # get data to permute
+  x <- x - mu
+  n <- length(x) # number of data points
+  obs.stat <- myfun(x) # get observed test statistic
   
-  # make 10,000 matrices of g vectors denoting observations that are above (g=1) or below (g=-1) the null
-  gmat = replicate(n_perm, sample(x = c(1,-1),
+  # make 10,000 matrices of g vectors to randomize observations 
+  # that are above (g=1) or below (g=-1) the null
+  gmat <- replicate(n_perm, sample(x = c(1,-1),
                                  size = n,
                                  replace = TRUE))
   
   # randomly flip/keep signs for each observation using gmat, and
   # find permuted test stat for each permutation
-  perm.stat = apply(gmat*abs(x), 2, myfun) 
+  perm.stat <- apply(gmat*abs(x), 2, myfun) 
   
   # assign p-value
   if(alternative[1]=="less"){
