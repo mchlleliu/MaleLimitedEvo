@@ -45,6 +45,7 @@ SSAV.geno <- merge(SSAV.geno, Aneil, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$rMF),]
 ##########
 
+
 ## plotting function
 pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
   # set y-axis value above each error bar

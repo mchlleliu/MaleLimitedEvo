@@ -168,7 +168,7 @@ ggarrange(All.exp_geno + theme(axis.title.x = element_blank(), legend.position =
           heights = c(1, 0.05, 1, 0.05, 1.25), ncol =1, nrow = 5, 
           font.label = list(size = 30)) 
 dev.off()
-##########
+########
 
 
 # LOESS plots
@@ -217,4 +217,31 @@ loess_All.geno <- plotLoess(All.geno)
 
 ##########
 
+
+# Looking at standard error distribution
+######
+dens_se_plot <- ggplot() + 
+  geom_density(data=All.geno, aes(se_geno, fill= trt2, color = trt2), alpha = 0.2) +
+  labs(x="SE of log2FC") +
+  scale_colour_manual(values = c("darkred", "darkblue", "black"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
+                      labels = c("SSAV females", "SSAV males", "Control males")) +  # "Chr-2", "Chr-3", "X-Chr"
+  scale_fill_manual(values = c("red3", "steelblue3", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
+                    labels = c("SSAV females", "SSAV males", "Control males")) +  # "Chr-2", "Chr-3", "X-Chr"
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.75, 0.85),
+        #       #legend.justification = c("right", "bottom"),
+        #       #legend.box.just = "left",
+        #       #legend.box.background = element_rect(),
+        #       legend.box.background = element_rect(),
+        #       #legend.box.margin = margin(4, 6, 6, 6),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+        axis.title.x = element_text(size=40, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+######
 
