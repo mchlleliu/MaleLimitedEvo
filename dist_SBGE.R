@@ -26,6 +26,11 @@ library(ggplot2)
 
 
 # Prepare plotting dataset
+# load results if not loaded in env.
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+
+# include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
 A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
 A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
 

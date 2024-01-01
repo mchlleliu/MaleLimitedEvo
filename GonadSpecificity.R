@@ -42,7 +42,7 @@ SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 # combine with Gonad specificity data
 SSAV.geno <- merge(SSAV.geno, Gonad, by = "FlyBaseID", all = TRUE)
-# include SBGE categories
+# include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
 SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
 ########
 
