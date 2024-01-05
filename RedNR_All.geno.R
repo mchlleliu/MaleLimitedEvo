@@ -15,6 +15,7 @@ library(dplyr)
 library(ggplot2)
 library(ggblend)
 library(ggpubr)
+library(cowplot)
 #########
 
 # Prepare plotting dataset containing all samples
@@ -216,6 +217,96 @@ loess_All.geno_Am_sig <- plotLoess(All.geno, A.m.geno[A.m.geno$Sig==TRUE,])
 loess_All.geno <- plotLoess(All.geno)
 
 ##########
+
+
+
+# Hist X binned dotplot
+##########
+
+# for number of genes per category
+# dim(A.f.geno_ASE[!is.na(A.f.geno_ASE$exp_SBGE_ase) & A.f.geno_ASE$SBGE_simp == "c.mbg",])
+# A.f.geno = "Female-biased (3,493)", "Unbiased (3,087)", "Male-biased (2,501)"
+# A.m.geno = "Female-biased (3,448)", "Unbiased (3,226)", "Male-biased (5,499)"
+# C.m.geno = "Female-biased (3,451)", "Unbiased (3,224)", "Male-biased (5,485)"
+
+# histogram
+hist_A.f.geno
+hist_A.m.geno
+hist_C.m.geno <- ggplot() + 
+  geom_blank(data=C.m.geno_ASE[!is.na(C.m.geno_ASE$exp_SBGE_ase),],
+                 aes(x=exp_geno, fill = SBGE_simp, color = SBGE_simp)) +
+  geom_histogram(data=C.m.geno_ASE[C.m.geno_ASE$SBGE_simp != "b.ubg",], 
+                 aes(x=exp_geno, y=..count../sum(..count..),
+                     fill=factor(SBGE_simp, levels = c("c.mbg", "b.ubg", "a.fbg")), 
+                     color = factor(SBGE_simp, levels = c("c.mbg", "b.ubg", "a.fbg"))),
+                 alpha = 0.7, position = "identity", binwidth = 0.05) +
+  labs(y="proportion of genes") + 
+  scale_colour_manual(values = c("red3", "#888888", "steelblue3"), # "purple3", "chartreuse3", "orange2"
+                      labels = c("Female-biased (3,451)", "Unbiased (3,224)", "Male-biased (5,485)")) +  # "Chr-2", "Chr-3", "X-Chr"
+  scale_fill_manual(values = c("red3", "#888888", "steelblue3"), # "purple3", "chartreuse3", "orange2"
+                    labels = c("Female-biased (3,451)", "Unbiased (3,224)", "Male-biased (5,485)")) +  # "Chr-2", "Chr-3", "X-Chr"
+  geom_vline(xintercept = 0, size = 0.5, linetype= "dashed", color = "black", alpha = 0.7) +
+  coord_cartesian(xlim = c(-2,2)) +
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.2, 0.85),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+
+binned_A.m.geno
+binned_A.f.geno
+binned_C.m.geno <- ggplot(C.m.geno_ASE[!is.na(C.m.geno_ASE$SBGE_simp),], aes(SBGE_simp, exp_geno)) +
+  geom_point(aes(SBGE_simp, exp_geno, color = SBGE_simp),size = 1, shape = 16, alpha = 0.3, show.legend = FALSE) +
+  geom_boxplot(outlier.shape = NA, fill= c("red3", "#888888", "steelblue3"), alpha = 0.7) + 
+  labs( # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+    y = "Difference in expression (log2FC Red/NonRed)") + 
+  scale_color_manual(values=c("red3", "#888888", "steelblue3")) +
+  guides(color = guide_legend(override.aes = list(shape = c(16, 16, 16),
+                                                  size = c(4, 4, 4),
+                                                  alpha = 1))) +
+  # geom_text(data = permed_t_tests_RvNR %>% mutate(sig1 = if_else(significance == 1, "*", "")),
+  #           aes(x =SBGE_comp, y = 0.95, label = sig1), size = 9, position = position_dodge(width = 0.8), vjust = -4) +
+  geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="dashed", color = "black") +
+  scale_y_continuous(limits = c(-2, 2), breaks = seq(-2, 2, by = 0.5)) +
+  coord_cartesian(xlim = c(-2,2)) +
+  coord_flip() + 
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.title.x = element_text(size=40, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        plot.margin = margin(6,6,6,6)
+  ) 
+
+hist_bin_A.m <- plot_grid(hist_A.m.geno, binned_A.m.geno,
+                          ncol=1, align="v", rel_heights=c(4,1), axis = 'lrbt')
+
+hist_bin_A.f <- plot_grid(hist_A.f.geno, binned_A.f.geno,
+                          ncol=1, align="v", rel_heights=c(4,1), axis = 'lrbt')
+
+hist_bin_C.m <- plot_grid(hist_C.m.geno, binned_C.m.geno,
+                          ncol=1, align="v", rel_heights=c(4,1), axis = 'lrbt')
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/HollisLike_graph.pdf",  # The directory you want to save the file in
+    width = 28, # The width of the plot in inches
+    height = 24) # The height of the plot in inches
+ggarrange(hist_bin_A.f, NA,  hist_bin_A.m, 
+          NA,NA,NA,
+          NA, NA, hist_bin_C.m,    
+          labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, NA),
+          heights = c(1, 0.05, 1), widths = c(1, 0.05, 1),
+          ncol =3, nrow = 3, 
+          font.label = list(size = 30)) 
+dev.off()
+#########
+
 
 
 # Looking at standard error distribution

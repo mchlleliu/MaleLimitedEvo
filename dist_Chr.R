@@ -14,8 +14,8 @@ A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 
 # include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
-A.m.geno_Chr <- merge(A.m.geno, Chrs_All, by = "FlyBaseID", all = TRUE)
-A.f.geno_Chr <- merge(A.f.geno, Chrs_All, by = "FlyBaseID", all = TRUE)
+A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
+A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 
 
 
@@ -77,6 +77,12 @@ plotChrprop <- function(dat, xlab){
           plot.margin = margin(6,6,6,6))
   return(plot_vec)
 }
+
+
+propChr(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
+                       !is.na(A.f.geno_Chr$Chr),])
+propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
+                        !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",])
 
 A.f_Sig <- plotChrprop(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                                        !is.na(A.f.geno_Chr$Chr),], "SBGE (ASE)")
