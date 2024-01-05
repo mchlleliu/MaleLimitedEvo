@@ -51,11 +51,13 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
   # set y-axis value above each error bar
   if(!is.na(SBGE_cat)){
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
-      group_by(SBGE_comp) %>%
-      summarise(max = q95 + 0.05)
+      group_by(.[[SBGE_cat]]) %>%
+      summarise(max = q95 + 0.05) %>% 
+      rename({{SBGE_cat}} := 1)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>%
-      group_by(SBGE_comp) %>%
-      summarise(max = q95 + 0.05)
+      group_by(.[[SBGE_cat]]) %>%
+      summarise(max = q95 + 0.05) %>%
+      rename({{SBGE_cat}} := 1)
   }
   else{
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
@@ -81,12 +83,13 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
       labs(x = "SBGE (ASE)", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
            y = print(x_col)) +
       geom_text(data = perm_dat %>% mutate(sig1 = if_else(Sig==1, "*", "")),
-                aes(x =SBGE_comp, y = y_star, label = sig1), color = "black", size = 10) +
-      geom_text(data = perm_dat,aes(x =SBGE_comp, y = y_count_FALSE, label = n_FALSE), color = "black", size = 6,
-                hjust = 1) +
-      geom_text(data = perm_dat,aes(x =SBGE_comp, y = y_count_TRUE, label = n_TRUE), color = "black", 
-                size = 5.5, hjust = -1) +
-      scale_x_discrete(labels = c("Highly FB","Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) 
+                aes_string(x =SBGE_cat, y = "y_star", label = "sig1"), color = "black", size = 10) +
+      geom_text(data = perm_dat,aes_string(x =SBGE_cat, y = "y_count_FALSE", label = "n_FALSE"), 
+                color = "black", size = 6, hjust = 1) +
+      geom_text(data = perm_dat,aes_string(x =SBGE_cat, y = "y_count_TRUE", label = "n_TRUE"), 
+                color = "black", size = 5.5, hjust = -1) +
+      # change the labels accordingly if needed.
+      scale_x_discrete(labels = c("Highly FB","Female-Biased", "Unbiased", "Male-Biased", "Highly MB"))
   }
   else{
     pointSE_plot <- ggplot(boot_dat) +

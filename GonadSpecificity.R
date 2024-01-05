@@ -297,3 +297,72 @@ ggarrange(testes_Af_most, NA, ovaries_Af_most,
           font.label = list(size = 30))
 dev.off()
 
+
+
+
+
+### -------------- general tissue specificity measures (tao) -----------
+
+## prepare dataset using Singh & Agrawal 2023 data
+##########
+# load results if not loaded in env.
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+# Combine results into one data frame
+# Genes present in both SSAV males and SSAV females data
+SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
+
+
+# load Singh & Agrawal 2023 dataset
+SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SDIU)[2] <- "FlyBaseID"
+# change to order for plotting
+SDIU <- mutate(SDIU, SBGEcat.body.Osada = case_when(
+  SBGEcat.body.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.body.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.body.Osada == "FB" ~ "c.fbg",
+  SBGEcat.body.Osada == "UB" ~ "d.ubg",
+  SBGEcat.body.Osada == "MB" ~ "e.mbg",
+  SBGEcat.body.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.body.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.body.Osada  # Keep other values unchanged
+))
+
+# change to order for plotting
+SDIU <- mutate(SDIU, SBGEcat.head.Osada = case_when(
+  SBGEcat.head.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.head.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.head.Osada == "FB" ~ "c.fbg",
+  SBGEcat.head.Osada == "UB" ~ "d.ubg",
+  SBGEcat.head.Osada == "MB" ~ "e.mbg",
+  SBGEcat.head.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.head.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.head.Osada  # Keep other values unchanged
+))
+str(SDIU)
+
+SSAV.geno <- merge(SSAV.geno, SDIU, by = "FlyBaseID", all = TRUE)
+##########
+
+# this uses the SBGE estimations from Osada et al. 
+perm_tao <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
+                                !is.na(SSAV.geno$tao.FML.FA2) & 
+                                  !is.na(SSAV.geno$SBGEcat.body.Osada),], 
+                         x_col = "tao.FML.FA2", groupBy = "Sig", SBGE_cat = "SBGEcat.body.Osada")
+boot_tao <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
+                                !is.na(SSAV.geno$tao.FML.FA2) & 
+                                  !is.na(SSAV.geno$SBGEcat.body.Osada),], 
+                    x_col = "tao.FML.FA2", groupBy = "Sig", SBGE_cat = "SBGEcat.body.Osada")
+tao_all <- pointSEplot(boot_dat = boot_tao, perm_dat = perm_tao,
+                       x_col = "tao.FML.FA2", SBGE_cat = "SBGEcat.body.Osada") +
+  coord_cartesian(ylim = c(0, 1.2)) + 
+  scale_x_discrete(labels = c("Extreme FB","Strong FB","Female-Biased", 
+                              "Unbiased", "Male-Biased", "Strong MB", "Extreme MB"))
+
+
+

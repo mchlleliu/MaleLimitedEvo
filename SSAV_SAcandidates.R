@@ -19,6 +19,17 @@ library(ggpubr)
 library(ggstatsplot)
 #########
 
+# Prepare dataset
+#########
+# load results if not loaded in env.
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+
+# list of all genes that could be quantified in either or both SSAV male and female samples
+all.genes <- merge(A.f.geno, A.m.geno, by = "FlyBaseID", all = T)
+all.genes <- data.frame(FlyBaseID = unlist(all.genes[, "FlyBaseID"]))
+
+#########
 
 # Innocenti and Morrow (2010)
 ##########
