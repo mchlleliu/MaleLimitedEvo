@@ -169,7 +169,12 @@ rMF_SBGE <- pointSEplot(boot_dat = boot_rMF_SBGE[boot_rMF_SBGE$SBGE_comp != "a.m
                                                    boot_rMF_SBGE$SBGE_comp != "e.more.mbg",], 
                         perm_dat = perm_rMF_SBGE[perm_rMF_SBGE$SBGE_comp != "a.more.fbg" & 
                                                    perm_rMF_SBGE$SBGE_comp != "e.more.mbg",],
-                        x_col = "rMF", SBGE_cat = "SBGE_comp")
+                        x_col = "rMF", SBGE_cat = "SBGE_comp") + 
+  scale_x_discrete(labels = c("Female-Biased", "Unbiased", "Male-Biased"))
+
+pointSEplot(boot_dat = boot_rMF_SBGE, 
+            perm_dat = perm_rMF_SBGE,
+            x_col = "rMF", SBGE_cat = "SBGE_comp")
 
 
 ## only female candidates
@@ -184,7 +189,8 @@ rMF_SBGE_A.f <- pointSEplot(boot_dat = boot_rMF_SBGE_A.f[boot_rMF_SBGE_A.f$SBGE_
                                                            boot_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
                             perm_dat = perm_rMF_SBGE_A.f[perm_rMF_SBGE_A.f$SBGE_comp != "a.more.fbg" & 
                                                            perm_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
-                        x_col = "rMF", SBGE_cat = "SBGE_comp") # might just cut off the Highly SB genes
+                        x_col = "rMF", SBGE_cat = "SBGE_comp") + # might just cut off the Highly SB genes 
+scale_x_discrete(labels = c("Female-Biased", "Unbiased", "Male-Biased"))
 
 
 ## only male candidates
@@ -199,18 +205,19 @@ rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m[boot_rMF_SBGE_A.m$SBGE_
                                                            boot_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",], 
                             perm_dat = perm_rMF_SBGE_A.m[perm_rMF_SBGE_A.m$SBGE_comp != "a.more.fbg" & 
                                                            perm_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",],
-                            x_col = "rMF", SBGE_cat = "SBGE_comp") # might just cut off the Highly SB genes
+                            x_col = "rMF", SBGE_cat = "SBGE_comp") + # might just cut off the Highly SB genes
+  scale_x_discrete(labels = c("Female-Biased", "Unbiased", "Male-Biased"))
 
 #########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/rMF_all_notSBGE.pdf",   # The directory you want to save the file in
-    width = 12, # 12, 24 The width of the plot in inches
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/rMF/rMF_MF_Cand.pdf",   # The directory you want to save the file in
+    width = 24, # 12, 24 The width of the plot in inches
     height = 10) # 10 The height of the plot in inches
-rMF_all
-# ggarrange(rMF_SBGE_A.f, NA, rMF_SBGE_A.m,
-#           labels = c("A)", NA, "B)"),
-#           widths = c(1, 0.05, 1),
-#           ncol = 3,
-#           font.label = list(size = 30))
+ggarrange(rMF_SBGE_A.f, NA, rMF_SBGE_A.m,
+          labels = c("A)", NA, "B)"),
+          widths = c(1, 0.05, 1),
+          ncol = 3,
+          font.label = list(size = 30))
 dev.off()

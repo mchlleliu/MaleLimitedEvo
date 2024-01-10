@@ -8,8 +8,31 @@
 ###################################
 
 
-# the two functions below are used in the corr plot function below
+# load packages
+#########
+library(broom)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggblend)
+library(ggpubr)
+#########
 
+# Load & set up plotting datasets
+########
+# Load dataset if not yet in env
+tmp.Red <- read.delim("Results/Red.m.trt_raw.tsv")
+colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID")
+
+tmp.NR <- read.delim("Results/NR.m.trt_raw.tsv")
+colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID")
+
+corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
+corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
+########
+
+
+# the two functions below are used in the corr plot function below
 # quad_count: counts the number of point in each of the 8 quadrants
 # variables: dat = data.frame object containing the values to be plotted
 #            x = values for group 1, plotted on the x-axis
@@ -98,7 +121,7 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
     geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
     
     # add percentages
-    geom_text(aes(label = paste(round(perc*100,digits= 2),"%",sep="")), data = quad_n, size = 10) +
+    geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 10) +
     coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
     labs(x = print(xlab), 
          y = print(ylab) ,
@@ -129,23 +152,20 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   return(corr) # return plot
 }
 
-# Set up data frames for plotting
-########
-tmp.Red <- Red.m.trt
-colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID", "Red.Sig")
-
-tmp.NR <- NR.m.trt
-colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID", "NR.Sig")
-
-corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
-########
 
 # plotting based on SBGE categories
 ########
 # you can subset & plot just the candidate genes e.g. = 
 # corr.plot[corr.plot$SBGE_comp == "a.more.fbg" & 
 #           corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID
+
+all_RedvNR <- plot_corr(corr.plot, 
+                        "Red.exp_trt", "NR.exp_trt", 
+                        "red3", "black", "darkgrey",
+                        "SSAV/Control in Red males", 
+                        "SSAV/Control in NonRed males", 
+                        2.5, "")
+
 
 more_fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "a.more.fbg",], 
                       "Red.exp_trt", "NR.exp_trt", 
@@ -188,24 +208,56 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
 ########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/RedvsNR_bySBGEcat.pdf",   # The directory you want to save the file in
-    width = 20, # The width of the plot in inches
-    height = 30) # The height of the plot in inches
-ggarrange(more_fbg, NA, fbg,
-          NA, NA, NA,
-          ubg, NA, mbg,
-          NA, NA, NA,
-          more_mbg, NA, NA,
-          labels = c("A)", NA, "B)",
-                     NA,NA,NA,
-                     "C)", NA, "D)",
-                     NA,NA,NA,
-                     "E)", NA, NA),
-          ncol = 3, nrow = 5,
-          widths = c(1, 0.05, 1),
-          heights = c(1, 0.05, 1, 0.05, 1),
-          font.label = list(size = 30))
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/RedvsNR.pdf",   # The directory you want to save the file in
+    width = 10, # 20; The width of the plot in inches
+    height = 10) # 30; The height of the plot in inches
+all_RedvNR
+# ggarrange(more_fbg, NA, fbg,
+#           NA, NA, NA,
+#           ubg, NA, mbg,
+#           NA, NA, NA,
+#           more_mbg, NA, NA,
+#           labels = c("A)", NA, "B)",
+#                      NA,NA,NA,
+#                      "C)", NA, "D)",
+#                      NA,NA,NA,
+#                      "E)", NA, NA),
+#           ncol = 3, nrow = 5,
+#           widths = c(1, 0.05, 1),
+#           heights = c(1, 0.05, 1, 0.05, 1),
+#           font.label = list(size = 30))
 dev.off()
+
+
+
+####### Plotting A/C difference between Red and NonRed Chr
+#########
+corr.plot$Diff <- abs(corr.plot$Red.exp_trt) - abs(corr.plot$NR.exp_trt)
+ggplot(corr.plot %>% mutate(absDiff = ifelse(Diff < 0, "NonRed", "Red"))) + 
+  geom_histogram(aes(x = Diff), binwidth = 0.05, fill = "grey", color = "white") + 
+  geom_vline(xintercept = 0) +
+  labs(x = "\u394 log2FC SSAV/Control", 
+       y = "Count") +
+  # some theme settings...
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c("None"),
+        #legend.justification = c("right", "bottom"),
+        #legend.box.just = "left",
+        #legend.box.background = element_rect(),
+        legend.box.background = element_rect(),
+        #legend.box.margin = margin(4, 6, 6, 6),
+        legend.text = element_text(size = 20, color = "black"),
+        plot.tag = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"), 
+        axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6)
+  )
+
+#########
 
 
 
@@ -331,4 +383,6 @@ b
 dev.off()
 
 ##########
+
+
 

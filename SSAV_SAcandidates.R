@@ -52,7 +52,7 @@ all_genes_InnoMorrow_Chr2 <- merge(all_genes_InnoMorrow, Chrs, by = "FlyBaseID",
 all_genes_InnoMorrow_Chr2 <- all_genes_InnoMorrow_Chr2[!is.na(all_genes_InnoMorrow_Chr2$Sig) &
                                                          all_genes_InnoMorrow_Chr2$Chr == "2",]
 
-test <- fisher.test(x = all_genes_InnoMorrow_Chr2$Sig, y = all_genes_InnoMorrow_Chr2$IsInnoMorr)
+test <- fisher.test(x = all_genes_InnoMorrow_Ch2$Sig, y = all_genes_InnoMorrow_Chr2$IsInnoMorr)
 
 # enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
 mos_plot_InnoMorr
@@ -156,13 +156,56 @@ mos_plot_Ruz_Chr2 <- ggbarstats(
 # Get Wong & Holman TWAS SA candidate genes
 Wong_Holman <- read.csv(file="Data/Wong_Holman_TWAS.csv", header = TRUE)
 colnames(Wong_Holman)[1] <- "FlyBaseID"
+Wong_Holman <- Wong_Holman %>% mutate(SA = ifelse((Female.early.effect < 0 & Female.late.effect < 0) &
+                                                    (Male.early.effect > 0 & Male.late.effect > 0), TRUE, 
+                                                  ifelse((Female.early.effect > 0 & Female.late.effect > 0) &
+                                                           (Male.early.effect < 0 & Male.late.effect < 0), TRUE, FALSE)))
+
+# function modified from Wong & Holman suppl. mat
+# under Plotting and modelling the evidence for antagonism
+# https://lukeholman.github.io/fitnessGWAS/plot_models_variant_effects.html#Frequencies_of_antagonistic_transcripts
+# don't really have the correct data for this...
+get_antagonism_ratios <- function(dat){
+  dat %>%
+    
+    # Convert the LFSR to the probability that the effect size is positive
+    mutate(pp_female_early = ifelse(Female.early.effect > 0, Female.early.pval, 1 - Female.early.pval),
+           pp_female_late  = ifelse(Female.late.effect > 0, Female.late.pval, 1 - Female.late.pval),
+           pp_male_early   = ifelse(Male.early.effect > 0, Male.early.pval, 1 - Male.early.pval),
+           pp_male_late    = ifelse(Male.late.effect > 0, Male.late.pval, 1 - Male.late.pval)) %>%
+    
+    # Calculate the probabilities that beta_i and beta_j have the same/opposite signs
+    mutate(p_sex_concord_early = pp_female_early * pp_male_early + 
+             (1 - pp_female_early) * (1 - pp_male_early),
+           p_sex_antag_early = pp_female_early * (1 - pp_male_early) + 
+             (1 - pp_female_early) * pp_male_early,
+           p_sex_concord_late  = pp_female_late * pp_male_late + 
+             (1 - pp_female_late) * (1 - pp_male_late),
+           p_sex_antag_late = pp_female_late * (1 - pp_male_late) + 
+             (1 - pp_female_late) * pp_male_late,
+           p_age_concord_females = pp_female_early * pp_female_late + 
+             (1 - pp_female_early) * (1 - pp_female_late),
+           p_age_antag_females = pp_female_early * (1 - pp_female_late) + 
+             (1 - pp_female_early) * pp_female_late,
+           p_age_concord_males = pp_male_early * pp_male_late + (1 - pp_male_early) * (1 - pp_male_late),
+           p_age_antag_males = pp_male_early * (1 - pp_male_late) + (1 - pp_male_early) * pp_male_late) %>%
+    
+    # Find the ratios of some of these two probabilities (i.e. the "evidence ratios")
+    mutate(inter_sex_early = p_sex_concord_early / p_sex_antag_early,
+           inter_sex_late = p_sex_concord_late / p_sex_antag_late,
+           inter_age_females = p_age_concord_females / p_age_antag_females,
+           inter_age_males = p_age_concord_males / p_age_antag_males) 
+}
+test <- Wong_Holman %>% get_antagonism_ratios()
+head(test)
+rm(test)
 
 all_genes_Wong <- tibble(merge(all.genes, Chrs, by = "FlyBaseID", all = T))
 all_genes_Wong <- all_genes_Wong %>% 
   mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
          Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
          Sig = Sig.Af | Sig.Am,
-         IsWong = FlyBaseID %in% Wong_Holman$FlyBaseID)
+         IsWong = FlyBaseID %in% Wong_Holman[Wong_Holman$SA,]$FlyBaseID)
 
 all_genes_Wong_Chr2 <- all_genes_Wong[all_genes_Wong$Chr == "2",]
 
@@ -255,9 +298,9 @@ mos_plot_Chloe_Chr2 <- ggbarstats(
 ##########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Inno_Morrow.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Ruz_Chr2.pdf",  # The directory you want to save the file in
     width = 10, # The width of the plot in inches
     height = 7) # The height of the plot in inches
-mos_plot_InnoMorr # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2, mos_plot_Wong, mos_plot_Wong_Chr2
+mos_plot_Ruz_Chr2 # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2, mos_plot_Wong, mos_plot_Wong_Chr2
 dev.off()
 

@@ -133,7 +133,7 @@ TwoPerm <- function(perm_dat, x_col,
   }
 
 
-  summary.test <- c(obs.diff, n1, n2, pval, pval < 0.05)
+  summary.test <- c(obs.diff, n1, n2, pval, (pval < 0.05 & n1 > 30 & n2 > 30))
   return(summary.test)
 }
 

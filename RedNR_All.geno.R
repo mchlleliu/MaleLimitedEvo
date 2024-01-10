@@ -40,10 +40,14 @@ dim(C.m.geno_ASE) # check how many cut off
 
 # merge all to one dataframe object
 All.geno <- rbind(A.m.geno_ASE[-5], A.f.geno_ASE, C.m.geno_ASE)
+All.geno$SBGE_simp <- as.factor(All.geno$SBGE_simp)
+All.geno$SBGE_comp <- as.factor(All.geno$SBGE_comp)
+All.geno$trt2 <- as.factor(All.geno$trt2)
+str(All.geno)
 #########
 
 
-# Permute datasets
+# Permute against 0
 ########
 ## One sample permutation test for differences n.e to 0 (see boot_permute.R for function)
 ## by SBGE category
@@ -61,7 +65,8 @@ permed_All.geno <- permed_All.geno %>%
   mutate(holm_padj = p.adjust(permed_All.geno$pval, method = "holm")) %>% 
   mutate(holm_Sig = ifelse(holm_padj < 0.005, TRUE, FALSE))
 rm(permed_A.f.geno, permed_A.m.geno, permed_C.m.geno) # remove clutter
-
+write.table(permed_All.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/permed_All.geno.tsv", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
 
 # only candidate genes found in SSAV females
 permed_A.f.geno_AfSig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af" &
@@ -105,6 +110,20 @@ rm(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig) # remove
 ########
 
 
+# Permute SSAV males against Control males
+########
+perm_A.m_C.m <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af",] %>%
+                               mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
+                             x_col = "exp_geno", groupBy = "Am", SBGE_cat = "SBGE_comp")
+perm_A.m.C.m_FemSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
+                                                   All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,] %>%
+                               mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
+                             x_col = "exp_geno", groupBy = "Am", SBGE_cat = "SBGE_comp")
+perm_A.m.C.m_MaleSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
+                                                          All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,] %>%
+                                      mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
+                                    x_col = "exp_geno", groupBy = "Am", SBGE_cat = "SBGE_comp")
+########
 
 
 ## plotting codes:
@@ -125,9 +144,9 @@ binPlot_RedNR <- function(dat, perm_dat){
                                                   size = c(4, 4, 4),
                                                   alpha = 1))) +
   # add star do signify significant difference from 0
-  geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "")),
-            aes(x =SBGE_comp, y = 0.95, label = sig1), 
-            size = 10, position = position_dodge(width = 0.8), vjust = -3.5, show.legend = FALSE) +
+  geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "ns")),
+            aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5,
+            position = position_dodge(width = 0.8), show.legend = FALSE) +
   # add number of genes per category
   geom_text(data = perm_dat, aes(label = n, y = Inf, group = trt2), 
             position = position_dodge(width = 0.8), vjust = 6, size =4.5, show.legend = FALSE) +
@@ -150,16 +169,30 @@ binPlot_RedNR <- function(dat, perm_dat){
   )
 }
 
-All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno)
+All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + geom_signif(comparisons = ) +
+  geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.7, -1.5), xmin = c(1, 2, 3, 4, 5), 
+              xmax = c(1.3, 2.3, 3.3, 4.3, 5.3),
+  annotation = c("*", "*", "*", "*", "*"), tip_length = -0.01, 
+  textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+
 A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
-                                  permed_All.geno_AfSig)
+                                  permed_All.geno_AfSig) +
+  geom_signif(y_position = c(-1.1, -1.1, -1.25), xmin = c(2, 3, 4), 
+              xmax = c(2.3, 3.3, 4.3),
+              annotation = c("*", "*", "*"), tip_length = -0.01, 
+              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+
 A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
-                                  permed_All.geno_AmSig)
+                                  permed_All.geno_AmSig) +
+  geom_signif(y_position = c(-1.15, -1, -1.2), xmin = c(2, 3, 4), 
+              xmax = c(2.3, 3.3, 4.3),
+              annotation = c("*", "*", "*"), tip_length = -0.01, 
+              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
 
 
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/RedvsNR_All.pdf",  # The directory you want to save the file in
-    width = 12, # The width of the plot in inches
-    height = 17) # The height of the plot in inches
+    width = 15, # The width of the plot in inches
+    height = 20) # The height of the plot in inches
 ggarrange(All.exp_geno + theme(axis.title.x = element_blank(), legend.position = c("none")),
           NA, 
           A.f.sig.exp_geno + theme(axis.title.x = element_blank(), legend.position = c("none")), 
@@ -167,7 +200,7 @@ ggarrange(All.exp_geno + theme(axis.title.x = element_blank(), legend.position =
           A.m.sig.exp_geno,         
           labels = c("A)", NA, "B)", NA, "C)"),
           heights = c(1, 0.05, 1, 0.05, 1.25), ncol =1, nrow = 5, 
-          font.label = list(size = 30)) 
+          font.label = list(size = 25)) 
 dev.off()
 ########
 
@@ -300,7 +333,7 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/HollisLike_graph.pdf",  # The director
 ggarrange(hist_bin_A.f, NA,  hist_bin_A.m, 
           NA,NA,NA,
           NA, NA, hist_bin_C.m,    
-          labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, NA),
+          labels = c("A)", NA, "B)", NA, NA, NA, NA, NA, "C)"),
           heights = c(1, 0.05, 1), widths = c(1, 0.05, 1),
           ncol =3, nrow = 3, 
           font.label = list(size = 30)) 

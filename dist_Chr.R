@@ -85,10 +85,10 @@ propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
                         !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",])
 
 A.f_Sig <- plotChrprop(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
-                                       !is.na(A.f.geno_Chr$Chr),], "SBGE (ASE)")
+                                       !is.na(A.f.geno_Chr$Chr),], "Chromosome")
 A.m_Sig <- plotChrprop(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
                            !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",], 
-            "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
+            "Chromosome") + coord_cartesian(ylim = c(0, 0.05))
 
 
 
