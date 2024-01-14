@@ -36,6 +36,9 @@ all.genes <- data.frame(FlyBaseID = unlist(all.genes[, "FlyBaseID"]))
 # Get Innocenti & Morrow (2010) SA candidates
 Inno_Morrow <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/FlyBaseID_InnoMorrow.txt", sep="\t", header=TRUE)
 colnames(Inno_Morrow) <- c("Symbol", "FlyBaseID", "Related_Record")
+
+# some of the Symbols are associated with the same FlyBaseID gene. In that case, I just retained the FlyBaseID info
+# i.e., these features will be regarded as one.
 Innocenti_Morrow_SA_genes <- read_excel("~/Desktop/UofT/SSAV_RNA/Data/Innocenti_Morrow_SA_genes.xls", sheet = "Antagonistic genes")
 Innocenti_Morrow_SA_genes <- merge(Innocenti_Morrow_SA_genes, Inno_Morrow, by = "Symbol", all = T)
 

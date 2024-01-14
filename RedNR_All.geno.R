@@ -133,15 +133,15 @@ perm_A.m.C.m_MaleSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
 binPlot_RedNR <- function(dat, perm_dat){
   ggplot(dat, aes(SBGE_comp, exp_geno, color = trt2)) +
   geom_point(aes(color = trt2), size = 1, shape = 16, 
-             alpha = 0.3, position = position_jitterdodge(jitter.width = 0.17)) +
+             alpha = 0.3, position = position_jitterdodge(jitter.width = 0.35)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
-  labs(x = "SBGE (ASE)", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+  labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
        y = "Exp. diff. (Red/NR)") +
   # title = "C-males") +
   scale_colour_manual(values = c("red3", "steelblue3", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
                       labels = c("SSAV females", "SSAV males", "Control males")) + # "Chr-2", "Chr-3", "X-Chr"
-  guides(color = guide_legend(override.aes = list(shape = c(16, 16, 16),
-                                                  size = c(4, 4, 4),
+  guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
+                                                  size = c(5, 5, 5),
                                                   alpha = 1))) +
   # add star do signify significant difference from 0
   geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "ns")),
@@ -149,9 +149,10 @@ binPlot_RedNR <- function(dat, perm_dat){
             position = position_dodge(width = 0.8), show.legend = FALSE) +
   # add number of genes per category
   geom_text(data = perm_dat, aes(label = n, y = Inf, group = trt2), 
-            position = position_dodge(width = 0.8), vjust = 6, size =4.5, show.legend = FALSE) +
+            position = position_dodge(width = 0.8), vjust = 5, size = 6, show.legend = FALSE) +
   # line at y = 0
   geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype= "solid", color = "black") +
+    geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), color = "grey") +
   scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) + # "Highly ant.", "Antagonistic", "Uncorrelated", "Concordant", "Highly con." .... "Strong pur.", "Purifying sel.", "Neutral", "Positive sel.", "Strong pos."
   scale_y_continuous(limits = c(-2, 2), breaks = c(-2, -1, 0, 1, 2)) +
   # default theme settings:
@@ -159,14 +160,15 @@ binPlot_RedNR <- function(dat, perm_dat){
   theme(plot.title.position = c("panel"),
         legend.title = element_blank(),
         legend.position = c("bottom"),
-        legend.text = element_text(size = 20, color = "black"),
+        legend.text = element_text(size = 25, color = "black"),
         axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
         axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
         axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
         axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
         plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)
-  )
+        plot.margin = margin(6,6,6,6),
+        panel.border = element_rect(colour = "black", fill=NA, size=1)
+  ) 
 }
 
 All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + geom_signif(comparisons = ) +
@@ -190,17 +192,16 @@ A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.
               textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/RedvsNR_All.pdf",  # The directory you want to save the file in
-    width = 15, # The width of the plot in inches
-    height = 20) # The height of the plot in inches
-ggarrange(All.exp_geno + theme(axis.title.x = element_blank(), legend.position = c("none")),
-          NA, 
-          A.f.sig.exp_geno + theme(axis.title.x = element_blank(), legend.position = c("none")), 
-          NA, 
-          A.m.sig.exp_geno,         
-          labels = c("A)", NA, "B)", NA, "C)"),
-          heights = c(1, 0.05, 1, 0.05, 1.25), ncol =1, nrow = 5, 
-          font.label = list(size = 25)) 
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Fig3_suppl.pdf",  # The directory you want to save the file in
+    width = 15, # 15 The width of the plot in inches
+    height = 14) # 8 The height of the plot in inches
+ggarrange(A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          NA, A.f.sig.exp_geno,
+          labels = c("A)", NA, "B)", NA),
+          heights = c(1, 0.05, 1, 0.01), ncol =1, nrow = 4,
+          font.label = list(size = 25),
+          common.legend = TRUE, legend = "bottom")
+# All.exp_geno
 dev.off()
 ########
 

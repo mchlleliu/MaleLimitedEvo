@@ -9,6 +9,7 @@
 ###################################
 
 # Prepare plotting dataset
+########
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
@@ -17,7 +18,15 @@ A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 
-
+SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
+SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]
+#########
 
 ## binned proportion of candidate genes
 propChr <- function(dat){
@@ -84,6 +93,8 @@ propChr(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
 propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
                         !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",])
 
+All_geno <- plotChrprop(SSAV.geno[SSAV.geno$Chr != "Y",], "Chromosome")
+
 A.f_Sig <- plotChrprop(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                                        !is.na(A.f.geno_Chr$Chr),], "Chromosome")
 A.m_Sig <- plotChrprop(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
@@ -95,7 +106,7 @@ A.m_Sig <- plotChrprop(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Chromosomal_dist.pdf",   # The directory you want to save the file in
     width = 24, # 12, 24 The width of the plot in inches
     height = 10) # 10, 20 The height of the plot in inches
-ggarrange(A.f_Sig, NA, A.m_Sig,
+ggarrange(A.m_Sig, NA, A.f_Sig,
           labels = c("A)", NA, "B)"),
           widths = c(1, 0.05, 1),
           ncol = 3,

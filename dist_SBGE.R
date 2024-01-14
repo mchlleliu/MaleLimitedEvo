@@ -26,14 +26,35 @@ library(ggplot2)
 
 
 # Prepare plotting dataset
+#########
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 
 # include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
 A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
-A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno_ASE$SBGE_comp <- as.factor(A.m.geno_ASE$SBGE_comp)
+A.m.geno_ASE$SBGE_simp <- as.factor(A.m.geno_ASE$SBGE_simp)
+str(A.m.geno_ASE)
 
+A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno_ASE$SBGE_comp <- as.factor(A.f.geno_ASE$SBGE_comp)
+A.f.geno_ASE$SBGE_simp <- as.factor(A.f.geno_ASE$SBGE_simp)
+str(A.f.geno_ASE)
+
+# Genes present in both SSAV males and SSAV females data
+SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
+SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
+SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
+SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
+SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
+str(SSAV.geno_ASE)
+#########
 
 # Density plot functions
 ##########
@@ -218,17 +239,20 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
   prop_all$upper <- prop.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
   
   plot_vec <- ggplot(plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "frac_by_SBGE_bin")) + 
+    geom_hline(yintercept = prop_all[,1],
+               linetype = "dashed", show.legend = TRUE, size = 0.75) +
+    annotate('ribbon', x = c(-Inf, Inf), ymin = prop_all$lower, ymax = prop_all$upper, 
+             alpha = 0.20, fill = 'grey30') +
     geom_errorbar(ymin = plot_dat[plot_dat$Sig,]$lower, ymax = plot_dat[plot_dat$Sig,]$upper,
                   width = 0.5, size = 0.75) +
     geom_point(fill = "forestgreen", color = "forestgreen", size = 7) + 
-    labs(x = print(xlab), # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
-         y = "fraction of candidate genes") +
+    labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+         y = "Proportion of Candidate Genes") +
     scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) +
     scale_y_continuous(limits = c(0, 0.20)) +
-    geom_hline(yintercept = prop_all[,1],
-               linetype = "dashed", show.legend = TRUE, size = 0.6) +
-    annotate('ribbon', x = c(-Inf, Inf), ymin = prop_all$lower, ymax = prop_all$upper, 
-             alpha = 0.15, fill = 'forestgreen') +
+    geom_text(data = plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "upper" , label = "count" ), 
+              size = 7.5, vjust = -0.7) +
+    # geom_vline(xintercept = c(seq(1.5, length(levels(dat[[SBGE_cat]])) )), color = "grey") +
     theme_classic() +
     theme(plot.title.position = c("panel"),
           legend.title = element_blank(),
@@ -239,15 +263,18 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
           legend.box.background = element_rect(),
           #legend.box.margin = margin(4, 6, 6, 6),
           legend.text = element_text(size = 20, color = "black"),
-          axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+          axis.text.x = element_text(size=20, margin = margin(5,0,5,0), color = "black"),
           axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
-          axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
+          axis.title.x = element_text(size=30, margin = margin(10,0,10,0), color = "black"),
           axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
           plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
           plot.margin = margin(6,6,6,6))
   return(plot_vec)
 }
 
+propSBGE(SSAV.geno_ASE, "SBGE_comp")
+
+bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 
 bin_A.f <- plotSBGEprop(A.f.geno_ASE[!is.na(A.f.geno_ASE$Sig) &
                                        !is.na(A.f.geno_ASE$se_SBGE_ase),],
@@ -260,15 +287,22 @@ bin_A.m <- plotSBGEprop(A.m.geno_ASE[!is.na(A.m.geno_ASE$Sig) &
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/candidateSBGEdist.pdf",   # The directory you want to save the file in
-    width = 24, # The width of the plot in inches
-    height = 18) # The height of the plot in inches
-ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,         
-          labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_suppl.pdf",   # The directory you want to save the file in
+    width = 24, # 12 24 The width of the plot in inches
+    height = 10) # 10 20 The height of the plot in inches
+# ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
+#           labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
+#           widths = c(1, 0.05, 1),
+#           heights = c(1, 0.05, 1),
+#           ncol = 3, nrow = 3,
+#           font.label = list(size = 30), hjust = -0.01)
+# bin_All
+
+ggarrange(bin_A.m, NA, bin_A.f,
+          labels = c("A)", NA, "B)"),
           widths = c(1, 0.05, 1),
-          heights = c(1, 0.05, 1),
-          ncol = 3, nrow = 3, 
-          font.label = list(size = 30)) 
+          ncol = 3,
+          font.label = list(size = 30), hjust = -0.01)
 dev.off()
 
 ##########
