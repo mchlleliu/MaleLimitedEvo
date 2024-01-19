@@ -68,6 +68,27 @@ rm(permed_A.f.geno, permed_A.m.geno, permed_C.m.geno) # remove clutter
 write.table(permed_All.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/permed_All.geno.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 
+
+
+# all candidate genes
+permed_A.f.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af" &
+                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_A.m.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Am" &
+                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_C.m.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Cm" &
+                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_A.f.geno_Sig$trt2 <- "Af"
+permed_A.m.geno_Sig$trt2 <- "Am"
+permed_C.m.geno_Sig$trt2 <- "Cm"
+permed_All.geno_Sig <- rbind(permed_A.f.geno_Sig, permed_A.m.geno_Sig, permed_C.m.geno_Sig)
+permed_All.geno_Sig <- permed_All.geno_Sig %>%
+  mutate(holm_padj = p.adjust(permed_All.geno_Sig$pval, method = "holm")) %>% 
+  mutate(holm_Sig = ifelse(holm_padj < 0.005, TRUE, FALSE))
+rm(permed_A.f.geno_Sig, permed_A.m.geno_Sig, permed_C.m.geno_Sig) # remove clutter
+
 # only candidate genes found in SSAV females
 permed_A.f.geno_AfSig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af" &
                                                       All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
@@ -115,6 +136,12 @@ rm(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig) # remove
 perm_A.m_C.m <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af",] %>%
                                mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
                              x_col = "exp_geno", groupBy = "Am", SBGE_cat = "SBGE_comp")
+
+perm_A.m_C.m_Sig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
+                                                       All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,] %>%
+                               mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
+                             x_col = "exp_geno", groupBy = "Am", SBGE_cat = "SBGE_comp")
+
 perm_A.m.C.m_FemSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
                                                    All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,] %>%
                                mutate(Am = ifelse(trt2 == "Am", TRUE, FALSE)), 
@@ -136,10 +163,10 @@ binPlot_RedNR <- function(dat, perm_dat){
              alpha = 0.3, position = position_jitterdodge(jitter.width = 0.35)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
   labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
-       y = "Exp. diff. (Red/NR)") +
+       y = expression(Log["2"]*"FC (Red/NR)")) +
   # title = "C-males") +
   scale_colour_manual(values = c("red3", "steelblue3", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
-                      labels = c("SSAV females", "SSAV males", "Control males")) + # "Chr-2", "Chr-3", "X-Chr"
+                      labels = c("SM females", "SM males", "C males")) + # "Chr-2", "Chr-3", "X-Chr"
   guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
                                                   size = c(5, 5, 5),
                                                   alpha = 1))) +
@@ -171,11 +198,18 @@ binPlot_RedNR <- function(dat, perm_dat){
   ) 
 }
 
-All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + geom_signif(comparisons = ) +
+All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + 
   geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.7, -1.5), xmin = c(1, 2, 3, 4, 5), 
               xmax = c(1.3, 2.3, 3.3, 4.3, 5.3),
   annotation = c("*", "*", "*", "*", "*"), tip_length = -0.01, 
   textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+
+All.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
+                                  permed_All.geno_Sig) +
+  geom_signif(y_position = c(-1.18, -1.1, -1.25), xmin = c(2, 3, 4), 
+              xmax = c(2.3, 3.3, 4.3),
+              annotation = c("*", "*", "*"), tip_length = -0.01, 
+              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
 
 A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AfSig) +
@@ -192,16 +226,18 @@ A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.
               textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Fig3_suppl.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_main.pdf",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
-    height = 14) # 8 The height of the plot in inches
-ggarrange(A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-          NA, A.f.sig.exp_geno,
-          labels = c("A)", NA, "B)", NA),
-          heights = c(1, 0.05, 1, 0.01), ncol =1, nrow = 4,
-          font.label = list(size = 25),
-          common.legend = TRUE, legend = "bottom")
-# All.exp_geno
+    height = 8) # 8 The height of the plot in inches
+# ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+#           NA,
+#           A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+#           NA, A.f.sig.exp_geno, NA,
+#           labels = c("A)", NA, "B)", NA, "C)", NA),
+#           heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+#           font.label = list(size = 25),
+#           common.legend = TRUE, legend = "bottom")
+All.exp_geno
 dev.off()
 ########
 

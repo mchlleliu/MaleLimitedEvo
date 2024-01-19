@@ -28,7 +28,6 @@ library(DESeq2)
 library(apeglm)
 library(ashr)
 library(vsn)
-library(hexbin)
 library(ggplot2)
 library(ggblend)
 library(ggpubr)
@@ -468,3 +467,19 @@ write.table(A.f.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidate
             row.names = FALSE, col.names = TRUE)
 ##########
 
+
+# Combine SSAV males and females
+########
+SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+                           +                                  "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig),]
+
+# only keep concordant changes
+SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 1 & SSAV.geno$A.m.exp_geno > 1) |
+                             (SSAV.geno$A.f.exp_geno < 1 & SSAV.geno$A.m.exp_geno < 1),])
+
+########

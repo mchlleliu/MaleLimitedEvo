@@ -149,6 +149,12 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
 
 # set up data frames for correlation plot
 ########
+# load datasets if not loaded yet
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+str(ASE) # load this Mishra et al. dataset first using External_data.R 
+
 tmp.males <- A.m.geno
 colnames(tmp.males) <- c("m.exp_geno", "m.se_geno", "m.padj", "FlyBaseID", "m.TopSig", "m.Sig")
 head(tmp.males)
@@ -171,7 +177,7 @@ corr.plot <- merge(tmp.females, tmp.C.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ],
                    x = "f.exp_geno", y = "C.m.exp_geno", 
-                   "black", "black", "red3",
+                   "black", "black", "red",
                    "Red/NR in SSAV females", "Red/NR in Control males", 
                    2.5, "")
 
@@ -180,7 +186,7 @@ corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ], 
                    "f.exp_geno", "m.exp_geno", 
-                   "black", "black", "red3", 
+                   "black", "black", "red", 
                    "Red/NR in SSAV females", "Red/NR in SSAV males", 
                    2.5, "")
 
@@ -195,7 +201,7 @@ corr.plot <- merge(tmp.males, tmp.C.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "C.m.exp_geno",  
-                            "black", "black", "red3",
+                            "black", "black", "red",
                             "Red/NR in SSAV males", "Red/NR in Control males", 
                             2.5, "")
 
@@ -204,7 +210,7 @@ corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "f.exp_geno", 
-                            "black", "black", "red3",
+                            "black", "black", "red",
                             "Red/NR in SSAV males", "Red/NR in SSAV females", 
                             2.5, "")
 
@@ -215,9 +221,9 @@ AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/SSAV_Control_4x4.pdf",   # The directory you want to save the file in
     width = 20, # The width of the plot in inches
     height = 20) # The height of the plot in inches
-ggarrange(AmAf_fem_cand, NA, AfAm_male_cand,
+ggarrange(AfAm_male_cand, NA, AmAf_fem_cand,
           NA, NA, NA,
-          CmAf_fem_cand, NA, CmAm_male_cand,
+          CmAm_male_cand, NA, CmAf_fem_cand,
           labels = c("A)", NA, "B)",
                      NA,NA,NA,
                      "C)", NA, "D)"),

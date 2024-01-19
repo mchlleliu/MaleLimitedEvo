@@ -168,13 +168,18 @@ testes_All_SBGE <- pointSEplot(boot_dat = boot_testes_All,
 
 
 ## Proportion of most differentiated genes
-SSAV.geno_ASE <-  SSAV.geno_ASE %>% mutate(Most_A.m = ifelse((A.m.exp_geno > quantile(A.m.exp_geno, 0.95, na.rm = T) |
-                                              A.m.exp_geno < quantile(A.m.exp_geno, 0.05, na.rm = T)), 
-                                           TRUE, FALSE),
-                         Most_A.f = ifelse((A.f.exp_geno > quantile(A.f.exp_geno, 0.95, na.rm = T) |
-                                              A.f.exp_geno < quantile(A.f.exp_geno, 0.05, na.rm = T)), 
-                                           TRUE, FALSE))
+# SSAV.geno_ASE <-  SSAV.geno_ASE %>% mutate(Most_A.m = ifelse((A.m.exp_geno > quantile(A.m.exp_geno, 0.875, na.rm = T) |
+#                                               A.m.exp_geno < quantile(A.m.exp_geno, 0.125, na.rm = T)), 
+#                                            TRUE, FALSE),
+#                          Most_A.f = ifelse((A.f.exp_geno > quantile(A.f.exp_geno, 0.875, na.rm = T) |
+#                                               A.f.exp_geno < quantile(A.f.exp_geno, 0.125, na.rm = T)), 
+#                                            TRUE, FALSE))
 
+## most upregulated
+SSAV.geno_ASE <-  SSAV.geno_ASE %>% mutate(Most_A.m = ifelse(A.m.exp_geno > quantile(A.m.exp_geno, 0.75, na.rm = T), 
+                                                             TRUE, FALSE),
+                                           Most_A.f = ifelse(A.f.exp_geno > quantile(A.f.exp_geno, 0.75, na.rm = T), 
+                                                             TRUE, FALSE))
 ## ovaries
 #######
 boot_ovaries_Af_most <- TwoBoot_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$ovariesSpecificity) &

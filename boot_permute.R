@@ -14,6 +14,7 @@ library(tidyr)
 library(plyr)
 library(dplyr)
 library(broom)
+library(data.table)
 ########
 
 # \\||// #
@@ -230,4 +231,4 @@ TwoBoot_SBGE <- function(boot_dat, x_col, groupBy, SBGE_cat){
 
 # testing
 test_dat <- data.frame(dat = c(1,2,3,4,5,6,7,8,9, 10), group = rep(c(TRUE, FALSE)))
-
+TwoBoot(test_dat, x_col = "dat", groupBy = "group", boot_n = 10)

@@ -14,6 +14,7 @@
 
 # packages 
 #########
+library(tidyverse)
 library(tidyr)
 library(plyr)
 library(dplyr)
@@ -210,25 +211,38 @@ DoS_all_SBGE <- pointSEplot(boot_dat = boot_DoS_SBGE, perm_dat = perm_DoS_SBGE,
 # For all candidate genes vs non candidate genes
 ####### 
 # use permutation and bootstrap functions in boot_permute.R
+perm_TajD_N
 perm_TajD <- TwoPerm(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                !is.na(SSAV.geno$tajD.N),], x_col = "tajD.N", groupBy = "Sig")
+                                !is.na(SSAV.geno$tajD.N) &
+                                  !is.na(SSAV.geno$tajD.S),], x_col = "tajD.S", groupBy = "Sig")
+boot_TajD_N
 boot_TajD <- TwoBoot(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                !is.na(SSAV.geno$tajD.N),], x_col = "tajD.N", groupBy = "Sig")
-TajD_all <- pointSEplot(boot_dat = boot_TajD, perm_dat = perm_TajD, x_col = "tajD.N") + 
+                                 !is.na(SSAV.geno$tajD.N) &
+                                 !is.na(SSAV.geno$tajD.S),], x_col = "tajD.S", 
+                     groupBy = "Sig")
+TajD_all <- pointSEplot(boot_dat = boot_TajD, perm_dat = perm_TajD, x_col = "tajD.S") + 
   coord_cartesian(ylim = c(-0.2, 0.1))
+
+ggplot(SSAV.geno[!is.na(SSAV.geno$Sig) & 
+                   !is.na(SSAV.geno$tajD.N) &
+                   !is.na(SSAV.geno$tajD.S),]) + geom_point(aes(x = tajD.N, y = tajD.S, color = Sig), alpha = 0.5)
 
 # by SBGE category 
 # (according to Osada et al. as used in the Sing & Agrawal paper)
+perm_TajD_SBGE_N 
 perm_TajD_SBGE <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                           !is.na(SSAV.geno$tajD.N) & 
+                                           !is.na(SSAV.geno$tajD.S) &
+                                           !is.na(SSAV.geno$tajD.N) &
                                            !is.na(SSAV.geno$SBGEcat.body.Osada),], 
-                               x_col = "tajD.N", 
+                               x_col = "tajD.S", 
                                groupBy = "Sig", 
                                SBGE_cat = "SBGEcat.body.Osada")
+boot_TajD_SBGE_N
 boot_TajD_SBGE <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                           !is.na(SSAV.geno$tajD.N) & 
+                                           !is.na(SSAV.geno$tajD.S) &
+                                           !is.na(SSAV.geno$tajD.N) &
                                            !is.na(SSAV.geno$SBGEcat.body.Osada),],
-                               x_col = "tajD.N", groupBy = "Sig", SBGE_cat = "SBGEcat.body.Osada")
+                               x_col = "tajD.S", groupBy = "Sig", SBGE_cat = "SBGEcat.body.Osada")
 TajD_all_SBGE <- pointSEplot(boot_dat = boot_TajD_SBGE, perm_dat = perm_TajD_SBGE, 
                              x_col = "tajD.N", SBGE_cat = "SBGEcat.body.Osada") + 
   scale_x_discrete(labels = c("Extreme FB","Strong FB","Female-Biased", 
@@ -238,16 +252,21 @@ TajD_all_SBGE <- pointSEplot(boot_dat = boot_TajD_SBGE, perm_dat = perm_TajD_SBG
 # by SBGE category according to Mishra et al. population
 # merge datasets
 SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = T)
+perm_TajD_SBGE_ASE_N
 perm_TajD_SBGE_ASE <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                                !is.na(SSAV.geno$tajD.N) & 
+                                               !is.na(SSAV.geno$tajD.S) &
                                                !is.na(SSAV.geno$SBGE_comp),], 
-                                   x_col = "tajD.N", 
+                                   x_col = "tajD.S", 
                                    groupBy = "Sig", 
                                    SBGE_cat = "SBGE_comp")
+
+boot_TajD_SBGE_ASE_N
 boot_TajD_SBGE_ASE <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                                !is.na(SSAV.geno$tajD.N) & 
+                                               !is.na(SSAV.geno$tajD.S) &
                                                !is.na(SSAV.geno$SBGE_comp),],
-                                   x_col = "tajD.N", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+                                   x_col = "tajD.S", groupBy = "Sig", SBGE_cat = "SBGE_comp")
 TajD_all_SBGE_ASE <- pointSEplot(boot_dat = boot_TajD_SBGE_ASE, perm_dat = perm_TajD_SBGE_ASE, 
                                  x_col = "tajD.N", SBGE_cat = "SBGE_comp") + 
   scale_x_discrete(labels = c("Extreme FB","Strong FB","Female-Biased", 
@@ -268,9 +287,10 @@ perm_All_SBGE_TajD <- perm_All_SBGE_TajD[perm_All_SBGE_TajD$SBGE_comp != "a.more
                                            perm_All_SBGE_TajD$SBGE_comp != "e.more.mbg" ,]
 
 
+Fig6_main_N 
 Fig6_main <- pointSEplot(boot_dat = boot_All_SBGE_TajD, 
                          perm_dat = perm_All_SBGE_TajD, 
-                         x_col = "TajD.N",
+                         x_col = "TajD.S",
                          SBGE_cat = "SBGE_comp") +
   scale_x_discrete(labels = c("All","Highly FB","Female-Biased", 
                               "Unbiased", "Male-Biased", "Highly MB")) +
@@ -567,11 +587,11 @@ Fig6D_suppl <- pointSEplot(boot_dat = boot_All_SBGE_piNfract_A.f,
 #######
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig6_main.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/TajDN_S.pdf",   # The directory you want to save the file in
     width = 18, # 18 The width of the plot in inches
     height = 15) # 15, 25 The height of the plot in inches
-ggarrange(Fig6_main + theme(axis.text.x = element_blank(), axis.title.x = element_text(size = 5)) + labs(x=""),
-          NA, Fig6B_main,
+ggarrange(Fig6_main_N + theme(axis.text.x = element_blank(), axis.title.x = element_text(size = 5)) + labs(x=""),
+          NA, Fig6_main,
           heights = c(1, 0.0005, 1),
           nrow = 3,
           common.legend = TRUE, legend = "bottom",

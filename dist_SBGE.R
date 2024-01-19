@@ -25,7 +25,8 @@ library(ggplot2)
 
 
 
-# Prepare plotting dataset
+# Prepare plotting dataset 
+# (Run this first before anything else!!, make sure you have the correct files/path to them)
 #########
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
@@ -33,11 +34,13 @@ A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 
 # include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
 A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno_ASE <- A.m.geno_ASE[!is.na(A.m.geno_ASE$Sig) & !is.na(A.m.geno_ASE$exp_SBGE_ase),]
 A.m.geno_ASE$SBGE_comp <- as.factor(A.m.geno_ASE$SBGE_comp)
 A.m.geno_ASE$SBGE_simp <- as.factor(A.m.geno_ASE$SBGE_simp)
 str(A.m.geno_ASE)
 
 A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno_ASE <- A.f.geno_ASE[!is.na(A.f.geno_ASE$Sig) & !is.na(A.f.geno_ASE$exp_SBGE_ase),]
 A.f.geno_ASE$SBGE_comp <- as.factor(A.f.geno_ASE$SBGE_comp)
 A.f.geno_ASE$SBGE_simp <- as.factor(A.f.geno_ASE$SBGE_simp)
 str(A.f.geno_ASE)
@@ -55,6 +58,7 @@ SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
 SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
 str(SSAV.geno_ASE)
 #########
+
 
 # Density plot functions
 ##########
@@ -170,6 +174,20 @@ plotDens <- function(dat, bs_dat, diff_dat, x_col, groupBy, x_lab){
 # Plotting
 ##########
 # Candidates vs non-candidate genes in SSAV males
+boot_ALL <- TwoBootDens(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$exp_SBGE_ase) & 
+                                       !is.na(SSAV.geno_ASE$Sig),], 
+                        "exp_SBGE_ase", "Sig")
+diff_ALL <- DiffDens(boot_ALL, x_col = "exp_SBGE_ase")
+ALL <- plotDens(dat = SSAV.geno_ASE[!is.na(SSAV.geno_ASE$exp_SBGE_ase) &
+                                          !is.na(SSAV.geno_ASE$Sig),], 
+                     bs_dat = boot_ALL, 
+                     diff_dat = diff_ALL, 
+                     x_col = "exp_SBGE_ase",
+                     groupBy = "Sig", 
+                     x_lab = "log2FC SBGE (ASE)") +
+  scale_x_continuous(limits = c(-20, 20), breaks = seq(-25,25, by = 5)) +
+  scale_y_continuous(limits = c(-0.175, 0.25))
+
 boot_male_ALL <- TwoBootDens(A.m.geno_ASE[!is.na(A.m.geno_ASE$exp_SBGE_ase) & 
                                             !is.na(A.m.geno_ASE$Sig),], 
                              "exp_SBGE_ase", "Sig")
@@ -218,12 +236,16 @@ propSBGE <- function(dat, SBGE_cat){
   fract <- dat %>% group_by(.[[SBGE_cat]], Sig) %>%
     summarise(count = n()) %>%
     mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS)) %>%
-    rename({{SBGE_cat}} := 1)
+    rename({{SBGE_cat}} := 1) 
   
-  fract <- merge(fract, total_SBGE, by = SBGE_cat) %>% 
+  fract <- merge(fract, total_SBGE, by = SBGE_cat)
+  prop_SIG <- sum(fract[fract$Sig,]$count)/sum(fract[fract$Sig,]$SBGE_count)
+  prop_NS <- sum(fract[!fract$Sig,]$count)/sum(fract[!fract$Sig,]$SBGE_count)
+  
+  fract <- fract %>% 
     rowwise() %>% 
     mutate(frac_by_SBGE_bin = count/SBGE_count,
-           lower = list(binom.test(count, SBGE_count)), 
+           lower = list(binom.test(x=count, n=SBGE_count, p=ifelse(Sig, prop_SIG, prop_NS))), 
            upper = lower$conf.int[2], 
            lower = lower$conf.int[1])
   
@@ -235,8 +257,8 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
   plot_dat <- propSBGE(dat, SBGE_cat)
   
   prop_all <- data.frame(dim(dat[dat$Sig,])[1]/dim(dat)[1])
-  prop_all$lower <- prop.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[1]
-  prop_all$upper <- prop.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
+  prop_all$lower <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[1]
+  prop_all$upper <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
   
   plot_vec <- ggplot(plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "frac_by_SBGE_bin")) + 
     geom_hline(yintercept = prop_all[,1],
@@ -273,22 +295,19 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
 }
 
 propSBGE(SSAV.geno_ASE, "SBGE_comp")
+propSBGE(A.f.geno_ASE, "SBGE_comp")
 
 bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 
-bin_A.f <- plotSBGEprop(A.f.geno_ASE[!is.na(A.f.geno_ASE$Sig) &
-                                       !is.na(A.f.geno_ASE$se_SBGE_ase),],
-                        "SBGE_comp", "SBGE (ASE)")
-bin_A.m <- plotSBGEprop(A.m.geno_ASE[!is.na(A.m.geno_ASE$Sig) &
-                                       !is.na(A.m.geno_ASE$se_SBGE_ase),],
-                        "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
+bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
+bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
 
 ##########
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_suppl.pdf",   # The directory you want to save the file in
-    width = 24, # 12 24 The width of the plot in inches
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main.pdf",   # The directory you want to save the file in
+    width = 14, # 14 24 The width of the plot in inches
     height = 10) # 10 20 The height of the plot in inches
 # ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
 #           labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
@@ -296,13 +315,14 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_suppl.pdf",   # The direct
 #           heights = c(1, 0.05, 1),
 #           ncol = 3, nrow = 3,
 #           font.label = list(size = 30), hjust = -0.01)
-# bin_All
 
-ggarrange(bin_A.m, NA, bin_A.f,
-          labels = c("A)", NA, "B)"),
-          widths = c(1, 0.05, 1),
-          ncol = 3,
-          font.label = list(size = 30), hjust = -0.01)
+bin_All
+
+# ggarrange(bin_A.m, NA, bin_A.f,
+#           labels = c("A)", NA, "B)"),
+#           widths = c(1, 0.05, 1),
+#           ncol = 3,
+#           font.label = list(size = 30), hjust = -0.01)
 dev.off()
 
 ##########

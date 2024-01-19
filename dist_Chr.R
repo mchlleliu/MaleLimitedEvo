@@ -14,9 +14,12 @@
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 
-# include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
+# include Chr 
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
+A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr),]
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
+A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
+
 
 SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
@@ -54,8 +57,8 @@ plotChrprop <- function(dat, xlab){
   plot_dat <- propChr(dat)
   
   prop_all <- data.frame(dim(dat[dat$Sig,])[1]/dim(dat)[1])
-  prop_all$lower <- prop.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[1]
-  prop_all$upper <- prop.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
+  prop_all$lower <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[1]
+  prop_all$upper <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
   
   plot_vec <- ggplot(plot_dat[plot_dat$Sig,], aes_string(x = "Chr", y = "frac_by_Chr")) + 
     geom_errorbar(ymin = plot_dat[plot_dat$Sig,]$lower, ymax = plot_dat[plot_dat$Sig,]$upper,
@@ -68,6 +71,8 @@ plotChrprop <- function(dat, xlab){
                linetype = "dashed", show.legend = TRUE, size = 0.6) +
     annotate('ribbon', x = c(-Inf, Inf), ymin = prop_all$lower, ymax = prop_all$upper, 
              alpha = 0.15, fill = 'forestgreen') +
+    geom_text(data = plot_dat[plot_dat$Sig,], aes_string(x = "Chr", y = "upper" , label = "count" ), 
+              size = 7.5, vjust = -0.7) +
     theme_classic() +
     theme(plot.title.position = c("panel"),
           legend.title = element_blank(),
@@ -87,6 +92,8 @@ plotChrprop <- function(dat, xlab){
   return(plot_vec)
 }
 
+
+propChr(SSAV.geno[SSAV.geno$Chr != "Y",])
 
 propChr(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                        !is.na(A.f.geno_Chr$Chr),])

@@ -10,6 +10,7 @@
 
 # packages 
 #########
+library(tidyverse)
 library(tidyr)
 library(plyr)
 library(dplyr)
@@ -126,7 +127,7 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
           axis.text.x = element_text(size=30, margin = margin(5,0,0,0), color = "black"),
           axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
           axis.title.x = element_text(size=40, margin = margin(10,0,10,0), color = "black", vjust = -0.2),
-          axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+          axis.title.y = element_text(size=40, margin = margin(0,12,0,12), color = "black"),
           plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
           plot.margin = margin(6,6,6,6),
           panel.border = element_rect(colour = "black", fill=NA, size=1)
@@ -236,7 +237,8 @@ Fig4_main <- pointSEplot(boot_dat = boot_All_SBGE_rMF_simp,
   coord_cartesian(ylim = c(0,1)) +
   scale_x_discrete(labels = c("All", "Female-Biased", 
                               "Unbiased", "Male-Biased")) +
-  geom_vline(xintercept = 1.5, color = "black", size = 1.5)
+  geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
+  ylab(expression(italic("r"["MF"])))
 #######
 
 
@@ -260,7 +262,8 @@ Fig4A_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.m,
   scale_x_discrete(labels = c("All", "Female-Biased", 
                               "Unbiased", "Male-Biased")) +
   coord_cartesian(ylim = c(0,1)) +
-  geom_vline(xintercept = 1.5, color = "black", size = 1.5) 
+  geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
+  ylab(expression(italic("r"["MF"])))
 #######
 
 
@@ -286,20 +289,21 @@ Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
   scale_x_discrete(labels = c("All", "Female-Biased", 
                               "Unbiased", "Male-Biased")) +
   coord_cartesian(ylim = c(0,1)) +
-  geom_vline(xintercept = 1.5, color = "black", size = 1.5) 
+  geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
+  ylab(expression(italic("r"["MF"])))
 #######
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig4_suppl.pdf",   # The directory you want to save the file in
-    width = 18, # 16 The width of the plot in inches
-    height = 20) # 13 The height of the plot in inches
-ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
-          Fig4B_suppl,
-          labels = c("A)", "B)"),
-          nrow = 2,
-          common.legend = TRUE, legend = "bottom",
-          font.label = list(size = 30), hjust = -0.01)
-# Fig4_main
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig4_main.pdf",   # The directory you want to save the file in
+    width = 15, # 16 The width of the plot in inches
+    height = 10) # 10 The height of the plot in inches
+# ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
+#           Fig4B_suppl,
+#           labels = c("A)", "B)"),
+#           nrow = 2,
+#           common.legend = TRUE, legend = "bottom",
+#           font.label = list(size = 30), hjust = -0.01)
+Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 22.5))
 dev.off()
 

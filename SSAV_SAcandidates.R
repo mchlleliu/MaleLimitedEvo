@@ -55,7 +55,7 @@ all_genes_InnoMorrow_Chr2 <- merge(all_genes_InnoMorrow, Chrs, by = "FlyBaseID",
 all_genes_InnoMorrow_Chr2 <- all_genes_InnoMorrow_Chr2[!is.na(all_genes_InnoMorrow_Chr2$Sig) &
                                                          all_genes_InnoMorrow_Chr2$Chr == "2",]
 
-test <- fisher.test(x = all_genes_InnoMorrow_Ch2$Sig, y = all_genes_InnoMorrow_Chr2$IsInnoMorr)
+test <- fisher.test(x = all_genes_InnoMorrow$Sig, y = all_genes_InnoMorrow$IsInnoMorr)
 
 # enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
 mos_plot_InnoMorr
