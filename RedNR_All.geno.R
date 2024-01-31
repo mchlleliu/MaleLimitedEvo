@@ -20,6 +20,11 @@ library(cowplot)
 
 # Prepare plotting dataset containing all samples
 #########
+# load datasets
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+
 # merge dataset with out population log2FC estimates. 
 ## Using Mishra et al.'s data. See "External_data.R" for code to bin SBGE categories
 A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = T)
@@ -199,36 +204,36 @@ binPlot_RedNR <- function(dat, perm_dat){
 }
 
 All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + 
-  geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.7, -1.5), xmin = c(1, 2, 3, 4, 5), 
+  geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.7, -1.35), xmin = c(1, 2, 3, 4, 5), 
               xmax = c(1.3, 2.3, 3.3, 4.3, 5.3),
   annotation = c("*", "*", "*", "*", "*"), tip_length = -0.01, 
-  textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+  textsize = 10, size = 0.75, vjust = 1.85, color = "darkblue")
 
 All.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
                                   permed_All.geno_Sig) +
   geom_signif(y_position = c(-1.18, -1.1, -1.25), xmin = c(2, 3, 4), 
               xmax = c(2.3, 3.3, 4.3),
               annotation = c("*", "*", "*"), tip_length = -0.01, 
-              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+              textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AfSig) +
   geom_signif(y_position = c(-1.1, -1.1, -1.25), xmin = c(2, 3, 4), 
               xmax = c(2.3, 3.3, 4.3),
               annotation = c("*", "*", "*"), tip_length = -0.01, 
-              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+              textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AmSig) +
   geom_signif(y_position = c(-1.15, -1, -1.2), xmin = c(2, 3, 4), 
               xmax = c(2.3, 3.3, 4.3),
               annotation = c("*", "*", "*"), tip_length = -0.01, 
-              textsize = 10, size = 0.75, vjust = 1.6, color = "darkblue")
+              textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_main.pdf",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
-    height = 8) # 8 The height of the plot in inches
+    height = 8 ) # 8 20 The height of the plot in inches
 # ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
 #           NA,
 #           A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
@@ -291,7 +296,7 @@ loess_All.geno <- plotLoess(All.geno)
 
 
 # Hist X binned dotplot
-##########
+########
 
 # for number of genes per category
 # dim(A.f.geno_ASE[!is.na(A.f.geno_ASE$exp_SBGE_ase) & A.f.geno_ASE$SBGE_simp == "c.mbg",])
@@ -375,7 +380,7 @@ ggarrange(hist_bin_A.f, NA,  hist_bin_A.m,
           ncol =3, nrow = 3, 
           font.label = list(size = 30)) 
 dev.off()
-#########
+########
 
 
 

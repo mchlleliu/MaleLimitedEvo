@@ -31,6 +31,8 @@ library(ggplot2)
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+
 
 # include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
 A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
@@ -46,12 +48,6 @@ A.f.geno_ASE$SBGE_simp <- as.factor(A.f.geno_ASE$SBGE_simp)
 str(A.f.geno_ASE)
 
 # Genes present in both SSAV males and SSAV females data
-SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-# column denotes genes that are candidates in males or females
-SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
-                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
 SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
 SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
@@ -59,23 +55,6 @@ SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
 str(SSAV.geno_ASE)
 #########
 
-
-# plotting dataset excluding DsRed
-########
-# load results if not loaded in env.
-A.f.geno_DsRed <- read.delim("Results/A.f.geno_candidates_noDsRed.tsv")
-A.m.geno_DsRed <- read.delim("Results/A.m.geno_candidates_noDsRed.tsv")
-SSAV.geno_DsRed <- read.delim("Results/All.geno_candidates_noDsRed.tsv")
-
-# include ASE SBGE data
-A.m.geno_DsRed_ASE <- merge(A.m.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
-A.m.geno_DsRed_ASE <- A.m.geno_DsRed_ASE[!is.na(A.m.geno_DsRed_ASE$Sig) & !is.na(A.m.geno_DsRed_ASE$exp_SBGE_ase),]
-A.f.geno_DsRed_ASE <- merge(A.f.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
-A.f.geno_DsRed_ASE <- A.f.geno_DsRed_ASE[!is.na(A.f.geno_DsRed_ASE$Sig) & !is.na(A.f.geno_DsRed_ASE$exp_SBGE_ase),]
-
-SSAV.geno_DsRed_ASE <- merge(SSAV.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
-SSAV.geno_DsRed_ASE <- SSAV.geno_DsRed_ASE[!is.na(SSAV.geno_DsRed_ASE$Sig) & !is.na(SSAV.geno_DsRed_ASE$exp_SBGE_ase),]
-#########
 
 
 # Density plot functions
@@ -322,12 +301,6 @@ bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
 
-
-# excluding genes near DsRed 
-bin_All_DsRed <- plotSBGEprop(SSAV.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)")
-bin_A.f_DsRed <- plotSBGEprop(A.f.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)")
-bin_A.m_DsRed <- plotSBGEprop(A.m.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
-
 ##########
 
 
@@ -343,9 +316,9 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main.pdf",   # The directo
 #           ncol = 3, nrow = 3,
 #           font.label = list(size = 30), hjust = -0.01)
 
-bin_All
+bin_All_DsRed
 
-# ggarrange(bin_A.m, NA, bin_A.f,
+# ggarrange(bin_A.m_DsRed, NA, bin_A.f_DsRed,
 #           labels = c("A)", NA, "B)"),
 #           widths = c(1, 0.05, 1),
 #           ncol = 3,

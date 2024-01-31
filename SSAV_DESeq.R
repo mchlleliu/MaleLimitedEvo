@@ -462,8 +462,15 @@ dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
 # droplevels(A.m.geno)
 
 
+# Flag genes near DsRed marker
+DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
+A.f.geno <- A.f.geno[!A.f.geno$FlyBaseID %in% DsRed_genes$V1,]
+A.m.geno <- A.m.geno[!A.m.geno$FlyBaseID %in% DsRed_genes$V1,]
+C.m.geno <- C.m.geno[!C.m.geno$FlyBaseID %in% DsRed_genes$V1,]
+
+
 ## change this to the correct file name
-write.table(A.f.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(C.m.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
 
@@ -473,6 +480,7 @@ write.table(A.f.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_candidate
 SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
                           "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+str(SSAV.geno)
 # column denotes genes that are candidates in males or females
 SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
@@ -482,26 +490,22 @@ SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig),]
 SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.exp_geno > 0) |
                              (SSAV.geno$A.f.exp_geno < 0 & SSAV.geno$A.m.exp_geno < 0),])
 
-########
-
-
-# exclude genes near DsRed marker
-########
-DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
-
-A.m.geno_DsRed <- A.m.geno %>% mutate(Sig = ifelse(FlyBaseID %in% DsRed_genes$V1, FALSE, Sig),
-                                      Top.Sig = ifelse(FlyBaseID %in% DsRed_genes$V1, FALSE, Top.Sig))
-A.f.geno_DsRed <- A.f.geno %>% mutate(Sig = ifelse(FlyBaseID %in% DsRed_genes$V1, FALSE, Sig))
-
-SSAV.geno_DsRed <- merge(A.m.geno_DsRed, A.f.geno_DsRed, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno_DsRed) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                                "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-# column denotes genes that are candidates in males or females
-SSAV.geno_DsRed <- SSAV.geno_DsRed %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
-                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
-
-## change this to the correct file name
-write.table(SSAV.geno_DsRed, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates_noDsRed.tsv", sep = "\t", # Fix file name accordingly
+## save to file
+write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
+########
+
+
+########
+# candidates around DsRed marker?
+dim(SSAV.geno[SSAV.geno$FlyBaseID %in% DsRed_genes$V1 & SSAV.geno$Sig,])
+dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Sig,])
+dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Top.Sig,])
+dim(A.f.geno[A.f.geno$FlyBaseID %in% DsRed_genes$V1 & A.f.geno$Sig,])
+# total = 18/592
+# male candidates = 6/200
+# male significant genes = 1/16
+# female candidates = 13/403
+
 ########
 

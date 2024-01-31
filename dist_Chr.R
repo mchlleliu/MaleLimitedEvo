@@ -13,6 +13,7 @@
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
 # include Chr 
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
@@ -20,33 +21,9 @@ A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr)
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
 
-
-SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
 # column denotes genes that are candidates in males or females
-SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
-                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
-SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
-SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]
-#########
-
-
-# plotting dataset excluding DsRed
-########
-# load results if not loaded in env.
-A.f.geno_DsRed <- read.delim("Results/A.f.geno_candidates_noDsRed.tsv")
-A.m.geno_DsRed <- read.delim("Results/A.m.geno_candidates_noDsRed.tsv")
-SSAV.geno_DsRed <- read.delim("Results/All.geno_candidates_noDsRed.tsv")
-
-# include Chr 
-A.m.geno_DsRed_Chr <- merge(A.m.geno_DsRed, Chrs, by = "FlyBaseID", all = TRUE)
-A.m.geno_DsRed_Chr <- A.m.geno_DsRed_Chr[!is.na(A.m.geno_DsRed_Chr$Sig) & !is.na(A.m.geno_DsRed_Chr$Chr),]
-A.f.geno_DsRed_Chr <- merge(A.f.geno_DsRed, Chrs, by = "FlyBaseID", all = TRUE)
-A.f.geno_DsRed_Chr <- A.f.geno_DsRed_Chr[!is.na(A.f.geno_DsRed_Chr$Sig) & !is.na(A.f.geno_DsRed_Chr$Chr),]
-
-SSAV.geno_DsRed_Chr <- merge(SSAV.geno_DsRed, Chrs, by = "FlyBaseID", all = TRUE)
-SSAV.geno_DsRed_Chr <- SSAV.geno_DsRed_Chr[!is.na(SSAV.geno_DsRed_Chr$Sig) & !is.na(SSAV.geno_DsRed_Chr$Chr),]
+SSAV.geno_Chr <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
+SSAV.geno_Chr <- SSAV.geno_Chr[!is.na(SSAV.geno_Chr$Sig) & !is.na(SSAV.geno_Chr$Chr),]
 #########
 
 
@@ -112,7 +89,7 @@ plotChrprop <- function(dat, xlab){
 }
 
 
-propChr(SSAV.geno[SSAV.geno$Chr != "Y",])
+propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
 
 propChr(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                        !is.na(A.f.geno_Chr$Chr),])
@@ -124,50 +101,32 @@ propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
 
 # Fisher's exact tests for diff. in proportions
 ######
-fisher.test(SSAV.geno$Sig, SSAV.geno$Chr)
+fisher.test(SSAV.geno_Chr$Sig, SSAV.geno_Chr$Chr)
 # for all candidates 
 # deficit of X relative to Chr2 and Chr 3
 # Chr2 vs Chr3
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$Chr)
+fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "3",]$Sig, 
+            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "3",]$Chr)
 # Chr2 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$Chr)
+fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "X",]$Sig, 
+            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "X",]$Chr)
 # Chr3 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$Chr)
+fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "3" | SSAV.geno_Chr$Chr == "X",]$Sig, 
+            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "3" | SSAV.geno_Chr$Chr == "X",]$Chr)
 
 
 # for male candidates 
 # deficit of X relative to Chr2 and Chr 3
-# Chr2 vs Chr3
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$A.m.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$Chr)
-# Chr2 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$A.m.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$Chr)
-# Chr3 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$A.m.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$Chr)
 
 
 # for female candidates 
 # deficit of both Chr3 and X relative to Chr2
-# Chr2 vs Chr3
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$A.f.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "3",]$Chr)
-# Chr2 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$A.f.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "2" | SSAV.geno$Chr == "X",]$Chr)
-# Chr3 vs ChrX
-fisher.test(SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$A.f.Sig, 
-            y = SSAV.geno[SSAV.geno$Chr == "3" | SSAV.geno$Chr == "X",]$Chr)
 
 ######
 
 
 
-All_geno <- plotChrprop(SSAV.geno[SSAV.geno$Chr != "Y",], "Chromosome")
+All_geno <- plotChrprop(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",], "Chromosome")
 
 A.f_Sig <- plotChrprop(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                                        !is.na(A.f.geno_Chr$Chr),], "Chromosome")
@@ -175,14 +134,6 @@ A.m_Sig <- plotChrprop(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
                            !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",], 
             "Chromosome") + coord_cartesian(ylim = c(0, 0.05))
 
-
-# excluding genes near DsRed
-All_geno_DsRed <- plotChrprop(SSAV.geno_DsRed_Chr[SSAV.geno_DsRed_Chr$Chr != "Y",], "Chromosome")
-A.f_Sig_DsRed <- plotChrprop(A.f.geno_DsRed_Chr[!is.na(A.f.geno_DsRed_Chr$Sig) &
-                                      !is.na(A.f.geno_DsRed_Chr$Chr),], "Chromosome")
-A.m_Sig_DsRed <- plotChrprop(A.m.geno_DsRed_Chr[!is.na(A.m.geno_DsRed_Chr$Sig) &
-                                      !is.na(A.m.geno_DsRed_Chr$Chr) & A.m.geno_DsRed_Chr$Chr != "Y",], 
-                       "Chromosome") + coord_cartesian(ylim = c(0, 0.05))
 
 
 

@@ -22,9 +22,11 @@ library(ggpubr)
 ########
 # Load dataset if not yet in env
 tmp.Red <- read.delim("Results/Red.m.trt_raw.tsv")
+tmp.Red <- tmp.Red[!tmp.Red$FlyBaseID %in% DsRed_genes$V1,]
 colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID")
 
 tmp.NR <- read.delim("Results/NR.m.trt_raw.tsv")
+tmp.NR <- tmp.NR[!tmp.NR$FlyBaseID %in% DsRed_genes$V1,]
 colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID")
 
 corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
