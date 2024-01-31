@@ -179,7 +179,9 @@ CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
                    x = "f.exp_geno", y = "C.m.exp_geno", 
                    "black", "black", "red",
                    "Red/NR in SSAV females", "Red/NR in Control males", 
-                   2.5, "")
+                   2.5, "") +
+  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Females"),
+       y = expression(Log["2"]*"FC (Red/NR) in C Males"))
 
 # SSAV females vs SSAV males
 corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
@@ -188,7 +190,9 @@ AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
                    "f.exp_geno", "m.exp_geno", 
                    "black", "black", "red", 
                    "Red/NR in SSAV females", "Red/NR in SSAV males", 
-                   2.5, "")
+                   2.5, "") +
+  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Females"),
+       y = expression(Log["2"]*"FC (Red/NR) in SM Males"))
 
 ########
 
@@ -203,7 +207,9 @@ CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
                             "m.exp_geno", "C.m.exp_geno",  
                             "black", "black", "red",
                             "Red/NR in SSAV males", "Red/NR in Control males", 
-                            2.5, "")
+                            2.5, "") +
+  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Males"),
+       y = expression(Log["2"]*"FC (Red/NR) in C Males"))
 
 # SSAV males vs SSAV females
 corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
@@ -212,7 +218,9 @@ AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
                             "m.exp_geno", "f.exp_geno", 
                             "black", "black", "red",
                             "Red/NR in SSAV males", "Red/NR in SSAV females", 
-                            2.5, "")
+                            2.5, "") +
+  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Males"),
+       y = expression(Log["2"]*"FC (Red/NR) in SM Females"))
 
 ########
 

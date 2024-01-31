@@ -41,7 +41,7 @@ corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
 # return: a data frame with number of points, 
 #         proportion relative to total points, 
 #         and plotting coordinates
-quad_count <- function(dat, x, y, lim){
+quad_count <- function(dat, x, y, lim = 5){
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
     count(right = .[[x]] > 0, # on the right side of plot?
@@ -164,7 +164,10 @@ all_RedvNR <- plot_corr(corr.plot,
                         "red3", "black", "darkgrey",
                         "SSAV/Control in Red males", 
                         "SSAV/Control in NonRed males", 
-                        2.5, "")
+                        2.5, "") +
+  labs(x = expression(Log["2"]*"FC (SM/C) in Red Males"),
+       y = expression(Log["2"]*"FC (SM/C) in NonRed Males")) +
+  theme(title = element_blank())
 
 
 more_fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "a.more.fbg",], 
@@ -208,7 +211,7 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
 ########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/RedvsNR.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig5_main.pdf",   # The directory you want to save the file in
     width = 10, # 20; The width of the plot in inches
     height = 10) # 30; The height of the plot in inches
 all_RedvNR

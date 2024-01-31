@@ -180,6 +180,52 @@ SSAV.geno_ASE <-  SSAV.geno_ASE %>% mutate(Most_A.m = ifelse(A.m.exp_geno > quan
                                                              TRUE, FALSE),
                                            Most_A.f = ifelse(A.f.exp_geno > quantile(A.f.exp_geno, 0.75, na.rm = T), 
                                                              TRUE, FALSE))
+# only Highly MB genes
+High_MB.geno_ASE <- SSAV.geno_ASE[SSAV.geno_ASE$SBGE_comp == "e.more.mbg",]
+High_MB.geno_ASE <-  High_MB.geno_ASE %>% mutate(t5_A.m = ifelse(A.m.exp_geno > quantile(A.m.exp_geno, 0.95, na.rm = T), 
+                                                                 TRUE, FALSE),
+                                                t10_A.m = ifelse(A.m.exp_geno > quantile(A.m.exp_geno, 0.90, na.rm = T), 
+                                                                 TRUE, FALSE),
+                                                t25_A.m = ifelse(A.m.exp_geno > quantile(A.m.exp_geno, 0.75, na.rm = T), 
+                                                                 TRUE, FALSE))
+
+# Test for Highly Mb genes
+######
+t5_HiMB_boot <- TwoBoot(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                             !is.na(High_MB.geno_ASE$t5_A.m) &
+                                             !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                             x_col = "testesSpecificity", 
+                             groupBy = "t5_A.m")
+t5_HiMB_perm <- TwoPerm(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                           !is.na(High_MB.geno_ASE$t5_A.m) &
+                                           !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                        x_col = "testesSpecificity", 
+                        groupBy = "t5_A.m")
+
+t10_HiMB_boot <- TwoBoot(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                           !is.na(High_MB.geno_ASE$t10_A.m) &
+                                           !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                        x_col = "testesSpecificity", 
+                        groupBy = "t10_A.m")
+t10_HiMB_perm <- TwoPerm(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                           !is.na(High_MB.geno_ASE$t10_A.m) &
+                                           !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                        x_col = "testesSpecificity", 
+                        groupBy = "t10_A.m")
+t25_HiMB_boot <- TwoBoot(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                            !is.na(High_MB.geno_ASE$t25_A.m) &
+                                            !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                         x_col = "testesSpecificity", 
+                         groupBy = "t25_A.m")
+t25_HiMB_perm <- TwoPerm(High_MB.geno_ASE[!is.na(High_MB.geno_ASE$testesSpecificity) &
+                                            !is.na(High_MB.geno_ASE$t25_A.m) &
+                                            !is.na(High_MB.geno_ASE$exp_SBGE_ase),], 
+                         x_col = "testesSpecificity", 
+                         groupBy = "t25_A.m")
+  
+######
+
+
 ## ovaries
 #######
 boot_ovaries_Af_most <- TwoBoot_SBGE(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$ovariesSpecificity) &
@@ -279,6 +325,8 @@ testes_Am_most <- pointSEplot(boot_dat = boot_testes_Am_most,
                       labels = c("not DE", "DE"))# "Chr-2", "Chr-3", "X-Chr"
 
 #######
+
+
 
 
 

@@ -44,6 +44,13 @@ SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 SSAV.geno <- merge(SSAV.geno, Aneil, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$rMF),]
+
+
+
+# load results, excluding genes near DsRed marker
+SSAV.geno_DsRed <- read.delim("Results/All.geno_candidates_noDsRed.tsv")
+SSAV.geno_DsRed_rMF <- merge(SSAV.geno_DsRed, Aneil, by = "FlyBaseID", all = TRUE)
+SSAV.geno_DsRed_rMF <- SSAV.geno_DsRed_rMF[!is.na(SSAV.geno_DsRed_rMF$Sig) & !is.na(SSAV.geno_DsRed_rMF$rMF),]
 ##########
 
 
@@ -153,7 +160,14 @@ boot_rMF_A.m <- TwoBoot(SSAV.geno[!is.na(SSAV.geno$A.m.Sig),], "rMF", "A.m.Sig")
 
 perm_rMF_A.f <- TwoPerm(SSAV.geno[!is.na(SSAV.geno$A.f.Sig),], "rMF", "A.f.Sig")
 boot_rMF_A.f <- TwoBoot(SSAV.geno[!is.na(SSAV.geno$A.f.Sig),], "rMF", "A.f.Sig")
+
+
+# excluding genes near DsRed marker
+perm_rMF_DsRed <- TwoPerm(SSAV.geno_DsRed_rMF, x_col = "rMF", groupBy = "Sig")
+boot_rMF_DsRed <- TwoBoot(SSAV.geno_DsRed_rMF, x_col = "rMF", groupBy = "Sig")
 ########
+
+
 
 
 
@@ -210,6 +224,23 @@ rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m[boot_rMF_SBGE_A.m$SBGE_
                             x_col = "rMF", SBGE_cat = "SBGE_comp") + # might just cut off the Highly SB genes
   theme(axis.text.x = element_blank())
 
+
+
+# excluding genes near DsRed marker
+SSAV.geno_DsRed_rMF_ASE <- merge(SSAV.geno_DsRed_rMF, ASE, by = "FlyBaseID", all = T)
+SSAV.geno_DsRed_rMF_ASE <- SSAV.geno_DsRed_rMF_ASE[!is.na(SSAV.geno_DsRed_rMF_ASE$Sig) & 
+                                 !is.na(SSAV.geno_DsRed_rMF_ASE$rMF) & 
+                                 !is.na(SSAV.geno_DsRed_rMF_ASE$exp_SBGE_ase),]
+perm_rMF_DsRed_SBGE <- TwoPerm_SBGE(SSAV.geno_DsRed_rMF_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+boot_rMF_DsRed_SBGE <- TwoBoot_SBGE(SSAV.geno_DsRed_rMF_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+perm_rMF_DsRed_SBGE_A.m <- TwoPerm_SBGE(SSAV.geno_DsRed_rMF_ASE[!is.na(SSAV.geno_DsRed_rMF_ASE$A.m.Sig),], 
+                                  x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
+boot_rMF_DsRed_SBGE_A.m <- TwoBoot_SBGE(SSAV.geno_DsRed_rMF_ASE[!is.na(SSAV.geno_DsRed_rMF_ASE$A.m.Sig),],
+                                  x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
+perm_rMF_DsRed_SBGE_A.f <- TwoPerm_SBGE(SSAV.geno_DsRed_rMF_ASE[!is.na(SSAV.geno_DsRed_rMF_ASE$A.f.Sig),], 
+                                        x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
+boot_rMF_DsRed_SBGE_A.f <- TwoBoot_SBGE(SSAV.geno_DsRed_rMF_ASE[!is.na(SSAV.geno_DsRed_rMF_ASE$A.f.Sig),],
+                                        x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
 #########
 
 
@@ -239,6 +270,32 @@ Fig4_main <- pointSEplot(boot_dat = boot_All_SBGE_rMF_simp,
                               "Unbiased", "Male-Biased")) +
   geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
   ylab(expression(italic("r"["MF"])))
+
+
+
+
+# exclude DsRed
+perm_All_SBGE_rMF_DsRed <- c("a.all", perm_rMF_DsRed)
+perm_All_SBGE_rMF_DsRed <- rbind(perm_All_SBGE_rMF_DsRed, perm_rMF_DsRed_SBGE)
+
+boot_All_SBGE_rMF_DsRed <- boot_rMF_DsRed
+boot_All_SBGE_rMF_DsRed$SBGE_comp <- "a.all"
+boot_All_SBGE_rMF_DsRed <- rbind(boot_All_SBGE_rMF_DsRed, boot_rMF_DsRed_SBGE)
+
+boot_All_SBGE_rMF_simp_DsRed <- boot_All_SBGE_rMF_DsRed[boot_All_SBGE_rMF_DsRed$SBGE_comp != "a.more.fbg" &
+                                                          boot_All_SBGE_rMF_DsRed$SBGE_comp != "e.more.mbg" ,]
+perm_All_SBGE_rMF_simp_DsRed <- perm_All_SBGE_rMF_DsRed[perm_All_SBGE_rMF_DsRed$SBGE_comp != "a.more.fbg" &
+                                                          perm_All_SBGE_rMF_DsRed$SBGE_comp != "e.more.mbg" ,]
+
+Fig4_main_noDsRed <- pointSEplot(boot_dat = boot_All_SBGE_rMF_simp_DsRed,
+                         perm_dat = perm_All_SBGE_rMF_simp_DsRed, 
+                         x_col = "rMF", SBGE_cat = "SBGE_comp") +
+  coord_cartesian(ylim = c(0,1)) +
+  scale_x_discrete(labels = c("All", "Female-Biased", 
+                              "Unbiased", "Male-Biased")) +
+  geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
+  ylab(expression(italic("r"["MF"])))
+
 #######
 
 
@@ -292,6 +349,8 @@ Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
   geom_vline(xintercept = 1.5, color = "black", size = 1.5) +
   ylab(expression(italic("r"["MF"])))
 #######
+
+
 
 
 

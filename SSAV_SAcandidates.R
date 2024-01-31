@@ -29,7 +29,17 @@ A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 all.genes <- merge(A.f.geno, A.m.geno, by = "FlyBaseID", all = T)
 all.genes <- data.frame(FlyBaseID = unlist(all.genes[, "FlyBaseID"]))
 
+SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
+# column denotes genes that are candidates in males or females
+SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
+                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
+SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]
+SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
 #########
+
 
 # Innocenti and Morrow (2010)
 ##########
@@ -43,26 +53,21 @@ Innocenti_Morrow_SA_genes <- read_excel("~/Desktop/UofT/SSAV_RNA/Data/Innocenti_
 Innocenti_Morrow_SA_genes <- merge(Innocenti_Morrow_SA_genes, Inno_Morrow, by = "Symbol", all = T)
 
 # combine InnoMorrow status with SSAV dataset
-all_genes_InnoMorrow <- tibble(all.genes)
-all_genes_InnoMorrow <- all_genes_InnoMorrow %>% 
-  mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
-         Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
-         Sig = Sig.Af | Sig.Am,
-         IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
+SSAV.geno <- SSAV.geno %>% 
+  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
 
 # only Chr 2 genes
-all_genes_InnoMorrow_Chr2 <- merge(all_genes_InnoMorrow, Chrs, by = "FlyBaseID", all = T)
-all_genes_InnoMorrow_Chr2 <- all_genes_InnoMorrow_Chr2[!is.na(all_genes_InnoMorrow_Chr2$Sig) &
-                                                         all_genes_InnoMorrow_Chr2$Chr == "2",]
+SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
+  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
 
-test <- fisher.test(x = all_genes_InnoMorrow$Sig, y = all_genes_InnoMorrow$IsInnoMorr)
+test <- fisher.test(x = SSAV.geno_Chr2$Sig, y = SSAV.geno_Chr2$IsInnoMorr)
 
 # enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
 mos_plot_InnoMorr
 
 # enrichment for Chr2 genes in SSAV males and females, vs Innocenti & Morrow Chr2 genes
 mos_plot_InnoMorr_Chr2 <- ggbarstats(
-  all_genes_InnoMorrow_Chr2, IsInnoMorr, Sig,
+  SSAV.geno_Chr2, IsInnoMorr, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -101,27 +106,21 @@ colnames(Ruzicka) <- c("FlyBaseID", "FlyBaseName", "Chr", "SA_miss",
                        "SA_nonmiss", "NSA_miss", "NSA_nonmiss")
 
 
-all_genes_Ruz <- tibble(all.genes)
-all_genes_Ruz <- all_genes_Ruz %>% 
-  mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
-         Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
-         Sig = Sig.Af | Sig.Am,
-         IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
+SSAV.geno <- SSAV.geno %>% 
+  mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
 # no difference if only looking at Chr2 either.
-all_genes_Ruz_Chr2 <- merge(all_genes_Ruz, Chrs, by = "FlyBaseID", all = T)
-all_genes_Ruz_Chr2 <- all_genes_Ruz_Chr2[!is.na(all_genes_Ruz_Chr2$Sig) & 
-                                           all_genes_Ruz_Chr2$Chr == "2",]
+SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
+  mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
-test <- fisher.test(x = all_genes_Ruz_Chr2$Sig, y = all_genes_Ruz_Chr2$IsRuz)
+test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsRuz)
 
 # enrichment for all genes in SSAV males and females, vs Ruzicka all genes
 mos_plot_Ruz
 
 # enrichment for Chr 2 genes in SSAV males and females, vs Ruzicka Chr 2 genes
 mos_plot_Ruz_Chr2 <- ggbarstats(
-  all_genes_Ruz_Chr2[!is.na(all_genes_Ruz_Chr2$Sig) & 
-                       !is.na(all_genes_Ruz_Chr2$IsRuz),], IsRuz, Sig,
+  SSAV.geno_Chr2, IsRuz, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -164,60 +163,17 @@ Wong_Holman <- Wong_Holman %>% mutate(SA = ifelse((Female.early.effect < 0 & Fem
                                                   ifelse((Female.early.effect > 0 & Female.late.effect > 0) &
                                                            (Male.early.effect < 0 & Male.late.effect < 0), TRUE, FALSE)))
 
-# function modified from Wong & Holman suppl. mat
-# under Plotting and modelling the evidence for antagonism
-# https://lukeholman.github.io/fitnessGWAS/plot_models_variant_effects.html#Frequencies_of_antagonistic_transcripts
-# don't really have the correct data for this...
-get_antagonism_ratios <- function(dat){
-  dat %>%
-    
-    # Convert the LFSR to the probability that the effect size is positive
-    mutate(pp_female_early = ifelse(Female.early.effect > 0, Female.early.pval, 1 - Female.early.pval),
-           pp_female_late  = ifelse(Female.late.effect > 0, Female.late.pval, 1 - Female.late.pval),
-           pp_male_early   = ifelse(Male.early.effect > 0, Male.early.pval, 1 - Male.early.pval),
-           pp_male_late    = ifelse(Male.late.effect > 0, Male.late.pval, 1 - Male.late.pval)) %>%
-    
-    # Calculate the probabilities that beta_i and beta_j have the same/opposite signs
-    mutate(p_sex_concord_early = pp_female_early * pp_male_early + 
-             (1 - pp_female_early) * (1 - pp_male_early),
-           p_sex_antag_early = pp_female_early * (1 - pp_male_early) + 
-             (1 - pp_female_early) * pp_male_early,
-           p_sex_concord_late  = pp_female_late * pp_male_late + 
-             (1 - pp_female_late) * (1 - pp_male_late),
-           p_sex_antag_late = pp_female_late * (1 - pp_male_late) + 
-             (1 - pp_female_late) * pp_male_late,
-           p_age_concord_females = pp_female_early * pp_female_late + 
-             (1 - pp_female_early) * (1 - pp_female_late),
-           p_age_antag_females = pp_female_early * (1 - pp_female_late) + 
-             (1 - pp_female_early) * pp_female_late,
-           p_age_concord_males = pp_male_early * pp_male_late + (1 - pp_male_early) * (1 - pp_male_late),
-           p_age_antag_males = pp_male_early * (1 - pp_male_late) + (1 - pp_male_early) * pp_male_late) %>%
-    
-    # Find the ratios of some of these two probabilities (i.e. the "evidence ratios")
-    mutate(inter_sex_early = p_sex_concord_early / p_sex_antag_early,
-           inter_sex_late = p_sex_concord_late / p_sex_antag_late,
-           inter_age_females = p_age_concord_females / p_age_antag_females,
-           inter_age_males = p_age_concord_males / p_age_antag_males) 
-}
-test <- Wong_Holman %>% get_antagonism_ratios()
-head(test)
-rm(test)
+SSAV.geno <- SSAV.geno %>% 
+  mutate(IsWong = FlyBaseID %in% Wong_Holman[Wong_Holman$SA,]$FlyBaseID)
 
-all_genes_Wong <- tibble(merge(all.genes, Chrs, by = "FlyBaseID", all = T))
-all_genes_Wong <- all_genes_Wong %>% 
-  mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
-         Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
-         Sig = Sig.Af | Sig.Am,
-         IsWong = FlyBaseID %in% Wong_Holman[Wong_Holman$SA,]$FlyBaseID)
+SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
+  mutate(IsWong = FlyBaseID %in% Wong_Holman[Wong_Holman$SA,]$FlyBaseID)
 
-all_genes_Wong_Chr2 <- all_genes_Wong[all_genes_Wong$Chr == "2",]
-
-test <- fisher.test(x = all_genes_Wong_Chr2$Sig, y = all_genes_Wong_Chr2$IsWong)
+test <- fisher.test(x = SSAV.geno_Chr2$Sig, y = SSAV.geno_Chr2$IsWong)
 
 mos_plot_Wong
 mos_plot_Wong_Chr2 <- ggbarstats(
-  all_genes_Wong_Chr2[!is.na(all_genes_Wong_Chr2$Sig) & 
-                       !is.na(all_genes_Wong_Chr2$IsWong),], IsWong, Sig,
+  SSAV.geno_Chr2, IsWong, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -249,28 +205,43 @@ mos_plot_Wong_Chr2 <- ggbarstats(
 #########
 
 
+
+
 # Chloe's genomics candidates
 ##########
 # Get SSAV candidates from genomics data
 SSAV_chloe <- read.delim("Data/SSAV_genomics_candidates_list.txt", header = TRUE)
 
-all_genes_Chloe <- tibble(merge(all.genes, Chrs, by = "FlyBaseID", all = T))
-all_genes_Chloe <- all_genes_Chloe %>% 
-  mutate(Sig.Af = FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,
-         Sig.Am = FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,
-         Sig = Sig.Af | Sig.Am,
-         IsChloe = FlyBaseID %in% SSAV_chloe$FlyBaseID)
+# New candidates
+SSAV_chloe <- read.csv("Data/SSAV_cand_NEW.csv", header = TRUE)
+SSAV_chloe <- SSAV_chloe[SSAV_chloe$new.FDR5 & !is.na(SSAV_chloe$geneID),] %>%
+  distinct(geneID, .keep_all = TRUE) %>%
+  rename(FlyBaseID = geneID)
+dim(SSAV_chloe) 
+
+# keep only genes in both genomics and RNA-seq data
+SSAV.geno <- SSAV.geno %>% 
+  mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
+
+SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
+  mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
 
 
-all_genes_Chloe_Chr2 <- all_genes_Chloe[all_genes_Chloe$Chr == "2",]
+# only genes in both Genomics & Transcriptomics
+SSAV_chloe_ALL <- read.csv("Data/SSAV_cand_NEW.csv", header = TRUE)
+SSAV_chloe_ALL <- unique(SSAV_chloe_ALL$geneID)
+SSAV_geno_trans <- SSAV.geno[SSAV.geno$FlyBaseID %in% SSAV_chloe_ALL,]
+dim(SSAV_geno_trans)
+SSAV_geno_trans_Chr2 <- SSAV_geno_trans[SSAV_geno_trans$Chr == "2",]
+dim(SSAV_geno_trans_Chr2)
 
-test <- fisher.test(x = all_genes_Chloe_Chr2$Sig, y = all_genes_Chloe_Chr2$IsChloe)
+test <- fisher.test(x = SSAV_geno_trans_Chr2$Sig, y = SSAV_geno_trans_Chr2$IsChloe)
 
 mos_plot_Chloe # the genomics candidates only consists of Chr2 genes. So filtering out the data below...
 
-mos_plot_Chloe_Chr2 <- ggbarstats(
-  all_genes_Chloe_Chr2[!is.na(all_genes_Chloe_Chr2$Sig) & 
-                         !is.na(all_genes_Chloe_Chr2$IsChloe),], IsChloe, Sig,
+
+mos_plot_Chloe_ovl2 <- ggbarstats(
+  SSAV_geno_trans_Chr2, IsChloe, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -301,9 +272,9 @@ mos_plot_Chloe_Chr2 <- ggbarstats(
 ##########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Ruz_Chr2.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Enrichment_Tests/Chloe_Chr2.pdf",  # The directory you want to save the file in
     width = 10, # The width of the plot in inches
     height = 7) # The height of the plot in inches
-mos_plot_Ruz_Chr2 # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2, mos_plot_Wong, mos_plot_Wong_Chr2
+mos_plot_Chloe_ovl2 # mos_plot_InnoMorr_Chr2, mos_plot_Ruz, mos_plot_Ruz_Chr2, mos_plot_Chloe_Chr2, mos_plot_Wong, mos_plot_Wong_Chr2
 dev.off()
 

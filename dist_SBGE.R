@@ -60,6 +60,24 @@ str(SSAV.geno_ASE)
 #########
 
 
+# plotting dataset excluding DsRed
+########
+# load results if not loaded in env.
+A.f.geno_DsRed <- read.delim("Results/A.f.geno_candidates_noDsRed.tsv")
+A.m.geno_DsRed <- read.delim("Results/A.m.geno_candidates_noDsRed.tsv")
+SSAV.geno_DsRed <- read.delim("Results/All.geno_candidates_noDsRed.tsv")
+
+# include ASE SBGE data
+A.m.geno_DsRed_ASE <- merge(A.m.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno_DsRed_ASE <- A.m.geno_DsRed_ASE[!is.na(A.m.geno_DsRed_ASE$Sig) & !is.na(A.m.geno_DsRed_ASE$exp_SBGE_ase),]
+A.f.geno_DsRed_ASE <- merge(A.f.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno_DsRed_ASE <- A.f.geno_DsRed_ASE[!is.na(A.f.geno_DsRed_ASE$Sig) & !is.na(A.f.geno_DsRed_ASE$exp_SBGE_ase),]
+
+SSAV.geno_DsRed_ASE <- merge(SSAV.geno_DsRed, ASE, by = "FlyBaseID", all = TRUE)
+SSAV.geno_DsRed_ASE <- SSAV.geno_DsRed_ASE[!is.na(SSAV.geno_DsRed_ASE$Sig) & !is.na(SSAV.geno_DsRed_ASE$exp_SBGE_ase),]
+#########
+
+
 # Density plot functions
 ##########
 # TwoBootDens:
@@ -171,7 +189,7 @@ plotDens <- function(dat, bs_dat, diff_dat, x_col, groupBy, x_lab){
 ##########
 
 
-# Plotting
+# Density plots
 ##########
 # Candidates vs non-candidate genes in SSAV males
 boot_ALL <- TwoBootDens(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$exp_SBGE_ase) & 
@@ -294,15 +312,24 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
   return(plot_vec)
 }
 
+
+
 propSBGE(SSAV.geno_ASE, "SBGE_comp")
 propSBGE(A.f.geno_ASE, "SBGE_comp")
+propSBGE(A.m.geno_ASE, "SBGE_comp")
 
 bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
-
 bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
 
+
+# excluding genes near DsRed 
+bin_All_DsRed <- plotSBGEprop(SSAV.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)")
+bin_A.f_DsRed <- plotSBGEprop(A.f.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)")
+bin_A.m_DsRed <- plotSBGEprop(A.m.geno_DsRed_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
+
 ##########
+
 
 
 

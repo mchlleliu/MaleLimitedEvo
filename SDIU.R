@@ -100,8 +100,8 @@ SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$chrm == "2L" |
 
 #######
 
-test <- fisher.test(x = SSAV.geno_Chr2$Sig, 
-                    y = SSAV.geno_Chr2$SDIU.head.sig)
+test <- fisher.test(x = SSAV.geno$Sig, 
+                    y = SSAV.geno$SDIU.body.sig)
 
 mos_plot_SDIU <- ggbarstats(
   SSAV.geno, SDIU.head.sig, Sig,
