@@ -21,7 +21,7 @@ library(ggpubr)
 library(RColorBrewer)
 ########
 
-
+setwd("~/Desktop/UofT/SSAV_RNA/")
 
 ## prepare dataset
 ##########
@@ -140,6 +140,15 @@ perm_rMF <- TwoPerm(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 boot_rMF <- TwoBoot(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
 rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF")
+
+
+perm_rMF_simp <- TwoPerm(SSAV.geno_ASE[SSAV.geno_ASE$SBGE_comp != "a.more.fbg" & 
+                                         SSAV.geno_ASE$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
+# bootstrap 95% confidence interval
+boot_rMF_simp <- TwoBoot(SSAV.geno_ASE[SSAV.geno_ASE$SBGE_comp != "a.more.fbg" & 
+                                    SSAV.geno_ASE$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
+# plot the CI and mean.
+rMF_all_simp <- pointSEplot(boot_dat = boot_rMF_simp, perm_dat = perm_rMF_simp, x_col = "rMF")
 
 
 # Separately for male and female candidates

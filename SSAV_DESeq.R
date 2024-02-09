@@ -15,30 +15,14 @@ setwd(Data_path)
 
 # Packages
 ##########
-
-# if needed
-# install.packages("BiocManager")
-# BiocManager::install("DESeq2")
-# BiocManager::install("apeglm")
-# BiocManager::install("ashr")
-# BiocManager::install("mltools")
-
-# need to clean this up for this file.
 library(DESeq2)
 library(apeglm)
 library(ashr)
 library(vsn)
-library(ggplot2)
-library(ggblend)
-library(ggpubr)
 library(gridExtra)
 library(plyr)
 library(dplyr)
-library(RColorBrewer)
-library(pheatmap)
 library(car)
-library(lmtest)
-library(lmPerm)
 library(Rmisc)
 library(Hmisc)
 library(mltools)
@@ -46,10 +30,6 @@ library(boot)
 library(clipr) 
 library(broom)
 library(tidyr)
-library(scales)
-library(readxl)
-library(cowplot)
-library(ggstatsplot)
 
 ##########
 
@@ -96,6 +76,7 @@ sampleTable <- data.frame(sampleName = samplename,
 str(sampleTable) # Check that factors are factors, else use e.g.: sampleTable$rep <- factor(sampleTable$rep)
 
 ##########
+
 
 # Split data frame up into different subsets 
 ##########
@@ -191,6 +172,9 @@ dds.all <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
 dds.A.f.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.f, 
                                            design = ~ rep + geno) 
 
+dds.A.f.geno_rep <- DESeqDataSetFromHTSeqCount(sampleTable = A.f, 
+                                           design = ~ geno + rep) 
+
 # For geno differences in A.m
 dds.A.m.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.m, 
                                            design = ~ rep + geno) 
@@ -251,10 +235,10 @@ dds.A.NR.m.Red.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR.m.Red.f,
 
 # Adjust filtering criteria
 minCountPerSample = 1 #min read count per sample
-minAvgPerCat = 10 #min average read per category
+minAvgPerCat = 50 #min average read per category
 
 # Specify the contrast
-focal.contrast <-  dds.NR.m.trt # Change accordingly
+focal.contrast <-  dds.C.m.geno # Change accordingly
 
 # Specify the samples for each category of the focal contrasts (some tricky ones commented here)
 # this is based on the order of the sample names
@@ -272,16 +256,16 @@ focal.contrast <-  dds.NR.m.trt # Change accordingly
 # denominator <- samplename[seq(1, 24, by = 4)] # A.nr.females
 
 # dds.C.m.geno
-# numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
-# denominator <- samplename[seq(25, 36, by =2)] # C.nr.males
+numerator <- samplename[seq(26, 36, by = 2)] # C.red.males
+denominator <- samplename[seq(25, 36, by =2)] # C.nr.males
 
 # dds.Red.m.trt 
 # numerator <- samplename[seq(4, 24, by = 4)] # A.Red.m
 # denominator <- samplename[seq(26, 36, by = 2)] # C.Red.m
 
 # dds.NR.m.trt
-numerator <- samplename[seq(3, 24, by = 4)] # A.NR.m
-denominator <- samplename[seq(25, 36, by = 2)] # C.NR.m
+# numerator <- samplename[seq(3, 24, by = 4)] # A.NR.m
+# denominator <- samplename[seq(25, 36, by = 2)] # C.NR.m
 
 # dds.A.Red.sex
 # numerator <- samplename[seq(4, 24, by = 4)]
@@ -301,7 +285,7 @@ denominator <- samplename[seq(25, 36, by = 2)] # C.NR.m
 
 # Analysis details
 # print "str(sampleTable)" to see your options here
-factor.numerator.denominator = c("trt", "A", "C") # that is c("factor", "numerator", "denominator"); flip if desired
+factor.numerator.denominator = c("geno", "Red", "NR") # that is c("factor", "numerator", "denominator"); flip if desired
 alpha.threshold = 0.05 # this sets alpha for the adjusted pvalue; default is 0.1.
 ##########
 
@@ -412,15 +396,15 @@ Results.df <- data.frame(cbind(DESeq.Results$log2FoldChange,
                                DESeq.Results$padj,
                                DESeq.Results$FlyBaseID # fix accordingly (e.g. FlyBaseID)
 ))
-colnames(Results.df) <- c("exp_trt", "se_trt", "padj", "FlyBaseID") # fix accordingly (e.g. maybe c()[1] == "exp_trt", and/or c()[4] == "FlyBaseID")
+colnames(Results.df) <- c("exp_geno", "se_geno", "padj", "FlyBaseID") # fix accordingly (e.g. maybe c()[1] == "exp_trt", and/or c()[4] == "FlyBaseID")
 str(Results.df)
-Results.df$exp_trt <- as.numeric(Results.df$exp_trt) # fix accordingly
-Results.df$se_trt <- as.numeric(Results.df$se_trt) # fix accordingly
+Results.df$exp_geno <- as.numeric(Results.df$exp_geno) # fix accordingly
+Results.df$se_geno <- as.numeric(Results.df$se_geno) # fix accordingly
 Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
-## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/NR.m.trt_raw.tsv", sep = "\t", # Fix file name accordingly
+# ## change this to the correct file name
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_raw_avg50.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
 
@@ -430,9 +414,6 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/NR.m.trt_raw.tsv
 ##########
 # If not already in environment, read in df to specify the results df to be used 
 # Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno.tsv", header = TRUE)
-
-# Rename to something sensible for downstream analyses
-NR.m.trt <- Results.df
 
 # Function to sort significant and non-significant genes by adding logical column
 assign_sig <- function(contrast_df){
@@ -449,34 +430,36 @@ assign_sig <- function(contrast_df){
 
 # note: need to rm() observations with padj == NA
 # change df name as needed
-A.f.geno <- assign_sig(A.f.geno)
-dim(A.f.geno[A.f.geno$Sig == TRUE, ]) # right number?
+Results.df <- assign_sig(Results.df)
+dim(Results.df[Results.df$Sig == TRUE, ]) # right number?
 
 
 # this is only for A.m.geno
 # order A.m.geno by p-values & get the 200 lowest
-# A.m.geno <- A.m.geno[order(A.m.geno$padj),]
-# colnames(A.m.geno)[colnames(A.m.geno) == "Sig"] = "Top.Sig"
-# A.m.geno$Sig <- FALSE
-# A.m.geno[1:200,]$Sig <- TRUE
-# droplevels(A.m.geno)
+# Results.df <- Results.df[order(Results.df$padj),]
+# colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
+# Results.df$Sig <- FALSE
+# Results.df[1:200,]$Sig <- TRUE
+# droplevels(Results.df)
 
 
 # Flag genes near DsRed marker
 DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
-A.f.geno <- A.f.geno[!A.f.geno$FlyBaseID %in% DsRed_genes$V1,]
-A.m.geno <- A.m.geno[!A.m.geno$FlyBaseID %in% DsRed_genes$V1,]
-C.m.geno <- C.m.geno[!C.m.geno$FlyBaseID %in% DsRed_genes$V1,]
-
+Results.df <- Results.df[!Results.df$FlyBaseID %in% DsRed_genes$V1,]
 
 ## change this to the correct file name
-write.table(C.m.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/C.m.geno_candidates_avg50.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ##########
 
 
 # Combine SSAV males and females
 ########
+setwd("~/Desktop/UofT/SSAV_RNA/")
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+
 SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
                           "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
@@ -491,7 +474,7 @@ SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.e
                              (SSAV.geno$A.f.exp_geno < 0 & SSAV.geno$A.m.exp_geno < 0),])
 
 ## save to file
-write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates_avg50.tsv", sep = "\t", # Fix file name accordingly
             row.names = FALSE, col.names = TRUE)
 ########
 
@@ -509,3 +492,6 @@ dim(A.f.geno[A.f.geno$FlyBaseID %in% DsRed_genes$V1 & A.f.geno$Sig,])
 
 ########
 
+check_test <- merge(Results.df, A.f.geno, by = "FlyBaseID", all = T)
+cor.test(check_test$exp_geno.x, check_test$exp_geno.y)
+View(check_test[check_test$Sig.x != check_test$Sig.y,])

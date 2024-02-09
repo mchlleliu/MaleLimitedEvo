@@ -14,7 +14,6 @@ library(tidyr)
 library(plyr)
 library(dplyr)
 library(broom)
-library(data.table)
 ########
 
 # \\||// #
@@ -194,7 +193,7 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
     group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
     # for each bootstrap replicate, calculate the test stat
     do(tidy(myfun(.[[x_col]]))) %>%
-    rename({{groupBy}} := 2)
+    dplyr::rename({{groupBy}} := 2)
   
   # summarise bootstrap replicates
   boot_SE <- boot_tabs %>% 
@@ -203,7 +202,7 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
     summarise(q05 = quantile(x, 0.025),
               q50 = quantile(x, 0.5),
               q95 = quantile(x, 0.975)) %>%
-    rename({{groupBy}} := 1)
+    dplyr::rename({{groupBy}} := 1)
   return(boot_SE)
 }
 
