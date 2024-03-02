@@ -14,12 +14,17 @@
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+jseq.All.geno <- read.delim("Results/jseq.All.geno.txt")
 
 # include Chr 
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr),]
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
+jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")], 
+                           Chrs, by = "FlyBaseID", all = T)
+jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
+colnames(jseq.All.geno_Chr)[6] = "Sig"
 
 # column denotes genes that are candidates in males or females
 SSAV.geno_Chr <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
@@ -88,6 +93,8 @@ plotChrprop <- function(dat, xlab){
   return(plot_vec)
 }
 
+propChr(jseq.All.geno_Chr)
+plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
 
 propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
 

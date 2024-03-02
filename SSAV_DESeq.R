@@ -474,8 +474,8 @@ SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.e
                              (SSAV.geno$A.f.exp_geno < 0 & SSAV.geno$A.m.exp_geno < 0),])
 
 ## save to file
-write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates_avg50.tsv", sep = "\t", # Fix file name accordingly
-            row.names = FALSE, col.names = TRUE)
+# write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+#             row.names = FALSE, col.names = TRUE)
 ########
 
 

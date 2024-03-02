@@ -119,6 +119,15 @@ jseq.A.m.geno <- jseq.A.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRTh
 jseq.All.geno <- merge(jseq.A.m.geno, jseq.A.f.geno, by = c("FlyBaseID", "countbinID"), all = T) %>%
   mutate(sig.hit = ifelse((!(is.na(sig.hit.x) & is.na(sig.hit.y)) & (sig.hit.x | sig.hit.y)), 
                           TRUE, ifelse(is.na(sig.hit.x) & is.na(sig.hit.y), NA, FALSE)))
+jseq.All.geno.save <-  jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", 
+                                        "geneWisePadj.y", "sig.hit.y", "sig.hit")]
+jseq.All.geno.save <- unique(na.omit(jseq.All.geno.save))
+colnames(jseq.All.geno.save) = c("FlyBaseID", "geneWisePadj.M", "sig.hit.M", 
+                                 "geneWisePadj.F", "sig.hit.F", "Sig")
+write.table(jseq.All.geno.save, file="Results/jseq.All.geno.txt", quote=F, sep = "\t")
+rm(jseq.All.geno.save) 
+
+
 SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
 
 #######
@@ -312,13 +321,18 @@ for(i in 1:dim(SSAV.sample.types)[1]){
 
 rm(tmp.JS.table, SinghAgrawalSDIU, All.geno.tmp) # clean environment
 
-# save table
-write.table(fishers.test.RedNR.splice.results, file = "Results/splicing.Red.NR.fisher.tests.csv", sep = ",", quote = FALSE, row.names = F)
+length(unique(jseq.All.geno$FlyBaseID[!is.na(jseq.All.geno$sig.hit) & jseq.All.geno$sig.hit]))
+clipr::write_clip(unique(jseq.All.geno$FlyBaseID[!is.na(jseq.All.geno$sig.hit) & !jseq.All.geno$sig.hit]))
 
-test.fisher.results <- fisher.test(A.m.tmp.fisher$Osada.SSS, A.m.tmp.fisher$ASE.SSS)
+
+# save table
+# write.table(fishers.test.RedNR.splice.results, file = "Results/splicing.Red.NR.fisher.tests.csv", sep = ",", quote = FALSE, row.names = F)
+
+test.fisher.results <- fisher.test(A.all.tmp.fisher$sig.hit, A.all.tmp.fisher$ASE.SSS)
+summary(test.fisher.results)
 
 SSS.sdiu <- ggbarstats(
-  A.m.tmp.fisher, ASE.SSS, Osada.SSS,
+  A.all.tmp.fisher, ASE.SSS, sig.hit,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -1269,6 +1283,21 @@ mean(Red.Am.NR.Am[Red.Am.NR.Am$FlyBaseID %in% ASE.sig.SSS,]$percent.dissim, na.r
 mean(Red.Af.NR.Af[Red.Af.NR.Af$FlyBaseID %in% ASE.sig.SSS,]$percent.dissim, na.rm = T)
 
 
+# A males vs C males
+#######
+Red.Am.Red.Cm <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
+mean(Red.Am.Red.Cm$percent.dissim, na.rm = T)
+NR.Am.NR.Cm <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
+mean(NR.Am.NR.Cm$percent.dissim, na.rm = T)
+
+splicing.MF.diff.dot.plot(RedData = A.m.Red.compare_ase, NRData = C.m.Red.compare_ase, plotCol = "M.dis.F")
+splicing.MF.diff.dot.plot(RedData = A.m.NR.compare_ase, NRData = C.m.NR.compare_ase, plotCol = "M.dis.F")
+
+splicing.MF.diff.dot.plot(RedData = A.m.Red.v.Males_MCsim, NRData = A.m.NR.v.Males_MCsim, plotCol = "percent.dissim") + 
+  coord_cartesian(xlim=c(0,1.5),ylim=c(0,1.5))
+splicing.MF.diff.dot.plot(RedData = A.m.Red.v.Fem_MCsim, NRData = A.m.NR.v.Fem_MCsim, plotCol = "percent.dissim") + 
+  coord_cartesian(xlim=c(0,1.5),ylim=c(0,1.5))
+
 # lists for different subsets of genes that can be used to stratify downstream analyses
 #######
 # genes with significant differences in splicing
@@ -1489,6 +1518,7 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
   tmp <- as_tibble(data.frame(FlyBaseID = RedData$FlyBaseID,
                     Red = RedData[[plotCol]],
                     NR = NRData[[plotCol]]))
+  
   lim = max(abs(min(tmp$Red, na.rm = T)), 
             abs(min(tmp$NR, na.rm = T)), 
             max(tmp$Red, na.rm = T), 
@@ -1538,16 +1568,18 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
 
 sampleTypes <- c("A.m", "A.f", "C.m")
 M.v.F.test.table <- data.frame(sampleType = sampleTypes) %>% 
-  mutate(Red.MvF.compare = paste0(sampleType,".Red.compare_SinghAgrw"), # .Red.compare_SinghAgrw .Red.compare_ase
+  mutate(Red.MvF.compare = paste0(sampleType,".Red.compare_ase"), # .Red.compare_SinghAgrw .Red.compare_ase
          NR.MvF.compare = paste0(sampleType,".NR.compare_ase")) # .NR.compare_SinghAgrw .NR.compare_ase
 
 for(i in 1:dim(M.v.F.test.table)[1]){
   RedData <- get(paste0(M.v.F.test.table[i,2]))
   # subset appropriately
-  RedData <- RedData[ RedData$FlyBaseID %in% subset.sss,] # filter.low.exp.genes.q25
+  RedData <- RedData[ RedData$FlyBaseID %in% ASE.sig.SSS &
+                        RedData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
   # subset appropriately
   NRData <- get(paste0(M.v.F.test.table[i, 3]))
-  NRData <- NRData[NRData$FlyBaseID %in% subset.sss,] # filter.low.exp.genes.q25
+  NRData <- NRData[NRData$FlyBaseID %in% ASE.sig.SSS &
+                     NRData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
   
   M.v.F.test.table$N <- length(!is.na(RedData$M.dis.F))
   M.v.F.test.table$avg.Red[i] <- mean(RedData$M.dis.F, na.rm = T)
@@ -1632,3 +1664,58 @@ plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x,
 
 
 dev.off()
+
+A.m.Red.compare_ase$geno <- "Red"
+A.m.Red.compare_ase$trt2 <- "Am"
+A.m.NR.compare_ase$geno <- "NR"
+A.m.NR.compare_ase$trt2 <- "Am"
+
+A.f.Red.compare_ase$geno <- "Red"
+A.f.Red.compare_ase$trt2 <- "Af"
+A.f.NR.compare_ase$geno <- "NR"
+A.f.NR.compare_ase$trt2 <- "Af"
+
+C.m.Red.compare_ase$geno <- "Red"
+C.m.Red.compare_ase$trt2 <- "Cm"
+C.m.NR.compare_ase$geno <- "NR"
+C.m.NR.compare_ase$trt2 <- "Cm"
+
+
+plot_splicing.profiles_All <- rbind(A.m.Red.compare_ase, A.m.NR.compare_ase,
+                                    A.f.Red.compare_ase, A.f.NR.compare_ase,
+                                    C.m.Red.compare_ase, C.m.NR.compare_ase)
+
+
+ggplot(plot_splicing.profiles_All, aes(trt2, M.dis.F, color = geno)) +
+    geom_point(aes(color = geno), size = 1, shape = 16, 
+               alpha = 0.3, position = position_jitterdodge(jitter.width = 0.2)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
+    labs(y = "(M-F)/(M+F)") +
+    scale_colour_manual(values = c("#888888", "red3")) + # "Chr-2", "Chr-3", "X-Chr"
+    # guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
+    #                                                 size = c(5, 5, 5),
+    #                                                 alpha = 1))) +
+    # # add star do signify significant difference from 0
+    # geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "ns")),
+    #           aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5,
+    #           position = position_dodge(width = 0.8), show.legend = FALSE) +
+    # # add number of genes per category
+    # geom_text(data = perm_dat, aes(label = n, y = Inf, group = trt2), 
+    #           position = position_dodge(width = 0.8), vjust = 5, size = 6, show.legend = FALSE) +
+    # line at y = 0
+    geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype= "solid", color = "black") +
+    geom_vline(xintercept = c(1.5, 2.5), color = "grey") +
+    # default theme settings:
+    theme_classic() +
+    theme(plot.title.position = c("panel"),
+          legend.title = element_blank(),
+          legend.position = c("bottom"),
+          legend.text = element_text(size = 25, color = "black"),
+          axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+          axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
+          axis.title.x = element_blank(),
+          axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+          plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+          plot.margin = margin(6,6,6,6),
+          panel.border = element_rect(colour = "black", fill=NA, size=1)
+)
