@@ -190,21 +190,22 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
                                                 group_by(.[[groupBy]]) %>% # separate group 1 and group 2
                                                 sample_frac(size = 1, replace = T)))) %>% 
     unnest(c(bs, data)) %>% # create separate rows for each bootstrap replicate in the list
-    group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
+    dplyr::group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
     # for each bootstrap replicate, calculate the test stat
     do(tidy(myfun(.[[x_col]]))) %>%
     dplyr::rename({{groupBy}} := 2)
   
   # summarise bootstrap replicates
-  boot_SE <- boot_tabs %>% 
+  boot_SE <- boot_tabs %>%
     ungroup() %>%
-    group_by(.[[groupBy]]) %>% 
-    summarise(q05 = quantile(x, 0.025),
+    dplyr::group_by(.[[groupBy]]) %>%
+    dplyr::summarise(q05 = quantile(x, 0.025),
               q50 = quantile(x, 0.5),
               q95 = quantile(x, 0.975)) %>%
     dplyr::rename({{groupBy}} := 1)
   return(boot_SE)
 }
+
 
 TwoBoot_SBGE <- function(boot_dat, x_col, groupBy, SBGE_cat){
   dat <- data.frame() # initialize data.frame object to store results

@@ -42,6 +42,9 @@ colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj",
 SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 
+jseq.All.geno.tmp <- read.delim("Results/jseq.All.geno.txt")
+all.candidates <- SSAV.geno %>% mutate(Sig = ifelse(FlyBaseID %in% jseq.All.geno$FlyBaseID[jseq.All.geno$Sig], 
+                                              TRUE, Sig))
 
 # load Singh & Agrawal 2023 dataset
 SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
@@ -73,6 +76,9 @@ str(SDIU)
 
 SSAV.geno <- merge(SSAV.geno, SDIU, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
+
+all.candidates <- merge(all.candidates, SDIU, by = "FlyBaseID", all = T)
+all.candidates <- merge(all.candidates, ASE, by = "FlyBaseID", all = T)
 ##########
 
 ## plotting function
@@ -80,19 +86,19 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
   # set y-axis value above each error bar
   if(!is.na(SBGE_cat)){
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
-      group_by(.[[SBGE_cat]]) %>%
-      summarise(max = q95 + 0.065) %>% # 0.02, 0.05
-      rename({{SBGE_cat}} := 1)
+      dplyr::group_by(.[[SBGE_cat]]) %>%
+      dplyr::summarise(max = q95 + 0.065) %>% # 0.02, 0.05
+      dplyr::rename({{SBGE_cat}} := 1)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>%
-      group_by(.[[SBGE_cat]]) %>%
-      summarise(max = q95 + 0.065) %>% # 0.02, 0.05
-      rename({{SBGE_cat}} := 1)
+      dplyr::group_by(.[[SBGE_cat]]) %>%
+      dplyr::summarise(max = q95 + 0.065) %>% # 0.02, 0.05
+      dplyr::rename({{SBGE_cat}} := 1)
   }
   else{
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
-      summarise(max = q95 + 0.05)
+      dplyr::summarise(max = q95 + 0.05)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>% 
-      summarise(max = q95 + 0.05)
+      dplyr:: summarise(max = q95 + 0.05)
     perm_dat <- as.data.frame(t(perm_dat))
     colnames(perm_dat) <- c("obs_diff", "n_TRUE", "n_FALSE", "pval", "Sig")
   }
