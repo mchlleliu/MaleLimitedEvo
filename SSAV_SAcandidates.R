@@ -22,27 +22,17 @@ library(ggstatsplot)
 # Prepare dataset
 #########
 # load results if not loaded in env.
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_candidates.tsv", header = T, sep = "\t")
 
-# list of all genes that could be quantified in either or both SSAV male and female samples
-all.genes <- merge(A.f.geno, A.m.geno, by = "FlyBaseID", all = T)
-all.genes <- data.frame(FlyBaseID = unlist(all.genes[, "FlyBaseID"]))
-
-SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-# column denotes genes that are candidates in males or females
-SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
-                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
 SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]
-SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
 
-jseq.All.geno.tmp <- read.delim("Results/jseq.All.geno.txt", sep = "\t", header=T)
-jseq.All.geno.tmp <-merge(jseq.All.geno.tmp, Chrs, by = "FlyBaseID", all = TRUE)
-# jseq.All.geno.tmp <- jseq.All.geno.tmp[!is.na(jseq.All.geno.tmp$Sig) & !is.na(jseq.All.geno.tmp$Chrs),]
-jseq.All.geno.tmp_Chr2 <- jseq.All.geno.tmp[jseq.All.geno.tmp$Chr=="2",]
+# add AS candidates
+candidateList <- read.delim("Results/DE_AS_candidate.list.txt")
+SSAV.geno <- SSAV.geno %>%
+  dplyr::mutate(Sig = ifelse(FlyBaseID %in% candidateList$FlyBaseID, TRUE, Sig))
+
+SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
 #########
 
 
@@ -57,26 +47,21 @@ colnames(Inno_Morrow) <- c("Symbol", "FlyBaseID", "Related_Record")
 Innocenti_Morrow_SA_genes <- read_excel("~/Desktop/UofT/SSAV_RNA/Data/Innocenti_Morrow_SA_genes.xls", sheet = "Antagonistic genes")
 Innocenti_Morrow_SA_genes <- merge(Innocenti_Morrow_SA_genes, Inno_Morrow, by = "Symbol", all = T)
 
+SSAV.geno <- SSAV.geno %>%
+  dplyr::mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
+
 # combine InnoMorrow status with SSAV dataset
-SSAV.geno <- SSAV.geno %>% 
-  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
-jseq.All.geno.tmp <- jseq.All.geno.tmp %>% 
-  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
+test_df <- SSAV.geno[SSAV.geno$FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID,] %>% 
+  mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
 
-# only Chr 2 genes
-SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
-  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
-jseq.All.geno.tmp_Chr2 <- jseq.All.geno.tmp_Chr2 %>% 
-  mutate(IsInnoMorr = FlyBaseID %in% Innocenti_Morrow_SA_genes$FlyBaseID)
-
-test <- fisher.test(x = jseq.All.geno.tmp_Chr2$Sig, y = jseq.All.geno.tmp_Chr2$IsInnoMorr)
+test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsInnoMorr)
 
 # enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
 mos_plot_InnoMorr
 
 # enrichment for Chr2 genes in SSAV males and females, vs Innocenti & Morrow Chr2 genes
-mos_plot_InnoMorr_Chr2 <- ggbarstats(
-  SSAV.geno_Chr2, IsInnoMorr, Sig,
+mos_plot_InnoMorr <- ggbarstats(
+  test_df, IsInnoMorr, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -126,14 +111,14 @@ SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>%
 jseq.All.geno.tmp_Chr2 <- jseq.All.geno.tmp_Chr2 %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
-test <- fisher.test(x = jseq.All.geno.tmp_Chr2$Sig, y = jseq.All.geno.tmp_Chr2$IsRuz)
+test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsRuz)
 
 # enrichment for all genes in SSAV males and females, vs Ruzicka all genes
 mos_plot_Ruz
 
 # enrichment for Chr 2 genes in SSAV males and females, vs Ruzicka Chr 2 genes
-mos_plot_Ruz_Chr2 <- ggbarstats(
-  jseq.All.geno.tmp, IsRuz, Sig,
+mos_plot_Ruz <- ggbarstats(
+  SSAV.geno, IsRuz, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -239,13 +224,13 @@ dim(SSAV_chloe)
 # keep only genes in both genomics and RNA-seq data
 SSAV.geno <- SSAV.geno %>% 
   mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
-jseq.All.geno.tmp <- jseq.All.geno.tmp %>% 
-  mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
+# jseq.All.geno.tmp <- jseq.All.geno.tmp %>% 
+#   mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
 
 SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
   mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
-jseq.All.geno.tmp_Chr2 <- jseq.All.geno.tmp_Chr2 %>% 
-  mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
+# jseq.All.geno.tmp_Chr2 <- jseq.All.geno.tmp_Chr2 %>% 
+#   mutate(IsChloe = FlyBaseID %in% SSAV_chloe[SSAV_chloe$new.FDR5,]$FlyBaseID)
 
 
 # only genes in both Genomics & Transcriptomics
@@ -256,13 +241,13 @@ dim(SSAV_geno_trans)
 SSAV_geno_trans_Chr2 <- SSAV_geno_trans[SSAV_geno_trans$Chr == "2",]
 dim(SSAV_geno_trans_Chr2)
 
-test <- fisher.test(x = jseq.All.geno.tmp_Chr2$Sig, y = jseq.All.geno.tmp_Chr2$IsChloe)
+test <- fisher.test(x = SSAV_geno_trans$Sig, y = SSAV_geno_trans$IsChloe)
 
 mos_plot_Chloe # the genomics candidates only consists of Chr2 genes. So filtering out the data below...
 
 
-mos_plot_Chloe_ovl2 <- ggbarstats(
-  jseq.All.geno.tmp_Chr2, IsChloe, Sig,
+mos_plot_Chloe <- ggbarstats(
+  SSAV_geno_trans[SSAV_geno_trans$Chr == "2",], IsChloe, Sig,
   results.subtitle = FALSE,
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",

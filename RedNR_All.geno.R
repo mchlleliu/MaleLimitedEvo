@@ -91,7 +91,7 @@ permed_C.m.geno_Sig$trt2 <- "Cm"
 permed_All.geno_Sig <- rbind(permed_A.f.geno_Sig, permed_A.m.geno_Sig, permed_C.m.geno_Sig)
 permed_All.geno_Sig <- permed_All.geno_Sig %>%
   mutate(holm_padj = p.adjust(permed_All.geno_Sig$pval, method = "holm")) %>% 
-  mutate(holm_Sig = ifelse(holm_padj < 0.005, TRUE, FALSE))
+  mutate(holm_Sig = ifelse(holm_padj < 0.005 & n > 30, TRUE, ifelse(n < 30, NA, FALSE)))
 rm(permed_A.f.geno_Sig, permed_A.m.geno_Sig, permed_C.m.geno_Sig) # remove clutter
 
 # only candidate genes found in SSAV females
@@ -110,7 +110,7 @@ permed_C.m.geno_AfSig$trt2 <- "Cm"
 permed_All.geno_AfSig <- rbind(permed_A.f.geno_AfSig, permed_A.m.geno_AfSig, permed_C.m.geno_AfSig)
 permed_All.geno_AfSig <- permed_All.geno_AfSig %>%
   mutate(holm_padj = p.adjust(permed_All.geno_AfSig$pval, method = "holm")) %>% 
-  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, FALSE))
+  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, ifelse(n < 30, NA, FALSE)))
 rm(permed_A.f.geno_AfSig, permed_A.m.geno_AfSig, permed_C.m.geno_AfSig) # remove clutter
 
 
@@ -130,7 +130,7 @@ permed_C.m.geno_AmSig$trt2 <- "Cm"
 permed_All.geno_AmSig <- rbind(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig)
 permed_All.geno_AmSig <- permed_All.geno_AmSig %>%
   mutate(holm_padj = p.adjust(permed_All.geno_AmSig$pval, method = "holm")) %>% 
-  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, FALSE))
+  mutate(holm_Sig = ifelse((n > 30 & holm_padj < 0.05), TRUE, ifelse(n < 30, NA, FALSE)))
 rm(permed_A.f.geno_AmSig, permed_A.m.geno_AmSig, permed_C.m.geno_AmSig) # remove clutter
 
 ########
@@ -176,7 +176,7 @@ binPlot_RedNR <- function(dat, perm_dat){
                                                   size = c(5, 5, 5),
                                                   alpha = 1))) +
   # add star do signify significant difference from 0
-  geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "ns")),
+  geom_text(data = perm_dat %>% mutate(sig1 = if_else(!is.na(holm_Sig) , ifelse(holm_Sig,"*", "ns"), "")),
             aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5,
             position = position_dodge(width = 0.8), show.legend = FALSE) +
   # add number of genes per category
@@ -231,18 +231,18 @@ A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_main.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_suppl.pdf",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
-    height = 8 ) # 8 20 The height of the plot in inches
-# ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-#           NA,
-#           A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-#           NA, A.f.sig.exp_geno, NA,
-#           labels = c("A)", NA, "B)", NA, "C)", NA),
-#           heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
-#           font.label = list(size = 25),
-#           common.legend = TRUE, legend = "bottom")
-All.exp_geno
+    height = 20 ) # 8 20 The height of the plot in inches
+ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          NA,
+          A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          NA, A.f.sig.exp_geno, NA,
+          labels = c("A)", NA, "B)", NA, "C)", NA),
+          heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+          font.label = list(size = 25),
+          common.legend = TRUE, legend = "bottom")
+# All.exp_geno
 dev.off()
 ########
 

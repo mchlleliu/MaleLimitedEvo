@@ -184,24 +184,24 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
                     boot_n = 1000, 
                     myfun = mean){
   boot_tabs <- as_tibble(data_frame(bs = 1:boot_n) %>% # make boot_n bootstrap replicates
-                           group_by(bs) %>% # for each bootstrap,
+                           dplyr::group_by(bs) %>% # for each bootstrap,
                            # sample randomly x boot_n times from each group
-                           mutate(data = list(boot_dat %>% 
-                                                group_by(.[[groupBy]]) %>% # separate group 1 and group 2
-                                                sample_frac(size = 1, replace = T)))) %>% 
+                           dplyr::mutate(data = list(boot_dat %>% 
+                                                       dplyr::group_by(.[[groupBy]]) %>% # separate group 1 and group 2
+                                                       dplyr::sample_frac(size = 1, replace = T)))) %>% 
     unnest(c(bs, data)) %>% # create separate rows for each bootstrap replicate in the list
     dplyr::group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
     # for each bootstrap replicate, calculate the test stat
-    do(tidy(myfun(.[[x_col]]))) %>%
+    dplyr::do(tidy(myfun(.[[x_col]]))) %>%
     dplyr::rename({{groupBy}} := 2)
   
   # summarise bootstrap replicates
   boot_SE <- boot_tabs %>%
-    ungroup() %>%
+    dplyr::ungroup() %>%
     dplyr::group_by(.[[groupBy]]) %>%
-    dplyr::summarise(q05 = quantile(x, 0.025),
-              q50 = quantile(x, 0.5),
-              q95 = quantile(x, 0.975)) %>%
+    dplyr::summarise(q05 = quantile(x, 0.025, na.rm = TRUE),
+              q50 = quantile(x, 0.5, na.rm = TRUE),
+              q95 = quantile(x, 0.975, na.rm = TRUE)) %>%
     dplyr::rename({{groupBy}} := 1)
   return(boot_SE)
 }
@@ -232,3 +232,4 @@ TwoBoot_SBGE <- function(boot_dat, x_col, groupBy, SBGE_cat){
 # testing
 test_dat <- data.frame(dat = c(1,2,3,4,5,6,7,8,9, 10), group = rep(c(TRUE, FALSE)))
 TwoBoot(test_dat, x_col = "dat", groupBy = "group", boot_n = 10)
+rm(test_dat)

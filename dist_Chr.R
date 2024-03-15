@@ -8,8 +8,52 @@
 # 
 ###################################
 
+# Get chromosome locations  
+##########
+
+all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
+colnames(all.genes) = c("FlyBaseID")
+
+Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Xchr) = c("FlyBaseID")
+Xchr$Chr <- rep("X", dim(Xchr)[1])
+
+Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Ychr) = c("FlyBaseID")
+Ychr$Chr <- rep("Y", dim(Ychr)[1])
+
+
+chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2L) = c("FlyBaseID")
+chr2L$Chr <- rep("2L", dim(chr2L)[1])
+chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2R) = c("FlyBaseID")
+chr2R$Chr <- rep("2R", dim(chr2R)[1])
+# 
+chr2 <- rbind(chr2L, chr2R)
+chr2$Chr <- rep("2", dim(chr2)[1])
+
+chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3L) = c("FlyBaseID")
+chr3L$Chr <- rep("3L", dim(chr3L)[1])
+chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3R) = c("FlyBaseID")
+chr3R$Chr <- rep("3R", dim(chr3R)[1])
+#
+chr3 <- rbind(chr3L, chr3R)
+chr3$Chr <- rep("3", dim(chr3)[1])
+
+Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
+Chrs$Chr <- as.factor(Chrs$Chr)
+
+Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
+Chrs_All$Chr <- as.factor(Chrs_All$Chr)
+##########
+
 # Prepare plotting dataset
 ########
+
+
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
@@ -21,10 +65,12 @@ A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr),]
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
-jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")], 
-                           Chrs, by = "FlyBaseID", all = T)
-jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
-colnames(jseq.All.geno_Chr)[6] = "Sig"
+
+# jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")], 
+#                            Chrs, by = "FlyBaseID", all = T)
+# jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
+# jseq.All.geno_Chr <- jseq.All.geno_Chr[!jseq.All.geno_Chr$FlyBaseID %in% DsRed_genes$V1,]
+# colnames(jseq.All.geno_Chr)[6] = "Sig"
 
 # column denotes genes that are candidates in males or females
 SSAV.geno_Chr <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
@@ -38,16 +84,18 @@ propChr <- function(dat){
   total_Sig <- dim(dat[dat$Sig,])[1]
   total_NS <- total_All - total_Sig
   
-  total_Chr <- dat %>% group_by(Chr) %>%
-    summarise(Chr_count = n()) 
+  total_Chr <- dat %>% 
+    dplyr::group_by(Chr) %>%
+    dplyr::summarise(Chr_count = n()) 
   
-  fract <- dat %>% group_by(Chr, Sig) %>%
-    summarise(count = n()) %>%
-    mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS))
+  fract <- dat %>% 
+    dplyr::group_by(Chr, Sig) %>%
+    dplyr::summarise(count = n()) %>%
+    dplyr::mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS))
   
   fract <- merge(fract, total_Chr, by = "Chr") %>%
-    rowwise() %>%
-    mutate(frac_by_Chr = count/Chr_count,
+    dplyr::rowwise() %>%
+    dplyr::mutate(frac_by_Chr = count/Chr_count,
            lower = list(binom.test(count, Chr_count)),
            upper = lower$conf.int[2],
            lower = lower$conf.int[1])
@@ -93,8 +141,8 @@ plotChrprop <- function(dat, xlab){
   return(plot_vec)
 }
 
-propChr(jseq.All.geno_Chr)
-plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
+# propChr(jseq.All.geno_Chr)
+# plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
 
 propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
 
@@ -139,7 +187,7 @@ A.f_Sig <- plotChrprop(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                                        !is.na(A.f.geno_Chr$Chr),], "Chromosome")
 A.m_Sig <- plotChrprop(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
                            !is.na(A.m.geno_Chr$Chr) & A.m.geno_Chr$Chr != "Y",], 
-            "Chromosome") + coord_cartesian(ylim = c(0, 0.05))
+            "Chromosome") 
 
 
 

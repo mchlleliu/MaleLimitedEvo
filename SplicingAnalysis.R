@@ -25,9 +25,10 @@ library(ggblend)
 #######
 
 # Set global variables
-FDRThreshold = 0.01
+FDRThreshold = geneWisePadj = 0.01
 mappedReadsThreshold = 50
 
+setwd("~/Desktop/UofT/SSAV_RNA/")
 
 # load data from JunctionSeq analysis
 # to run JunctionSeq, see: Amardeep Singh's JunctionSeq.Script.R,
@@ -48,6 +49,13 @@ jseq.C.m.geno = read.table("JunctionSeq/C.m.geno/C.m.geno.splicingallGenes.resul
 colnames(jseq.A.f.geno)[2]="FlyBaseID" 
 colnames(jseq.A.m.geno)[2]="FlyBaseID" 
 colnames(jseq.C.m.geno)[2]="FlyBaseID" 
+
+# remove genes close to the DsRed marker
+DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
+jseq.A.f.geno <- jseq.A.f.geno[!(jseq.A.f.geno$FlyBaseID %in% DsRed_genes$V1),]
+jseq.A.m.geno <- jseq.A.m.geno[!(jseq.A.m.geno$FlyBaseID %in% DsRed_genes$V1),]
+jseq.C.m.geno <- jseq.C.m.geno[!(jseq.C.m.geno$FlyBaseID %in% DsRed_genes$V1),]
+
 # make a list of samples. This is just so we can automate 
 # it easier in subsequent steps bcs i don't want to write everything thrice lol T-T.
 SSAV.sample.types <- data.frame(sampleType = c("A.m", "A.f", "C.m")) %>% 
@@ -116,9 +124,13 @@ jseq.A.f.geno <- jseq.A.f.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRTh
 jseq.A.m.geno <- jseq.A.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRThreshold &
                                                              !(FlyBaseID %in% jseq.C.m.geno[jseq.C.m.geno$sig.hit,]$FlyBaseID),
                                                            TRUE, FALSE))
-jseq.All.geno <- merge(jseq.A.m.geno, jseq.A.f.geno, by = c("FlyBaseID", "countbinID"), all = T) %>%
-  mutate(sig.hit = ifelse((!(is.na(sig.hit.x) & is.na(sig.hit.y)) & (sig.hit.x | sig.hit.y)), 
-                          TRUE, ifelse(is.na(sig.hit.x) & is.na(sig.hit.y), NA, FALSE)))
+jseq.All.geno <- merge(jseq.A.m.geno[,c("FlyBaseID", "geneWisePadj", "sig.hit")], 
+                       jseq.A.f.geno[,c("FlyBaseID", "geneWisePadj", "sig.hit")], 
+                       by = "FlyBaseID", all = T) 
+jseq.All.geno <- jseq.All.geno[!duplicated(jseq.All.geno$FlyBaseID),] %>%
+  dplyr::mutate(sig.hit = ifelse(!is.na(sig.hit.x) & sig.hit.x, TRUE, 
+                                  ifelse(!is.na(sig.hit.y) & sig.hit.y, TRUE, 
+                                         ifelse(is.na(sig.hit.y) & is.na(sig.hit.x), NA, FALSE))))
 jseq.All.geno.save <-  jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", 
                                         "geneWisePadj.y", "sig.hit.y", "sig.hit")]
 jseq.All.geno.save <- unique(na.omit(jseq.All.geno.save))
@@ -250,6 +262,7 @@ All.geno.tmp <- read.delim("Results/All.geno_candidates.tsv", header = TRUE, sep
 # initialize dataframe object to store results (wow that variable name do be long)
 fishers.test.RedNR.splice.results <- data.frame(sampleType = SSAV.sample.types$sampleType)
 
+
 for(i in 1:dim(SSAV.sample.types)[1]){
   tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2]))
   tmp.JS.table <- tmp.JS.table[!is.na(tmp.JS.table$sig.hit),]
@@ -301,23 +314,104 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
                                                                            tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$DE.Sig)$p.value
   
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10 &
-                                        !is.na(tmp.JS.table$Osada.SSS) & tmp.JS.table$Osada.SSS]))
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10 &
-                                        !is.na(tmp.JS.table$ASE.SSS) & tmp.JS.table$ASE.SSS]))
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10 &
-                                        !is.na(tmp.JS.table$DE.Sig) & tmp.JS.table$DE.Sig]))
+  assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
+}
+
+
+# get data for Suppl. table
+for(i in 1:dim(SSAV.sample.types)[1]){
+  tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2]))
+  tmp.JS.table <- tmp.JS.table[!is.na(tmp.JS.table$sig.hit),]
+  if(i < 4) {
+    tmp.JS.table <- tmp.JS.table[,c(2,26)]
+    tmp.JS.table = tmp.JS.table[!duplicated(tmp.JS.table$FlyBaseID),]
+  }
   
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 &
-                                        !is.na(tmp.JS.table$Osada.SSS) & tmp.JS.table$Osada.SSS]))
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 &
-                                        !is.na(tmp.JS.table$ASE.SSS) & tmp.JS.table$ASE.SSS]))
-  print(length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 &
-                                        !is.na(tmp.JS.table$DE.Sig) & tmp.JS.table$DE.Sig]))
+  # get number of significant genes
+  fishers.test.RedNR.splice.results$N.all[i] = length(tmp.JS.table$FlyBaseID)
+  fishers.test.RedNR.splice.results$N.sig[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) 
+                                                                             & tmp.JS.table$sig.hit])
   
+  # assign overlap with SSS
+  tmp.JS.table = tmp.JS.table %>% 
+    mutate(Osada.SSS = ifelse(FlyBaseID %in% SinghAgrawalSDIU[!is.na(SinghAgrawalSDIU$SDIU.body.sig) &
+                              SinghAgrawalSDIU$SDIU.body.sig,]$FlyBaseID, 
+                              TRUE, ifelse(is.na(SinghAgrawalSDIU$SDIU.body.sig), NA, FALSE)))
+  tmp.JS.table = tmp.JS.table %>% 
+    mutate(ASE.SSS = ifelse(FlyBaseID %in% jseq.ASE[!is.na(jseq.ASE$SSS) & 
+                             jseq.ASE$SSS,]$FlyBaseID, 
+                             TRUE, ifelse(is.na(jseq.ASE$SSS), NA, FALSE)))
+  
+  
+  # tmp.JS.table = tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 & 
+  #                               !(tmp.JS.table$FlyBaseID %in% DsRed_genes$V1),]
+  
+  
+  # any overlap with differentially expressed genes?
+  tmp.JS.table = tmp.JS.table %>% 
+    mutate(DE.Sig = ifelse(FlyBaseID %in% SSAV.geno[!is.na(SSAV.geno$Sig) 
+                                                       & SSAV.geno$Sig,]$FlyBaseID, 
+                           TRUE, ifelse(is.na(SSAV.geno$Sig), NA, FALSE)))
+  
+  fishers.test.RedNR.splice.results$N.filter25[i] = length(tmp.JS.table$FlyBaseID)
+  fishers.test.RedNR.splice.results$N.sig.filter25[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) & 
+                                                                                        tmp.JS.table$sig.hit])
+  
+  # fishers.test.RedNR.splice.results$N.sig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
+  #                                                                                  tmp.JS.table$Osada.SSS])
+  # fishers.test.RedNR.splice.results$N.AS.sig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
+  #                                                                                     tmp.JS.table$Osada.SSS &
+  #                                                                                     !is.na(tmp.JS.table$sig.hit) &
+  #                                                                                     tmp.JS.table$sig.hit ])
+  # 
+  # fishers.test.RedNR.splice.results$N.nonsig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
+  #                                                                                  !tmp.JS.table$Osada.SSS])
+  # fishers.test.RedNR.splice.results$N.AS.nonsig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
+  #                                                                                     !tmp.JS.table$Osada.SSS &
+  #                                                                                       !is.na(tmp.JS.table$sig.hit) &
+  #                                                                                       tmp.JS.table$sig.hit ])
+  # 
+  fishers.test.RedNR.splice.results$N.sig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
+                                                                                   tmp.JS.table$ASE.SSS])
+  fishers.test.RedNR.splice.results$N.AS.sig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
+                                                                                 tmp.JS.table$ASE.SSS &
+                                                                                   !is.na(tmp.JS.table$sig.hit) &
+                                                                                   tmp.JS.table$sig.hit ])
+  
+  fishers.test.RedNR.splice.results$N.nonsig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
+                                                                                      !tmp.JS.table$ASE.SSS])
+  fishers.test.RedNR.splice.results$N.AS.nonsig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
+                                                                                    !tmp.JS.table$ASE.SSS &
+                                                                                      !is.na(tmp.JS.table$sig.hit) &
+                                                                                      tmp.JS.table$sig.hit ])
+  
+  fishers.test.RedNR.splice.results$N.sig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+                                                                                 tmp.JS.table$DE.Sig])
+  fishers.test.RedNR.splice.results$N.AS.sig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+                                                                                tmp.JS.table$DE.Sig &
+                                                                                  !is.na(tmp.JS.table$sig.hit) &
+                                                                                  tmp.JS.table$sig.hit ])
+  
+  fishers.test.RedNR.splice.results$N.nonsig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+                                                                                    !tmp.JS.table$DE.Sig])
+  fishers.test.RedNR.splice.results$N.AS.nonsig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+                                                                                   !tmp.JS.table$DE.Sig &
+                                                                                     !is.na(tmp.JS.table$sig.hit) &
+                                                                                     tmp.JS.table$sig.hit ])
+  
+  # test for SSS overlap, 25% FPKM filter
+  # fishers.test.RedNR.splice.results$Osada.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
+  #                                                                        tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$Osada.SSS)$p.value
+  fishers.test.RedNR.splice.results$ASE.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
+                                                                       tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$ASE.SSS)$p.value
+  
+  # test for DE overlap, 25% FPKM filter
+  fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
+                                                                           tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$DE.Sig)$p.value
   
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
 }
+
 
 rm(tmp.JS.table, SinghAgrawalSDIU, All.geno.tmp) # clean environment
 
@@ -513,6 +607,18 @@ countFiles.f.MCcom <- paste0("JunctionSeq/SDIU_MC/MCcom/",F.decoder.MCcom$unique
 
 
 #######
+A.f.countfiles <- ReadCountFiles(countFiles.f.ASE, F.decoder.ASE)
+A.f.countfiles <- A.f.countfiles %>%
+  dplyr::mutate(sumAll = rowMeans(select_if(., is.numeric), na.rm = T))
+
+A.m.countfiles <- ReadCountFiles(countFiles.m.ASE, M.decoder.ASE)
+tmp <- ReadCountFiles(countFiles.A.f, A.f.decoder)
+tmp <- tmp %>%
+  dplyr::mutate(sumAll = rowMeans(select_if(., is.numeric), na.rm = T))
+
+plot(A.f.countfiles$sumAll, tmp$sumAll) 
+histogram(A.f.countfiles$sumAll[A.f.countfiles$sumAll < 100], breaks = 100)
+histogram(tmp$sumAll[tmp$sumAll < 100], breaks = 100)
 
 
 # ------ analysis Functions:
@@ -531,7 +637,7 @@ ReadCountFiles <- function(data.files, decoder.file){
   print(dim(count.file)) # check number of splice sites
   
   # exclude novel splice sites
-  count.file <- count.file %>% filter(!str_detect(countBin, "N") & !str_detect(countBin, "A"))
+  count.file <- count.file %>% filter(!str_detect(countBin, "+") & !str_detect(countBins, "A"))
   print(dim(count.file)) # check number of remaining splice sites
   
   return(count.file)
@@ -831,8 +937,8 @@ mean(Fem.SinghAgrw.ASE.M.dist.m[Fem.SinghAgrw.ASE.M.dist.m$FlyBaseID %in% subset
 
 SDIU.ASE.compare.male <- CompareDistances(Male.SinghAgrw.ASE.M.dist.m, Male.SinghAgrw.ASE.M.dist.f )
 SDIU.ASE.compare.fem <- CompareDistances(Fem.SinghAgrw.ASE.M.dist.m, Fem.SinghAgrw.ASE.M.dist.f)
-splicing.MF.metric.plot(RedData = SDIU.ASE.compare.male[SDIU.ASE.compare.male$FlyBaseID %in% subset.sss,], 
-                        NRData = SDIU.ASE.compare.fem[SDIU.ASE.compare.fem$FlyBaseID %in% subset.sss,], 
+splicing.MF.metric.plot(RedData = SDIU.ASE.compare.male[SDIU.ASE.compare.male$FlyBaseID %in% SinghAgrawal.sig.SSS,], 
+                        NRData = SDIU.ASE.compare.fem[SDIU.ASE.compare.fem$FlyBaseID %in% SinghAgrawal.sig.SSS,], 
                         plotCol = "M.dis.F",
                         colour_red = "steelblue3", colour_NR = "magenta4")
 
@@ -1367,12 +1473,12 @@ for(i in sampleTypes) {
   Male_RedDat <- get(paste0(i,".Red.v.Males_ase")) # .Red.v.Males_SinghAgrw
   Male_NRDat <- get(paste0(i,".NR.v.Males_ase")) # .NR.v.Males_SinghAgrw
   
-  Fem_RedDat <- Fem_RedDat[Fem_RedDat$FlyBaseID %in% A.f.sig.AS,] # SinghAgrawal.sig.SSS
-  Fem_NRDat <- Fem_NRDat[Fem_NRDat$FlyBaseID %in% A.f.sig.AS,]
+  Fem_RedDat <- Fem_RedDat[Fem_RedDat$FlyBaseID %in% subset.sss,] # SinghAgrawal.sig.SSS
+  Fem_NRDat <- Fem_NRDat[Fem_NRDat$FlyBaseID %in% subset.sss,]
   
 
-  Male_RedDat <- Male_RedDat[Male_RedDat$FlyBaseID %in% A.f.sig.AS,]
-  Male_NRDat <- Male_NRDat[Male_NRDat$FlyBaseID %in% A.f.sig.AS,]
+  Male_RedDat <- Male_RedDat[Male_RedDat$FlyBaseID %in% subset.sss,]
+  Male_NRDat <- Male_NRDat[Male_NRDat$FlyBaseID %in% subset.sss,]
   
   print(length(!is.na(Fem_RedDat$percent.dissim)))
   print(length(!is.na(Fem_NRDat$percent.dissim)))
@@ -1483,16 +1589,16 @@ quad_count <- function(dat, x, y, lim = 5){
                  top = .[[y]] > 0, # on the top side of plot?
                  UP = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III up-left or quadrant IV up-right
                  top & abs(.[[x]]) < abs(.[[y]])) %>%  # quadrant I up-right or quadrant II up-left
-    mutate(perc = n/sum(n, na.rm = T)) %>% # calculate percentage of points relative to total number of points
+    dplyr::mutate(perc = n/sum(n, na.rm = T)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
-    mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
+    dplyr::mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
            dir_UP = conc & UP, # concordant changes where x > y
            dir_DOWN = conc & !UP) %>% # concordant changes where x < y
     
     # TRUE = 1, FALSE = 0
     # specificy coordinates for texts on plot
-    mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
+    dplyr::mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
            !!y := lim/2*(2*(top - 0.5)+(UP - 0.5)))
   
   return(count)
@@ -1501,13 +1607,13 @@ quad_count <- function(dat, x, y, lim = 5){
 colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
   col <- dat %>%
     # logical columns to define where the point is locates
-    mutate(right = .[[x]] > 0, # on the right part of plot?
+    dplyr::mutate(right = .[[x]] > 0, # on the right part of plot?
            top = .[[y]] > 0, # on the top part of plot?
            # for the concordant quadrants (I & III)... 
            DOWN = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III where x > y
              top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
     # add the colour
-    mutate(quadrant = ifelse(right & top | (!right & !top), 
+    dplyr:: mutate(quadrant = ifelse(right & top | (!right & !top), 
                              ifelse(DOWN, colx, coly), 
                              colNonCon))
   return(col)
@@ -1574,12 +1680,19 @@ M.v.F.test.table <- data.frame(sampleType = sampleTypes) %>%
 for(i in 1:dim(M.v.F.test.table)[1]){
   RedData <- get(paste0(M.v.F.test.table[i,2]))
   # subset appropriately
-  RedData <- RedData[ RedData$FlyBaseID %in% ASE.sig.SSS &
-                        RedData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
+  RedData <- RedData[ 
+    #RedData$FlyBaseID %in% unique( A.m.sig.AS) &
+    RedData$FlyBaseID %in% ASE.sig.SSS,]
+    # RedData$FlyBaseID %in% subset.sss,]
+    # RedData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
+  
   # subset appropriately
   NRData <- get(paste0(M.v.F.test.table[i, 3]))
-  NRData <- NRData[NRData$FlyBaseID %in% ASE.sig.SSS &
-                     NRData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
+  NRData <- NRData[
+    #NRData$FlyBaseID %in% unique(A.m.sig.AS) &
+    NRData$FlyBaseID %in% ASE.sig.SSS,]
+    # NRData$FlyBaseID %in% subset.sss,]
+    # NRData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
   
   M.v.F.test.table$N <- length(!is.na(RedData$M.dis.F))
   M.v.F.test.table$avg.Red[i] <- mean(RedData$M.dis.F, na.rm = T)
@@ -1594,7 +1707,8 @@ for(i in 1:dim(M.v.F.test.table)[1]){
     
   rm(test)
   
-  tmp.plot <- splicing.MF.diff.dot.plot(RedData = RedData, NRData = NRData, plotCol = "M.dis.F")
+  tmp.plot <- splicing.MF.diff.dot.plot(RedData = RedData, 
+                                        NRData = NRData, plotCol = "M.dis.F")
   
   assign(paste0(M.v.F.test.table[i,1],".compare.plot"), tmp.plot)
 }
@@ -1719,3 +1833,47 @@ ggplot(plot_splicing.profiles_All, aes(trt2, M.dis.F, color = geno)) +
           plot.margin = margin(6,6,6,6),
           panel.border = element_rect(colour = "black", fill=NA, size=1)
 )
+
+
+
+
+# diff plot A and C males
+tmp_A <- data.frame(FlyBaseID = A.m.Red.compare_ase$FlyBaseID, 
+                    Red = A.m.Red.compare_ase$M.dis.F,
+                    NR = A.m.NR.compare_ase$M.dis.F)
+tmp_A <- tmp_A[tmp_A$FlyBaseID %in% subset.sss,] %>% 
+  dplyr::mutate(diff = Red - NR)
+tmp_Af <- data.frame(FlyBaseID = A.f.Red.compare_ase$FlyBaseID, 
+                    Red = A.f.Red.compare_ase$M.dis.F,
+                    NR = A.f.NR.compare_ase$M.dis.F)
+tmp_Af <- tmp_Af[tmp_Af$FlyBaseID %in% subset.sss,] %>% 
+  dplyr::mutate(diff = Red - NR)
+tmp_C <- data.frame(FlyBaseID = C.m.Red.compare_ase$FlyBaseID, 
+                    Red = C.m.Red.compare_ase$M.dis.F,
+                    NR = C.m.NR.compare_ase$M.dis.F)
+tmp_C <- tmp_C[tmp_C$FlyBaseID %in% subset.sss,] %>% 
+  dplyr::mutate(diff = Red - NR)
+
+
+ggplot() + 
+  geom_histogram(data= tmp_A, 
+                 aes(x= diff), color = "blue3", fill = "blue3", alpha = 0.5, bins = 50) +
+  geom_histogram(data= tmp_Af, 
+                 aes(x= diff), color = "red3", fill = "red3", alpha = 0.5, bins = 50) +
+  geom_histogram(data= tmp_C, 
+                 aes(x= diff), color = "grey25", fill = "grey25", alpha = 0.5, bins = 50) +
+  labs(x = "female <<---------------------->> male") +
+  geom_vline(xintercept = 0, color = "black", linewidth = 1) +
+  # coord_cartesian(xlim=c(-0.5,0.5)) +
+  theme_classic() +
+  theme(plot.title.position = c("panel"),
+        legend.title = element_blank(),
+        legend.position = c("bottom"),
+        legend.box.background = element_rect(),
+        legend.text = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6))

@@ -32,23 +32,23 @@ library(ggpubr)
 quad_count <- function(dat, x, y, lim){
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
-    count(right = .[[x]] > 0, # on the right side of plot?
+    dplyr::count(right = .[[x]] > 0, # on the right side of plot?
           top = .[[y]] > 0, # on the top side of plot?
           # for each quadrant, divide into two: 
           # (this is a bit weird, but needed so the numbers can be plotted at the right coordinates)
           UP = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III up-left or quadrant IV up-right
             top & abs(.[[x]]) < abs(.[[y]])) %>%  # quadrant I up-right or quadrant II up-left
     
-    mutate(perc = n/sum(n)) %>% # calculate percentage of points relative to total number of points
+    dplyr::mutate(perc = n/sum(n)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
-    mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
+    dplyr::mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
            dir_UP = conc & UP, # concordant changes where x > y
            dir_DOWN = conc & !UP) %>% # concordant changes where x < y
     
     # TRUE = 1, FALSE = 0
     # specificy coordinates for texts on plot
-    mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
+    dplyr::mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
            !!y := lim/2*(2*(top - 0.5)+(UP - 0.5)))
   
   return(count)
@@ -67,13 +67,13 @@ quad_count <- function(dat, x, y, lim){
 colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
   col <- dat %>%
     # logical columns to define where the point is locates
-    mutate(right = .[[x]] > 0, # on the right part of plot?
+    dplyr::mutate(right = .[[x]] > 0, # on the right part of plot?
            top = .[[y]] > 0, # on the top part of plot?
            # for the concordant quadrants (I & III)... 
            DOWN = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III where x > y
              top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
     # add the colour
-    mutate(quadrant = ifelse(right & top | (!right & !top), 
+    dplyr::mutate(quadrant = ifelse(right & top | (!right & !top), 
                              ifelse(DOWN, colx, coly), 
                              colNonCon))
   return(col)
@@ -154,7 +154,6 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
-str(ASE) # load this Mishra et al. dataset first using External_data.R 
 
 tmp.males <- A.m.geno
 colnames(tmp.males) <- c("m.exp_geno", "m.se_geno", "m.padj", "FlyBaseID", "m.TopSig", "m.Sig")

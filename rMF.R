@@ -8,6 +8,9 @@
 # 
 ###################################
 
+rm(list=ls()) # Clears the environment
+setwd("~/Desktop/UofT/SSAV_RNA/")
+
 # packages 
 #########
 library(tidyverse)
@@ -21,7 +24,98 @@ library(ggpubr)
 library(RColorBrewer)
 ########
 
-setwd("~/Desktop/UofT/SSAV_RNA/")
+
+# Get Mishra et al.'s data 
+##########
+
+ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
+# Grab the desired variables from there
+ASE <- data.frame(cbind(ASE$log2FoldChange,
+                        ASE$lfcSE,
+                        ASE$FlyBaseID))
+colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
+# fix formatting
+ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
+ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
+str(ASE)
+
+
+# Define three levels of SBGE categorization 
+x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
+x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
+# y0 = 1 # tolerance of middle bins ### I DONT GET THIS 
+# # xmid1 = (x1 + x2)/2
+
+# Simple (3 levels)
+# one level of female-biased gene expression
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
+# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
+ASE <- rbind(fbg, mbg, ubg)
+str(ASE)
+
+# Complex (5 levels)
+more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
+more.fbg <- ASE[more.fbg.keep,]
+more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
+#
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
+#
+more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
+more.mbg <- ASE[more.mbg.keep,]
+more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
+# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
+ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
+str(ASE)
+
+##########
+
+# Get Singh & Agrawal 2023 data
+##########
+SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SDIU)[2] <- "FlyBaseID"
+SDIU <- mutate(SDIU, SBGEcat.body.Osada = case_when(
+  SBGEcat.body.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.body.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.body.Osada == "FB" ~ "c.fbg",
+  SBGEcat.body.Osada == "UB" ~ "d.ubg",
+  SBGEcat.body.Osada == "MB" ~ "e.mbg",
+  SBGEcat.body.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.body.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.body.Osada  # Keep other values unchanged
+))
+
+SDIU <- mutate(SDIU, SBGEcat.head.Osada = case_when(
+  SBGEcat.head.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.head.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.head.Osada == "FB" ~ "c.fbg",
+  SBGEcat.head.Osada == "UB" ~ "d.ubg",
+  SBGEcat.head.Osada == "MB" ~ "e.mbg",
+  SBGEcat.head.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.head.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.head.Osada  # Keep other values unchanged
+))
+str(SDIU)
+##########
 
 ## prepare dataset
 ##########
@@ -41,32 +135,40 @@ SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$Sig) & !is.na(SSAV.geno_rMF$
 
 ##########
 
+# prepare dataset
+SSAV.geno_ASE <- merge(SSAV.geno_rMF, ASE, by = "FlyBaseID", all = T)
+SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & 
+                                 !is.na(SSAV.geno_ASE$rMF) & 
+                                 !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
+sum(SSAV.geno$FlyBaseID[SSAV.geno$Sig] %in% Aneil$FlyBaseID)
+
 
 ## plotting function
 pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
   # set y-axis value above each error bar
   if(!is.na(SBGE_cat)){
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
-      group_by(.[[SBGE_cat]]) %>%
-      summarise(max = q95 + 0.05) %>% # 0.05
-      rename({{SBGE_cat}} := 1)
+      dplyr::group_by(.[[SBGE_cat]]) %>%
+      dplyr::summarise(max = q95 + 0.05) %>% # 0.05
+      dplyr::rename({{SBGE_cat}} := 1)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>%
-      group_by(.[[SBGE_cat]]) %>%
-      summarise(max = q95 + 0.05) %>% # 0.05
-      rename({{SBGE_cat}} := 1)
+      dplyr::group_by(.[[SBGE_cat]]) %>%
+      dplyr::summarise(max = q95 + 0.05) %>% # 0.05
+      dplyr::rename({{SBGE_cat}} := 1)
   }
   else{
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
-      summarise(max = q95 + 0.05)
+      dplyr::summarise(max = q95 + 0.05)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>% 
-      summarise(max = q95 + 0.05)
+      dplyr::summarise(max = q95 + 0.05)
     perm_dat <- as.data.frame(t(perm_dat))
     colnames(perm_dat) <- c("obs_diff", "n_TRUE", "n_FALSE", "pval", "Sig")
   }
   # join y-axis coordinate with text dataframes
   perm_dat$y_count_FALSE <- y_count_FALSE$max
   perm_dat$y_count_TRUE <- y_count_TRUE$max
-  perm_dat$y_star <- max(perm_dat$y_count_FALSE, perm_dat$y_count_TRUE) + 0.2
+  perm_dat$y_star <- max(perm_dat$y_count_FALSE, perm_dat$y_count_TRUE) + 0.1
+  perm_dat$y_star <- ifelse(perm_dat$y_star > 0.95, 0.85, perm_dat$y_star)
   str(perm_dat)
   
   if(!is.na(SBGE_cat)){
@@ -135,15 +237,16 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 ########
 # use the boot and permute functions in boot_permute.R
 # run permutation to test for significant difference between candidates vs non-candidates
-perm_rMF <- TwoPerm(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
+perm_rMF <- TwoPerm(SSAV.geno_ASE, x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
-boot_rMF <- TwoBoot(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
+boot_rMF <- TwoBoot(SSAV.geno_ASE, x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
 rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF")
 
 
 perm_rMF_simp <- TwoPerm(SSAV.geno_ASE[SSAV.geno_ASE$SBGE_comp != "a.more.fbg" & 
-                                         SSAV.geno_ASE$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
+                                         SSAV.geno_ASE$SBGE_comp != "e.more.mbg",], 
+                         x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
 boot_rMF_simp <- TwoBoot(SSAV.geno_ASE[SSAV.geno_ASE$SBGE_comp != "a.more.fbg" & 
                                     SSAV.geno_ASE$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
@@ -152,11 +255,11 @@ rMF_all_simp <- pointSEplot(boot_dat = boot_rMF_simp, perm_dat = perm_rMF_simp, 
 
 
 # Separately for male and female candidates
-perm_rMF_A.m <- TwoPerm(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),], "rMF", "A.m.Sig")
-boot_rMF_A.m <- TwoBoot(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),], "rMF", "A.m.Sig")
+perm_rMF_A.m <- TwoPerm(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.Sig),], "rMF", "A.m.Sig")
+boot_rMF_A.m <- TwoBoot(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.Sig),], "rMF", "A.m.Sig")
 
-perm_rMF_A.f <- TwoPerm(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], "rMF", "A.f.Sig")
-boot_rMF_A.f <- TwoBoot(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], "rMF", "A.f.Sig")
+perm_rMF_A.f <- TwoPerm(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.f.Sig),], "rMF", "A.f.Sig")
+boot_rMF_A.f <- TwoBoot(SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.f.Sig),], "rMF", "A.f.Sig")
 
 ########
 
@@ -164,13 +267,6 @@ boot_rMF_A.f <- TwoBoot(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], "rMF", "A
 
 ## ------------- rMF by SBGE categories ----------------
 #########
-# prepare dataset
-str(ASE) # load ASE data from Mishra et al. (look at External_data.R)
-SSAV.geno_ASE <- merge(SSAV.geno_rMF, ASE, by = "FlyBaseID", all = T)
-SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & 
-                                 !is.na(SSAV.geno_ASE$rMF) & 
-                                 !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
-
 ## for all candidates (combined male and female candidates)
 # run permutation
 perm_rMF_SBGE <- TwoPerm_SBGE(SSAV.geno_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
@@ -304,15 +400,15 @@ Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig4_suppl.pdf",   # The directory you want to save the file in
-    width = 16, # 16 The width of the plot in inches
-    height = 20) # 10 The height of the plot in inches
-ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
-          Fig4B_suppl,
-          labels = c("A)", "B)"),
-          nrow = 2,
-          common.legend = TRUE, legend = "bottom",
-          font.label = list(size = 30), hjust = -0.01)
-# Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 22.5))
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig4_main_newA.mCand.pdf",   # The directory you want to save the file in
+    width = 15, # The width of the plot in inches
+    height = 9) # 9 The height of the plot in inches
+# ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
+#           Fig4B_suppl + theme(axis.title.x = element_blank()),
+#           labels = c("A)", "B)"),
+#           nrow = 2,
+#           common.legend = TRUE, legend = "bottom",
+#           font.label = list(size = 30), hjust = -0.01)
+Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 22.5))
 dev.off()
 

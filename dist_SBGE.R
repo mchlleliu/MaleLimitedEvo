@@ -70,30 +70,30 @@ str(SSAV.geno_ASE)
 TwoBootDens <- function(boot_dat, x_col, groupBy, 
                         boot_n = 1000){
   densities.within <- as_tibble(data_frame(bs = 1:boot_n) %>% 
-                                  group_by(bs) %>% # make 1000 bootstrap replicates
+                                 dplyr:: group_by(bs) %>% # make 1000 bootstrap replicates
                                   # sample randomly for each bootstrap
-                                  mutate(data = list(boot_dat %>% 
-                                                       group_by(.[[groupBy]]) %>% 
-                                                       sample_frac(size = 1, replace = T)))) %>% 
+                                  dplyr::mutate(data = list(boot_dat %>% 
+                                                       dplyr::group_by(.[[groupBy]]) %>% 
+                                                       dplyr::sample_frac(size = 1, replace = T)))) %>% 
     unnest(c(bs, data)) %>% # create separate rows for each bootstrap replicate in the list
-    group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
+    dplyr::group_by(bs, .[[groupBy]]) %>% # group the data by bootstrap replicate and sig/non-sig
     # for each bootstrap replicate, 
     # calculate the density using 512 points (default) on the x-axis of each bootstrap dataset
-    do(tidy(density(.[[x_col]], 
+    dplyr::do(tidy(density(.[[x_col]], 
                     from = min(boot_dat[[x_col]]), 
                     to = max(boot_dat[[x_col]]), 
                     n = 512))) %>%
-    rename(group := 2)
+    dplyr::rename(group := 2)
   
   # calculate the quantiles for each point from the bootstrapped estimates
   densities.qtiles <- densities.within %>% 
-    rename(!!x_col := x, dens = y) %>%
-    ungroup() %>%
-    group_by(group, .[[x_col]]) %>% 
-    summarise(q05 = quantile(dens, 0.025),
+    dplyr::rename(!!x_col := x, dens = y) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(group, .[[x_col]]) %>% 
+    dplyr::summarise(q05 = quantile(dens, 0.025),
               q50 = quantile(dens, 0.5),
               q95 = quantile(dens, 0.975)) %>% 
-    rename(!!x_col := 2)
+    dplyr::rename(!!x_col := 2)
   
   return(densities.qtiles) # return density extimates and quantiles
 }
@@ -112,7 +112,7 @@ DiffDens <- function(bs_dat, x_col){
   
   dens_diff <- data.frame(diff[[x_col]]) # make dataframe for the diff
   dens_diff <- dens_diff %>%
-    mutate(q05 = diff$q05.x - diff$q95.y, # calculate q05
+    dplyr::mutate(q05 = diff$q05.x - diff$q95.y, # calculate q05
            q50 = diff$q50.x - diff$q50.y, # calculate q05
            q95 = diff$q95.x - diff$q05.y) # calculate q95
   
@@ -226,22 +226,24 @@ propSBGE <- function(dat, SBGE_cat){
   total_Sig <- dim(dat[dat$Sig,])[1]
   total_NS <- total_All - total_Sig
   
-  total_SBGE <- dat %>% group_by(.[[SBGE_cat]]) %>%
-    summarise(SBGE_count = n()) %>%
-    rename({{SBGE_cat}} := 1)
+  total_SBGE <- dat %>% 
+    dplyr::group_by(.[[SBGE_cat]]) %>%
+    dplyr::summarise(SBGE_count = n()) %>%
+    dplyr::rename({{SBGE_cat}} := 1)
   
-  fract <- dat %>% group_by(.[[SBGE_cat]], Sig) %>%
-    summarise(count = n()) %>%
-    mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS)) %>%
-    rename({{SBGE_cat}} := 1) 
+  fract <- dat %>% 
+    dplyr::group_by(.[[SBGE_cat]], Sig) %>%
+    dplyr::summarise(count = n()) %>%
+    dplyr::mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS)) %>%
+    dplyr::rename({{SBGE_cat}} := 1) 
   
   fract <- merge(fract, total_SBGE, by = SBGE_cat)
   prop_SIG <- sum(fract[fract$Sig,]$count)/sum(fract[fract$Sig,]$SBGE_count)
   prop_NS <- sum(fract[!fract$Sig,]$count)/sum(fract[!fract$Sig,]$SBGE_count)
   
   fract <- fract %>% 
-    rowwise() %>% 
-    mutate(frac_by_SBGE_bin = count/SBGE_count,
+    dplyr::rowwise() %>% 
+    dplyr::mutate(frac_by_SBGE_bin = count/SBGE_count,
            lower = list(binom.test(x=count, n=SBGE_count, p=ifelse(Sig, prop_SIG, prop_NS))), 
            upper = lower$conf.int[2], 
            lower = lower$conf.int[1])
@@ -299,15 +301,15 @@ propSBGE(A.m.geno_ASE, "SBGE_comp")
 
 bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
-bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.05))
+bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
 
 ##########
 
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main.pdf",   # The directory you want to save the file in
-    width = 14, # 14 24 The width of the plot in inches
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_suppl_newAmCand.pdf",   # The directory you want to save the file in
+    width = 24, # 14 24 The width of the plot in inches
     height = 10) # 10 20 The height of the plot in inches
 # ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
 #           labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
@@ -316,13 +318,13 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main.pdf",   # The directo
 #           ncol = 3, nrow = 3,
 #           font.label = list(size = 30), hjust = -0.01)
 
-bin_All_DsRed
+# bin_All
 
-# ggarrange(bin_A.m_DsRed, NA, bin_A.f_DsRed,
-#           labels = c("A)", NA, "B)"),
-#           widths = c(1, 0.05, 1),
-#           ncol = 3,
-#           font.label = list(size = 30), hjust = -0.01)
+ggarrange(bin_A.m, NA, bin_A.f,
+          labels = c("A)", NA, "B)"),
+          widths = c(1, 0.05, 1),
+          ncol = 3,
+          font.label = list(size = 30), hjust = -0.01)
 dev.off()
 
 ##########

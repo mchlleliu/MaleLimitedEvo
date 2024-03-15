@@ -25,28 +25,8 @@ library(ggpubr)
 library(RColorBrewer)
 ########
 
-
-
-## prepare dataset
-##########
-# load results if not loaded in env.
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-
-# Combine results into one data frame
-# Genes present in both SSAV males and SSAV females data
-SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
-                         "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-# column denotes genes that are candidates in males or females
-SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE, 
-                                               ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, FALSE))) 
-
-jseq.All.geno.tmp <- read.delim("Results/jseq.All.geno.txt")
-all.candidates <- SSAV.geno %>% mutate(Sig = ifelse(FlyBaseID %in% jseq.All.geno$FlyBaseID[jseq.All.geno$Sig], 
-                                              TRUE, Sig))
-
 # load Singh & Agrawal 2023 dataset
+######
 SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
 colnames(SDIU)[2] <- "FlyBaseID"
 # change to order for plotting
@@ -73,13 +53,93 @@ SDIU <- mutate(SDIU, SBGEcat.head.Osada = case_when(
   TRUE              ~ SBGEcat.head.Osada  # Keep other values unchanged
 ))
 str(SDIU)
+######
 
-SSAV.geno <- merge(SSAV.geno, SDIU, by = "FlyBaseID", all = TRUE)
+# Get Mishra et al.'s data 
+##########
+
+ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
+# Grab the desired variables from there
+ASE <- data.frame(cbind(ASE$log2FoldChange,
+                        ASE$lfcSE,
+                        ASE$FlyBaseID))
+colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
+# fix formatting
+ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
+ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
+str(ASE)
+
+
+# Define three levels of SBGE categorization 
+x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
+x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
+# y0 = 1 # tolerance of middle bins ### I DONT GET THIS 
+# # xmid1 = (x1 + x2)/2
+
+# Simple (3 levels)
+# one level of female-biased gene expression
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
+# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
+ASE <- rbind(fbg, mbg, ubg)
+str(ASE)
+
+# Complex (5 levels)
+more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
+more.fbg <- ASE[more.fbg.keep,]
+more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
+#
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
+#
+more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
+more.mbg <- ASE[more.mbg.keep,]
+more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
+# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
+ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
+str(ASE)
+
+##########
+
+## prepare dataset
+##########
+# load results if not loaded in env.
+A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+
+
+jseq.All.geno.tmp <- read.delim("Results/jseq.All.geno.txt")
+all.candidates <- SSAV.geno %>% 
+  dplyr::mutate(Sig = ifelse(FlyBaseID %in% jseq.All.geno.tmp$FlyBaseID[jseq.All.geno.tmp$Sig], 
+                                                    TRUE, Sig))
+
+SSAV.geno <- merge(SSAV.geno, SDIU[,c("FlyBaseID", "Whole.SBGE.Osada", "tajD.S", "DoS")], by = "FlyBaseID", all = TRUE)
 SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
 
-all.candidates <- merge(all.candidates, SDIU, by = "FlyBaseID", all = T)
+all.candidates <- merge(all.candidates,  SDIU[,c("FlyBaseID", "Whole.SBGE.Osada", "tajD.S", "DoS")], by = "FlyBaseID", all = T)
 all.candidates <- merge(all.candidates, ASE, by = "FlyBaseID", all = T)
 ##########
+
+
 
 ## plotting function
 pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
@@ -219,30 +279,27 @@ DoS_all_SBGE <- pointSEplot(boot_dat = boot_DoS_SBGE, perm_dat = perm_DoS_SBGE,
 # use permutation and bootstrap functions in boot_permute.R
 perm_TajD_N
 perm_TajD <- TwoPerm(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                !is.na(SSAV.geno$tajD.N) &
                                   !is.na(SSAV.geno$tajD.S),], x_col = "tajD.S", groupBy = "Sig")
 boot_TajD_N
 boot_TajD <- TwoBoot(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                 !is.na(SSAV.geno$tajD.N) &
                                  !is.na(SSAV.geno$tajD.S),], x_col = "tajD.S", 
                      groupBy = "Sig")
 TajD_all <- pointSEplot(boot_dat = boot_TajD, perm_dat = perm_TajD, x_col = "tajD.S") + 
   coord_cartesian(ylim = c(-0.2, 0.1))
 
 ggplot(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                   !is.na(SSAV.geno$tajD.N) &
-                   !is.na(SSAV.geno$tajD.S),]) + geom_point(aes(x = tajD.N, y = tajD.S, color = Sig), alpha = 0.5)
+                   !is.na(SSAV.geno$tajD.S),]) + 
+  geom_point(aes(x = Sig, y = tajD.S, color = Sig), alpha = 0.5)
 
 # by SBGE category 
 # (according to Osada et al. as used in the Sing & Agrawal paper)
 perm_TajD_SBGE_N 
 perm_TajD_SBGE <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                            !is.na(SSAV.geno$tajD.S) &
-                                           !is.na(SSAV.geno$tajD.N) &
-                                           !is.na(SSAV.geno$SBGEcat.body.Osada),], 
+                                           !is.na(SSAV.geno$SBGE_comp),], 
                                x_col = "tajD.S", 
                                groupBy = "Sig", 
-                               SBGE_cat = "SBGEcat.body.Osada")
+                               SBGE_cat = "SBGE_comp")
 boot_TajD_SBGE_N
 boot_TajD_SBGE <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                            !is.na(SSAV.geno$tajD.S) &
