@@ -7,6 +7,9 @@
 # 
 ###################################
 
+rm(list=ls())
+setwd("~/Desktop/UofT/SSAV_RNA/")
+
 # load packages
 #########
 library(broom)
@@ -18,12 +21,77 @@ library(ggpubr)
 library(cowplot)
 #########
 
+# Get Mishra et al.'s data 
+##########
+
+ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
+# Grab the desired variables from there
+ASE <- data.frame(cbind(ASE$log2FoldChange,
+                        ASE$lfcSE,
+                        ASE$FlyBaseID))
+colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
+# fix formatting
+ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
+ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
+str(ASE)
+
+
+# Define three levels of SBGE categorization 
+x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
+x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
+y0 = 1 # tolerance of middle bins ### I DONT GET THIS
+# xmid1 = (x1 + x2)/2
+
+# Simple (3 levels)
+# one level of female-biased gene expression
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
+# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
+ASE <- rbind(fbg, mbg, ubg)
+str(ASE)
+
+# Complex (5 levels)
+more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
+more.fbg <- ASE[more.fbg.keep,]
+more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
+#
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
+#
+more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
+more.mbg <- ASE[more.mbg.keep,]
+more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
+# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
+ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
+str(ASE)
+
+##########
+
 # Prepare plotting dataset containing all samples
 #########
 # load datasets
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
 # merge dataset with out population log2FC estimates. 
 ## Using Mishra et al.'s data. See "External_data.R" for code to bin SBGE categories
@@ -171,7 +239,7 @@ binPlot_RedNR <- function(dat, perm_dat){
        y = expression(Log["2"]*"FC (Red/NR)")) +
   # title = "C-males") +
   scale_colour_manual(values = c("red3", "steelblue3", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
-                      labels = c("SM females", "SM males", "C males")) + # "Chr-2", "Chr-3", "X-Chr"
+                      labels = c("Exp. Females", "Exp. Males", "Ctrl. Males")) + # "Chr-2", "Chr-3", "X-Chr"
   guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
                                                   size = c(5, 5, 5),
                                                   alpha = 1))) +
@@ -211,9 +279,9 @@ All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) +
 
 All.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
                                   permed_All.geno_Sig) +
-  geom_signif(y_position = c(-1.18, -1.1, -1.25), xmin = c(2, 3, 4), 
-              xmax = c(2.3, 3.3, 4.3),
-              annotation = c("*", "*", "*"), tip_length = -0.01, 
+  geom_signif(y_position = c(-1.18, -1.4, -1.3, -1.3), xmin = c(2, 3, 4, 5), 
+              xmax = c(2.3, 3.3, 4.3, 5.3),
+              annotation = c("*", "*", "*", "*"), tip_length = -0.01, 
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
@@ -225,24 +293,24 @@ A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.
 
 A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AmSig) +
-  geom_signif(y_position = c(-1.15, -1, -1.2), xmin = c(2, 3, 4), 
-              xmax = c(2.3, 3.3, 4.3),
-              annotation = c("*", "*", "*"), tip_length = -0.01, 
+  geom_signif(y_position = c(-1.15, -1.27, -1.255, -1.22), xmin = c(2, 3, 4, 5), 
+              xmax = c(2.3, 3.3, 4.3, 5.3),
+              annotation = c("*", "*", "*", "*"), tip_length = -0.01, 
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_suppl.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_main.newCand.pdf",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
-    height = 20 ) # 8 20 The height of the plot in inches
-ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-          NA,
-          A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-          NA, A.f.sig.exp_geno, NA,
-          labels = c("A)", NA, "B)", NA, "C)", NA),
-          heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
-          font.label = list(size = 25),
-          common.legend = TRUE, legend = "bottom")
-# All.exp_geno
+    height = 8 ) # 8 20 The height of the plot in inches
+# ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          # NA,
+          # A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          # NA, A.f.sig.exp_geno, NA,
+          # labels = c("A)", NA, "B)", NA, "C)", NA),
+          # heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+          # font.label = list(size = 25),
+          # common.legend = TRUE, legend = "bottom")
+All.exp_geno
 dev.off()
 ########
 

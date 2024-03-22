@@ -8,6 +8,21 @@
 # 
 ###################################
 
+rm(list=ls()) # Clears the environment
+setwd("~/Desktop/UofT/SSAV_RNA/")
+
+
+# packages required
+#########
+library(tidyr)
+library(plyr)
+library(dplyr)
+library(broom)
+library(ggplot2)
+######
+
+
+
 # Get chromosome locations  
 ##########
 
@@ -58,7 +73,7 @@ Chrs_All$Chr <- as.factor(Chrs_All$Chr)
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
-jseq.All.geno <- read.delim("Results/jseq.All.geno.txt")
+# jseq.All.geno <- read.delim("Results/jseq.All.geno.txt")
 
 # include Chr 
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
@@ -66,16 +81,21 @@ A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr)
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
 
-# jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")], 
-#                            Chrs, by = "FlyBaseID", all = T)
-# jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
-# jseq.All.geno_Chr <- jseq.All.geno_Chr[!jseq.All.geno_Chr$FlyBaseID %in% DsRed_genes$V1,]
-# colnames(jseq.All.geno_Chr)[6] = "Sig"
+jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")],
+                           Chrs, by = "FlyBaseID", all = T)
+jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
+jseq.All.geno_Chr <- jseq.All.geno_Chr[!jseq.All.geno_Chr$FlyBaseID %in% DsRed_genes$V1,]
+colnames(jseq.All.geno_Chr)[6] = "Sig"
 
 # column denotes genes that are candidates in males or females
 SSAV.geno_Chr <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
 SSAV.geno_Chr <- SSAV.geno_Chr[!is.na(SSAV.geno_Chr$Sig) & !is.na(SSAV.geno_Chr$Chr),]
+
+sampleTable <- data.frame(sampleType = c("A.m", "A.f", "A.all", "AS"),
+                          df = c("A.m.geno_Chr", "A.f.geno_Chr", "SSAV.geno_Chr", "jseq.All.geno_Chr"))
+
 #########
+
 
 
 ## binned proportion of candidate genes
@@ -144,8 +164,8 @@ plotChrprop <- function(dat, xlab){
 # propChr(jseq.All.geno_Chr)
 # plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
 
-propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
 
+propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
 propChr(A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) &
                        !is.na(A.f.geno_Chr$Chr),])
 propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
@@ -153,30 +173,51 @@ propChr(A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) &
 
 
 
-
 # Fisher's exact tests for diff. in proportions
 ######
-fisher.test(SSAV.geno_Chr$Sig, SSAV.geno_Chr$Chr)
-# for all candidates 
-# deficit of X relative to Chr2 and Chr 3
-# Chr2 vs Chr3
-fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "3",]$Sig, 
-            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "3",]$Chr)
-# Chr2 vs ChrX
-fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "X",]$Sig, 
-            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "2" | SSAV.geno_Chr$Chr == "X",]$Chr)
-# Chr3 vs ChrX
-fisher.test(SSAV.geno_Chr[SSAV.geno_Chr$Chr == "3" | SSAV.geno_Chr$Chr == "X",]$Sig, 
-            SSAV.geno_Chr[SSAV.geno_Chr$Chr == "3" | SSAV.geno_Chr$Chr == "X",]$Chr)
+fisher.test.results <- sampleTable
+all.Chr <- NULL
+Chr2.v.Chr3 <- NULL
+Chr2.v.X <- NULL
+Chr3.v.X <- NULL
 
+for(i in 1:dim(sampleTable)[1]){
+  dat <- get(paste0(sampleTable[i,2]))
+  
+  print(paste0(sampleTable[i,1]," SA candidates distribution across chromosomes:"))
+  test <- fisher.test(dat$Sig, dat$Chr)
+  print(test)
+  all.Chr <- c(all.Chr, test$p.value)
+  
+  print(paste0(sampleTable[i,1]," SA candidates distribution Chr 2 vs Chr 3:"))
+  test <- fisher.test(dat[dat$Chr == "2" | dat$Chr == "3",]$Sig, 
+                    dat[dat$Chr == "2" | dat$Chr == "3",]$Chr)
+  print(test)
+  Chr2.v.Chr3 <- c(Chr2.v.Chr3, test$p.value)
+  
+  print(paste0(sampleTable[i,1]," SA candidates distribution Chr 2 vs X Chr:"))
+  test <- fisher.test(dat[dat$Chr == "2" | dat$Chr == "X",]$Sig, 
+                    dat[dat$Chr == "2" | dat$Chr == "X",]$Chr)
+  print(test)
+  Chr2.v.X <- c(Chr2.v.X, test$p.value)
+  
+  
+  print(paste0(sampleTable[i,1]," SA candidates distribution Chr 3 vs X Chr:"))
+  test <- fisher.test(dat[dat$Chr == "3" | dat$Chr == "X",]$Sig, 
+                    dat[dat$Chr == "3" | dat$Chr == "X",]$Chr)
+  Chr3.v.X <- c(Chr3.v.X, test$p.value)
 
-# for male candidates 
-# deficit of X relative to Chr2 and Chr 3
+  Sys.sleep(1.5)
+}
 
+fisher.test.results$all <- all.Chr
+fisher.test.results$Chr2.v.Chr3 <- Chr2.v.Chr3
+fisher.test.results$Chr2.v.X <- Chr2.v.X
+fisher.test.results$Chr3.v.X <- Chr3.v.X
+rm(all.Chr, Chr2.v.X, Chr2.v.Chr3, Chr3.v.X)
 
-# for female candidates 
-# deficit of both Chr3 and X relative to Chr2
-
+fisher.test.results[,-2]
+write.table(fisher.test.results[,-2], file = "Results/Chr.dist.fisher.results.txt", quote = F, sep = "\t")
 ######
 
 

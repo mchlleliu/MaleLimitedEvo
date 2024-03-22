@@ -455,11 +455,10 @@ dim(Results.df[Results.df$Sig == TRUE, ]) # right number?
 # this is only for A.m.geno
 # order A.m.geno by p-values & get the 200 lowest
 Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),]
-Results.df <- Results.df[order(Results.df$padj),]
 View(Results.df)
 colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
 Results.df$Sig <- FALSE
-Results.df[1:390,]$Sig <- TRUE
+Results.df[1:350,]$Sig <- TRUE
 droplevels(Results.df)
 
 
@@ -498,7 +497,7 @@ write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidat
 
 
 ########
-# candidates around DsRed marker?
+# candidates around DsRed marker excluded?
 dim(SSAV.geno[SSAV.geno$FlyBaseID %in% DsRed_genes$V1 & SSAV.geno$Sig,])
 dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Sig,])
 dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Top.Sig,])

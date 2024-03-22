@@ -44,26 +44,30 @@ corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
 #         proportion relative to total points, 
 #         and plotting coordinates
 quad_count <- function(dat, x, y, lim = 5){
+  
+  dat <- dat[dat[[x]] != dat[[y]],]
+  
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
-    count(right = .[[x]] > 0, # on the right side of plot?
+    dplyr::count(right = .[[x]] > 0, # on the right side of plot?
           top = .[[y]] > 0, # on the top side of plot?
           # for each quadrant, divide into two: 
           # (this is a bit weird, but needed so the numbers can be plotted at the right coordinates)
           UP = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III up-left or quadrant IV up-right
             top & abs(.[[x]]) < abs(.[[y]])) %>%  # quadrant I up-right or quadrant II up-left
-    mutate(perc = n/sum(n)) %>% # calculate percentage of points relative to total number of points
+    dplyr::mutate(perc = n/sum(n)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
-    mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
+    dplyr::mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
            dir_UP = conc & UP, # concordant changes where x > y
            dir_DOWN = conc & !UP) %>% # concordant changes where x < y
     
     # TRUE = 1, FALSE = 0
     # specificy coordinates for texts on plot
-    mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
+    dplyr::mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
            !!y := lim/2*(2*(top - 0.5)+(UP - 0.5)))
   
+  print(count)
   return(count)
 }
 
@@ -108,6 +112,11 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 #            title = of graph
 plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   # count the percentages
+  
+  # comment in if plotting figure 6
+  # dat[[x]] = abs(dat[[x]])
+  # dat[[y]] = abs(dat[[y]])
+  
   quad_n <- quad_count(dat, x, y, lim)
   # manage the colour of points
   quad_col <- colour_quadrant(dat, x, y, colx, coly, colNonCon)
@@ -124,7 +133,7 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
     
     # add percentages
     geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 10) +
-    coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
+    coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) + # change to (0, lim) or (-lim, lim) depending on the figure
     labs(x = print(xlab), 
          y = print(ylab) ,
          title = print(title)) +
@@ -160,17 +169,26 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
 # you can subset & plot just the candidate genes e.g. = 
 # corr.plot[corr.plot$SBGE_comp == "a.more.fbg" & 
 #           corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID
-
+concordant <- corr.plot[!is.na(corr.plot$Red.exp_trt) & !is.na(corr.plot$NR.exp_trt) &
+                          ((corr.plot$Red.exp_trt >= 0 & corr.plot$NR.exp_trt >= 0) |
+                          (corr.plot$Red.exp_trt <= 0 & corr.plot$NR.exp_trt <= 0)),]
+hist(concordant$Red.exp_trt - concordant$NR.exp_trt)
+t.test(concordant$Red.exp_trt, concordant$NR.exp_trt, paired = T)
+t.test(abs(corr.plot$Red.exp_trt),abs(corr.plot$NR.exp_trt), paired = T)
 all_RedvNR <- plot_corr(corr.plot, 
                         "Red.exp_trt", "NR.exp_trt", 
-                        "red3", "black", "darkgrey",
+                        "red3", "grey9", "darkgrey",
                         "SSAV/Control in Red males", 
                         "SSAV/Control in NonRed males", 
-                        2.5, "") +
-  labs(x = expression(Log["2"]*"FC (SM/C) in Red Males"),
-       y = expression(Log["2"]*"FC (SM/C) in NonRed Males")) +
-  theme(title = element_blank())
+                        1.78, "") +
+  labs(x = expression(atop(paste("Absolute "*Log["2"]*"FC"), paste("in Red Males"))),
+       y = expression(atop(paste("Absolute "*Log["2"]*"FC"), paste("in Non-Red Males")))) +
+  theme(title = element_blank())  
+  # scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
+  # scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
+  # coord_cartesian(xlim = c(0, 1.75), ylim = c(0, 1.75))
 
+all_RedvNR
 
 more_fbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "a.more.fbg",], 
                       "Red.exp_trt", "NR.exp_trt", 
@@ -213,10 +231,17 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
 ########
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig5_main.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig6_suppl.pdf",   # The directory you want to save the file in
     width = 10, # 20; The width of the plot in inches
     height = 10) # 30; The height of the plot in inches
+
+# ggarrange(all_RedvNR, NA, Figure_6B,
+#           ncol = 3, widths = c(1, 0.05, 1),
+#           labels = c("A)", NA, "B)"), 
+#           font.label = list(size = 30))
+
 all_RedvNR
+
 # ggarrange(more_fbg, NA, fbg,
 #           NA, NA, NA,
 #           ubg, NA, mbg,

@@ -128,6 +128,10 @@ SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
 
 jseq.All.geno.tmp <- read.delim("Results/jseq.All.geno.txt")
+jseq.All.geno.tmp <- merge(jseq.All.geno.tmp, SDIU, by = "FlyBaseID")
+jseq.All.geno.tmp <- jseq.All.geno.tmp[!is.na(jseq.All.geno.tmp$Sig) & !is.na(jseq.All.geno.tmp$tajD.S),]
+
+sum(jseq.All.geno.tmp$Sig)
 all.candidates <- SSAV.geno %>% 
   dplyr::mutate(Sig = ifelse(FlyBaseID %in% jseq.All.geno.tmp$FlyBaseID[jseq.All.geno.tmp$Sig], 
                                                     TRUE, Sig))
@@ -137,6 +141,7 @@ SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
 
 all.candidates <- merge(all.candidates,  SDIU[,c("FlyBaseID", "Whole.SBGE.Osada", "tajD.S", "DoS")], by = "FlyBaseID", all = T)
 all.candidates <- merge(all.candidates, ASE, by = "FlyBaseID", all = T)
+
 ##########
 
 
@@ -277,6 +282,10 @@ DoS_all_SBGE <- pointSEplot(boot_dat = boot_DoS_SBGE, perm_dat = perm_DoS_SBGE,
 # For all candidate genes vs non candidate genes
 ####### 
 # use permutation and bootstrap functions in boot_permute.R
+# only the AS genes, not significantly different
+# only the DE genes also not significantly different
+TwoPerm(jseq.All.geno.tmp, x_col = "tajD.S", groupBy = "Sig")
+
 perm_TajD_N
 perm_TajD <- TwoPerm(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                   !is.na(SSAV.geno$tajD.S),], x_col = "tajD.S", groupBy = "Sig")
@@ -303,37 +312,14 @@ perm_TajD_SBGE <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) &
 boot_TajD_SBGE_N
 boot_TajD_SBGE <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
                                            !is.na(SSAV.geno$tajD.S) &
-                                           !is.na(SSAV.geno$tajD.N) &
-                                           !is.na(SSAV.geno$SBGEcat.body.Osada),],
-                               x_col = "tajD.S", groupBy = "Sig", SBGE_cat = "SBGEcat.body.Osada")
+                                           !is.na(SSAV.geno$SBGE_comp),],
+                               x_col = "tajD.S", groupBy = "Sig", SBGE_cat = "SBGE_comp")
 TajD_all_SBGE <- pointSEplot(boot_dat = boot_TajD_SBGE, perm_dat = perm_TajD_SBGE, 
-                             x_col = "tajD.N", SBGE_cat = "SBGEcat.body.Osada") + 
-  scale_x_discrete(labels = c("Extreme FB","Strong FB","Female-Biased", 
-                              "Unbiased", "Male-Biased", "Strong MB", "Extreme MB")) + coord_cartesian(ylim = c(-0.5, 0.5))
+                             x_col = "tajD.S", SBGE_cat = "SBGE_comp") + 
+  scale_x_discrete(labels = c("Highly FB","Female-Biased", 
+                              "Unbiased", "Male-Biased", "Highly MB")) + 
+  coord_cartesian(ylim = c(-0.5, 0.5))
 
-
-# by SBGE category according to Mishra et al. population
-# merge datasets
-SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = T)
-perm_TajD_SBGE_ASE_N
-perm_TajD_SBGE_ASE <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                               !is.na(SSAV.geno$tajD.N) & 
-                                               !is.na(SSAV.geno$tajD.S) &
-                                               !is.na(SSAV.geno$SBGE_comp),], 
-                                   x_col = "tajD.S", 
-                                   groupBy = "Sig", 
-                                   SBGE_cat = "SBGE_comp")
-
-boot_TajD_SBGE_ASE_N
-boot_TajD_SBGE_ASE <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$Sig) & 
-                                               !is.na(SSAV.geno$tajD.N) & 
-                                               !is.na(SSAV.geno$tajD.S) &
-                                               !is.na(SSAV.geno$SBGE_comp),],
-                                   x_col = "tajD.S", groupBy = "Sig", SBGE_cat = "SBGE_comp")
-TajD_all_SBGE_ASE <- pointSEplot(boot_dat = boot_TajD_SBGE_ASE, perm_dat = perm_TajD_SBGE_ASE, 
-                                 x_col = "tajD.N", SBGE_cat = "SBGE_comp") + 
-  scale_x_discrete(labels = c("Extreme FB","Strong FB","Female-Biased", 
-                              "Unbiased", "Male-Biased", "Strong MB", "Extreme MB")) + coord_cartesian(ylim = c(-0.5, 0.5))
 
 # Combined TajD plots All and separating SBGE 
 perm_All_SBGE_TajD <- c("a.all", perm_TajD)

@@ -30,10 +30,53 @@ mappedReadsThreshold = 50
 
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
+# Get chromosome locations  
+##########
+
+all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
+colnames(all.genes) = c("FlyBaseID")
+
+Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Xchr) = c("FlyBaseID")
+Xchr$Chr <- rep("X", dim(Xchr)[1])
+
+Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Ychr) = c("FlyBaseID")
+Ychr$Chr <- rep("Y", dim(Ychr)[1])
+
+
+chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2L) = c("FlyBaseID")
+chr2L$Chr <- rep("2L", dim(chr2L)[1])
+chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2R) = c("FlyBaseID")
+chr2R$Chr <- rep("2R", dim(chr2R)[1])
+# 
+chr2 <- rbind(chr2L, chr2R)
+chr2$Chr <- rep("2", dim(chr2)[1])
+
+chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3L) = c("FlyBaseID")
+chr3L$Chr <- rep("3L", dim(chr3L)[1])
+chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3R) = c("FlyBaseID")
+chr3R$Chr <- rep("3R", dim(chr3R)[1])
+#
+chr3 <- rbind(chr3L, chr3R)
+chr3$Chr <- rep("3", dim(chr3)[1])
+
+Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
+Chrs$Chr <- as.factor(Chrs$Chr)
+
+Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
+Chrs_All$Chr <- as.factor(Chrs_All$Chr)
+##########
+
 # load data from JunctionSeq analysis
 # to run JunctionSeq, see: Amardeep Singh's JunctionSeq.Script.R,
 # or Michelle's modified version for these (SSAV) populations
 #######
+
 # ASE reference
 jseq.ASE = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
                       sep = "\t", header = TRUE)
@@ -72,6 +115,7 @@ SSAV.sample.types
 # ------ First for ASE reference 
 # remove genes that were not assayed in males and females
 jseq.ASE = jseq.ASE[!is.na(jseq.ASE$expr_F) & !is.na(jseq.ASE$expr_M),]
+dim(jseq.ASE)
 
 # remove novel counting bins
 #   for the purpose of comparing ASE with the SSAV populations, we want to make sure that the counting bins
@@ -90,6 +134,12 @@ length(ASE.nonsig.SSS)
 # fisher's test for genes identified as SSS in Osada et al. and P. Mishra's ASE population
 SinghAgrawalSDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
 colnames(SinghAgrawalSDIU)[2] <- "FlyBaseID"
+
+Osada.sig.sss <- SinghAgrawalSDIU$FlyBaseID[!is.na(SinghAgrawalSDIU$SDIU.body.sig) & SinghAgrawalSDIU$SDIU.body.sig]
+Osada.nonsig.sss <- SinghAgrawalSDIU$FlyBaseID[!is.na(SinghAgrawalSDIU$SDIU.body.sig) & !SinghAgrawalSDIU$SDIU.body.sig]
+length(Osada.sig.sss)
+length(Osada.nonsig.sss)
+
 test<-SinghAgrawalSDIU %>% mutate(ASE.SSS = ifelse(FlyBaseID %in% ASE.sig.SSS, TRUE, FALSE))
 fisher.test(test$SDIU.body.sig, test$ASE.SSS)
 rm(test, SinghAgrawalSDIU)
@@ -139,6 +189,12 @@ colnames(jseq.All.geno.save) = c("FlyBaseID", "geneWisePadj.M", "sig.hit.M",
 write.table(jseq.All.geno.save, file="Results/jseq.All.geno.txt", quote=F, sep = "\t")
 rm(jseq.All.geno.save) 
 
+all.candidates <- unique(c(jseq.All.geno$FlyBaseID[jseq.All.geno$sig.hit], SSAV.geno$FlyBaseID[SSAV.geno$Sig]))
+
+
+length(all.candidates)
+write.table(all.candidates, file="Results/DE_AS_candidate.list.txt", quote=F, sep = "\t")
+
 
 SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
 
@@ -165,18 +221,21 @@ makeCountMatrix <- function(data.files, decoder.file){
     tmp <- tmp %>% separate(V1, into = c("FlyBaseID", "countBin"), sep = ":") %>%
       filter(str_detect(countBin, "A000"))
     if(!is.null(count.file)){
-      count.file <- merge(count.file, tmp, by = "FlyBaseID", all = T)}
+      count.file <- merge(count.file, tmp[,c("FlyBaseID", "V2")], by = "FlyBaseID", all = T)}
     else
-      count.file <- tmp
+      count.file <- tmp[,c("FlyBaseID", "V2")]
   }
   
   colnames(count.file) <- c("FlyBaseID", decoder.file$unique.ID)
   
   # remove bins that overlap multiple genes
-  count.file <- count.file %>% filter(!str_detect(FlyBaseID, "\\+")) 
+  count.file <- count.file %>% 
+    dplyr::filter(!str_detect(FlyBaseID, "\\+")) 
   
   # change geneIDs to rownames
-  count.file <- count.file %>% remove_rownames %>% column_to_rownames(var="FlyBaseID")
+  count.file <- count.file %>% 
+    remove_rownames %>% 
+    column_to_rownames(var="FlyBaseID")
   
   return(count.file)
 }
@@ -262,62 +321,6 @@ All.geno.tmp <- read.delim("Results/All.geno_candidates.tsv", header = TRUE, sep
 # initialize dataframe object to store results (wow that variable name do be long)
 fishers.test.RedNR.splice.results <- data.frame(sampleType = SSAV.sample.types$sampleType)
 
-
-for(i in 1:dim(SSAV.sample.types)[1]){
-  tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2]))
-  tmp.JS.table <- tmp.JS.table[!is.na(tmp.JS.table$sig.hit),]
-  if(i < 4) 
-    tmp.JS.table <- tmp.JS.table[,c(2,26)]
-  else 
-    tmp.JS.table <- tmp.JS.table[,c(1, 51)]
-  
-  tmp.JS.table = tmp.JS.table[!duplicated(tmp.JS.table$FlyBaseID),]
-  # get number of significant genes
-  fishers.test.RedNR.splice.results$N.all[i] = length(tmp.JS.table$FlyBaseID)
-  fishers.test.RedNR.splice.results$N.sig[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) & tmp.JS.table$sig.hit])
-  
-  # assign overlap with SSS
-  tmp.JS.table = tmp.JS.table %>% mutate(Osada.SSS = ifelse(FlyBaseID %in% SinghAgrawalSDIU[!is.na(SinghAgrawalSDIU$SDIU.body.sig) & SinghAgrawalSDIU$SDIU.body.sig,]$FlyBaseID, 
-                                                            TRUE, ifelse(is.na(SinghAgrawalSDIU$SDIU.body.sig), NA, FALSE)))
-  tmp.JS.table = tmp.JS.table %>% mutate(ASE.SSS = ifelse(FlyBaseID %in% jseq.ASE[!is.na(jseq.ASE$SSS) & jseq.ASE$SSS,]$FlyBaseID, 
-                                                          TRUE, ifelse(is.na(jseq.ASE$SSS), NA, FALSE)))
-  
-  # any overlap with differentially expressed genes?
-  tmp.JS.table = tmp.JS.table %>% mutate(DE.Sig = ifelse(FlyBaseID %in% All.geno.tmp[!is.na(All.geno.tmp$Sig) & All.geno.tmp$Sig,]$FlyBaseID, 
-                                                         TRUE, ifelse(is.na(All.geno.tmp$Sig), NA, FALSE)))
-  
-  
-  fishers.test.RedNR.splice.results$N.filter10[i] = length(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$FlyBaseID)
-  fishers.test.RedNR.splice.results$N.sig.filter10[i] = length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10 &
-                                                                                        !is.na(tmp.JS.table$sig.hit) & tmp.JS.table$sig.hit])
-  # test for SSS overlap, 10% FPKM filter
-  fishers.test.RedNR.splice.results$Osada.SSS.filter10[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$sig.hit, 
-                                                                         tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$Osada.SSS)$p.value
-  fishers.test.RedNR.splice.results$ASE.SSS.filter10[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$sig.hit, 
-                                                                       tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$ASE.SSS)$p.value
-  
-  # test for DE overlap, 10% FPKM filter
-  fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter10[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$sig.hit, 
-                                                                           tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q10,]$DE.Sig)$p.value
-  
-  
-  fishers.test.RedNR.splice.results$N.filter25[i] = length(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$FlyBaseID)
-  fishers.test.RedNR.splice.results$N.sig.filter25[i] = length(tmp.JS.table$FlyBaseID[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 &
-                                                                                        !is.na(tmp.JS.table$sig.hit) & tmp.JS.table$sig.hit])
-  # test for SSS overlap, 25% FPKM filter
-  fishers.test.RedNR.splice.results$Osada.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-                                                                         tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$Osada.SSS)$p.value
-  fishers.test.RedNR.splice.results$ASE.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-                                                                       tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$ASE.SSS)$p.value
-  
-  # test for DE overlap, 25% FPKM filter
-  fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-                                                                           tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$DE.Sig)$p.value
-  
-  assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
-}
-
-
 # get data for Suppl. table
 for(i in 1:dim(SSAV.sample.types)[1]){
   tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2]))
@@ -349,9 +352,9 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   
   # any overlap with differentially expressed genes?
   tmp.JS.table = tmp.JS.table %>% 
-    mutate(DE.Sig = ifelse(FlyBaseID %in% SSAV.geno[!is.na(SSAV.geno$Sig) 
-                                                       & SSAV.geno$Sig,]$FlyBaseID, 
-                           TRUE, ifelse(is.na(SSAV.geno$Sig), NA, FALSE)))
+    mutate(DE.Sig = ifelse(FlyBaseID %in% A.f.geno[!is.na(A.f.geno$Sig) 
+                                                       & A.f.geno$Sig,]$FlyBaseID, 
+                           TRUE, ifelse(is.na(A.f.geno$Sig), NA, FALSE)))
   
   fishers.test.RedNR.splice.results$N.filter25[i] = length(tmp.JS.table$FlyBaseID)
   fishers.test.RedNR.splice.results$N.sig.filter25[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) & 
@@ -412,7 +415,7 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
 }
 
-
+fishers.test.RedNR.splice.results
 rm(tmp.JS.table, SinghAgrawalSDIU, All.geno.tmp) # clean environment
 
 length(unique(jseq.All.geno$FlyBaseID[!is.na(jseq.All.geno$sig.hit) & jseq.All.geno$sig.hit]))
@@ -607,18 +610,6 @@ countFiles.f.MCcom <- paste0("JunctionSeq/SDIU_MC/MCcom/",F.decoder.MCcom$unique
 
 
 #######
-A.f.countfiles <- ReadCountFiles(countFiles.f.ASE, F.decoder.ASE)
-A.f.countfiles <- A.f.countfiles %>%
-  dplyr::mutate(sumAll = rowMeans(select_if(., is.numeric), na.rm = T))
-
-A.m.countfiles <- ReadCountFiles(countFiles.m.ASE, M.decoder.ASE)
-tmp <- ReadCountFiles(countFiles.A.f, A.f.decoder)
-tmp <- tmp %>%
-  dplyr::mutate(sumAll = rowMeans(select_if(., is.numeric), na.rm = T))
-
-plot(A.f.countfiles$sumAll, tmp$sumAll) 
-histogram(A.f.countfiles$sumAll[A.f.countfiles$sumAll < 100], breaks = 100)
-histogram(tmp$sumAll[tmp$sumAll < 100], breaks = 100)
 
 
 # ------ analysis Functions:
@@ -637,7 +628,8 @@ ReadCountFiles <- function(data.files, decoder.file){
   print(dim(count.file)) # check number of splice sites
   
   # exclude novel splice sites
-  count.file <- count.file %>% filter(!str_detect(countBin, "+") & !str_detect(countBins, "A"))
+  count.file <- count.file %>% 
+    filter(!str_detect(countBin, "\\+") & !str_detect(countBin, "A") & !str_detect(countBin, "N"))
   print(dim(count.file)) # check number of remaining splice sites
   
   return(count.file)
@@ -658,16 +650,17 @@ GeomNormCounts <- function(data.files, decoder.file){
   }
   
   # sum the total 
-  count.file <- count.file %>% mutate(total=rowSums(select_if(., is.numeric), na.rm = T)) # sum per row
+  count.file <- count.file %>% 
+    dplyr::mutate(total=rowSums(select_if(., is.numeric), na.rm = T)) # sum per row
   print(dim(count.file)) # check number of splice sites
   
   # calculate the global gene expression across all samples
   glob.exp <- count.file %>% group_by(FlyBaseID) %>% # sum per gene
-    summarise(glob.exp = sum(total, na.rm = T))
+    dplyr::summarise(glob.exp = sum(total, na.rm = T))
   
   # calculate proportion of reads by gene for each counting bin
   count.file <- merge(count.file, glob.exp, by = "FlyBaseID", all = T) %>%
-    mutate(frac.exp.per.gene = ifelse(!is.na(glob.exp), total/glob.exp, NA))
+    dplyr::mutate(frac.exp.per.gene = ifelse(!is.na(glob.exp), total/glob.exp, NA))
   print(dim(count.file)) # make sure nothing gets removed
   
   # set genes or counting bins with no expression to NA instead of 0s
@@ -684,8 +677,8 @@ GeomNormCounts <- function(data.files, decoder.file){
 compareSplicingProfiles <- function(d1, d2){
   tmp <- merge(d1, d2, by = c("FlyBaseID", "countBin")) # only get counting bins present in both
   tmp <- tmp %>%
-    group_by(FlyBaseID) %>%
-    summarise(percent.sim = PercentSimilarity(frac.exp.per.gene.x, frac.exp.per.gene.y),
+    dplyr::group_by(FlyBaseID) %>%
+    dplyr::summarise(percent.sim = PercentSimilarity(frac.exp.per.gene.x, frac.exp.per.gene.y),
               percent.dissim = 1 - percent.sim,
               dist = EuclideanDistance(frac.exp.per.gene.x, frac.exp.per.gene.y))
   return(tmp)
@@ -730,7 +723,7 @@ PercentSimilarity<-function(v1, v2){
 
 CompareDistances <- function(dst1, dst2){ 
   tmp <- merge(dst1, dst2, by = "FlyBaseID") %>%
-    mutate(M.sub.F = (dist.y - dist.x)/(dist.x+dist.y),
+    dplyr::mutate(M.sub.F = (dist.y - dist.x)/(dist.x+dist.y),
            M.sub.F = ifelse(is.nan(M.sub.F), 0, M.sub.F),
            M.sim.F = (percent.sim.x - percent.sim.y)/(percent.sim.x+percent.sim.y),
            M.dis.F = (percent.dissim.y - percent.dissim.x)/(percent.dissim.y + percent.dissim.x))
@@ -738,22 +731,21 @@ CompareDistances <- function(dst1, dst2){
 }
 
 
-
-# average females expression
+# average females expression in SSAV
 ########
 A.f.Red.norm.exp <- GeomNormCounts(countFiles.A.f.Red, A.f.Red.decoder)
 A.f.NR.norm.exp <- GeomNormCounts(countFiles.A.f.NR, A.f.NR.decoder)
 
 # average female in SSAV pop
 fem.exp <- merge(A.f.Red.norm.exp, A.f.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
-  group_by(FlyBaseID, countBin) %>%
-  summarise(total = (total.x + total.y)/2,
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
             glob.exp = (glob.exp.x + glob.exp.y)/2,
             frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
 
 ########
 
-# average (A) male expression
+# average (A) male expression in SSAV
 ########
 # normalize exp. per gene for each counting bin 
 # in Red males
@@ -763,22 +755,22 @@ A.m.NR.norm.exp <- GeomNormCounts(countFiles.A.m.NR, A.m.NR.decoder)
 
 # average male in SSAV pop
 male.exp <- merge(A.m.Red.norm.exp, A.m.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
-  group_by(FlyBaseID, countBin) %>%
-  summarise(total = (total.x + total.y)/2,
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
          glob.exp = (glob.exp.x + glob.exp.y)/2,
          frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
 
 #######
 
-# average (C) male expression
+# average (C) male expression in SSAV
 ########
 # expression of NR C males
 C.m.Red.norm.exp <- GeomNormCounts(countFiles.C.m.Red, C.m.Red.decoder)
 C.m.NR.norm.exp <- GeomNormCounts(countFiles.C.m.NR, C.m.NR.decoder)
 
 male.ctr.exp <- merge(C.m.Red.norm.exp, C.m.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
-  group_by(FlyBaseID, countBin) %>%
-  summarise(total = (total.x + total.y)/2,
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
             glob.exp = (glob.exp.x + glob.exp.y)/2,
             frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
 ########
@@ -790,7 +782,7 @@ male.ctr.exp <- merge(C.m.Red.norm.exp, C.m.NR.norm.exp, by = c("FlyBaseID", "co
 male.exp_ASE <- GeomNormCounts(countFiles.m.ASE, M.decoder.ASE)
 fem.exp_ASE <- GeomNormCounts(countFiles.f.ASE, F.decoder.ASE)
 
-# Singh & Agrawal data
+# Singh & Agrawal (Osada) data
 male.exp_SinghAgrw <- GeomNormCounts(countFiles.m.SinghAgrw, M.decoder.SinghAgrawal)
 fem.exp_SinghAgrw <- GeomNormCounts(countFiles.f.SinghAgrw, F.decoder.SinghAgrawal)
 
@@ -937,8 +929,8 @@ mean(Fem.SinghAgrw.ASE.M.dist.m[Fem.SinghAgrw.ASE.M.dist.m$FlyBaseID %in% subset
 
 SDIU.ASE.compare.male <- CompareDistances(Male.SinghAgrw.ASE.M.dist.m, Male.SinghAgrw.ASE.M.dist.f )
 SDIU.ASE.compare.fem <- CompareDistances(Fem.SinghAgrw.ASE.M.dist.m, Fem.SinghAgrw.ASE.M.dist.f)
-splicing.MF.metric.plot(RedData = SDIU.ASE.compare.male[SDIU.ASE.compare.male$FlyBaseID %in% SinghAgrawal.sig.SSS,], 
-                        NRData = SDIU.ASE.compare.fem[SDIU.ASE.compare.fem$FlyBaseID %in% SinghAgrawal.sig.SSS,], 
+splicing.MF.metric.plot(RedData = SDIU.ASE.compare.male[SDIU.ASE.compare.male$FlyBaseID %in% subset.sss,], 
+                        NRData = SDIU.ASE.compare.fem[SDIU.ASE.compare.fem$FlyBaseID %in% subset.sss,], 
                         plotCol = "M.dis.F",
                         colour_red = "steelblue3", colour_NR = "magenta4")
 
@@ -1000,30 +992,43 @@ mean(Fem.MCsim.SinghAgrw.M.dist.f[Fem.MCsim.SinghAgrw.M.dist.f$FlyBaseID %in% su
 
 
 
-# Get a subset of SSS genes that we can look at
+# Get a subset of SSS genes that are more consistently dimorphic
 #######
-sss.all <- ASE.sig.SSS[ASE.sig.SSS %in% SinghAgrawal.sig.SSS &
-                         ASE.sig.SSS %in% filter.low.exp.genes.q25]
+ASE.sig.SSS <- read.delim("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEsigGenes.genewiseResults.txt")
+ASE.sig.SSS <- ASE.sig.SSS$geneID[ASE.sig.SSS$geneWisePadj < 0.01]
+length(ASE.sig.SSS)
+
+sss.all <- ASE.sig.SSS[
+  ASE.sig.SSS %in% filter.low.exp.genes.q25]
 length(sss.all)
+
+
+# change MCabs/MCsim/MCcom
+Male.ASE.MCabs.M.dist.f <- compareSplicingProfiles(male.exp_ASE, fem.exp_MCabs)
+Male.ASE.MCabs.M.dist.m <- compareSplicingProfiles(male.exp_ASE, male.exp_MCabs)
+Fem.ASE.MCabs.M.dist.f <- compareSplicingProfiles(fem.exp_ASE, fem.exp_MCabs)
+Fem.ASE.MCabs.M.dist.m <- compareSplicingProfiles(fem.exp_ASE, male.exp_MCabs)
+
 
 # dot plots to check how many points fall into the "irregular" category, but for the MC populations
 # "irregular" meaning that when looking at males (females), 
 # the points fall closer to the reference females (males)
-test <- merge(Male.ASE.abs.M.dist.m, Male.ASE.abs.M.dist.f, by = "FlyBaseID")
-plot_corr(test[test$FlyBaseID %in% sss.all, ], 
-          x = "percent.dissim.x", y = "percent.dissim.y", colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
+test.M <- merge(Male.ASE.MCcom.M.dist.m, Male.ASE.MCcom.M.dist.f, by = "FlyBaseID")
+test.F <- merge(Fem.ASE.MCcom.M.dist.m, Fem.ASE.MCcom.M.dist.f, by = "FlyBaseID")
+plot_corr(test.F[test.F$FlyBaseID %in% sss.all& 
+                   !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y), ], 
+          x = "dist.x", y = "dist.y", colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
           ylab = "to females", lim = 1, title = "") + coord_cartesian(xlim = c(0,1), ylim = c(0,1))
 
+
 # get a list of all irregular genes from each MC population treatment
-fem.sim <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x < test$percent.dissim.y, ]$FlyBaseID
-male.sim <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x > test$percent.dissim.y, ]$FlyBaseID
-
-fem.com <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x < test$percent.dissim.y, ]$FlyBaseID
-male.com <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x > test$percent.dissim.y, ]$FlyBaseID
-
-fem.abs <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x < test$percent.dissim.y, ]$FlyBaseID
-male.abs <- test[test$FlyBaseID %in% sss.all & test$percent.dissim.x > test$percent.dissim.y, ]$FlyBaseID
-
+# list of genes in females where expression profile is more dissimilar to female ref than male ref
+fem.com <- test.F[test.F$FlyBaseID %in% sss.all & 
+                    !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y) &
+                    test.F$percent.dissim.x <= test.F$percent.dissim.y, ]$FlyBaseID
+male.com <- test.M[test.M$FlyBaseID %in% sss.all & 
+                     !is.na(test.M$percent.dissim.x) & !is.na(test.M$percent.dissim.y) &
+                     test.M$percent.dissim.x >= test.M$percent.dissim.y, ]$FlyBaseID
 
 # interesting: the female ones have more points that fall in the "irregular" category
 length(fem.sim)
@@ -1037,10 +1042,12 @@ length(male.com)
 all.exclude <- unique(c(fem.sim, fem.abs, fem.com, male.sim, male.abs, male.com)) 
 
 # subset of genes that are more consistently dimorphic:
-# 1) SSS in both ASE and OSADA populations
+# 1) SSS in the ASE population
 # 2) fall into the right "sex-profile" (i.e., not "irregular") when seen in the MC populations
-subset.sss <- (sss.all[!sss.all %in% all.exclude])
-
+subset.sss <- (sss.all[!sss.all %in% all.exclude &
+                         !sss.all %in% DsRed_genes$V1])
+length(all.exclude)
+sum(subset.sss %in% Osada.sig.sss)
 
 
 # distance from SSAV females to SinghAgrawal females
@@ -1512,6 +1519,7 @@ t.test.table$pval = p.val.list
 t.test.table$avg.Red = avg.Red
 t.test.table$avg.NR = avg.NR
 t.test.table$diff = diff
+t.test.table
 
 write.table(t.test.table, file = "Results/tmp.csv", sep = ",", quote = FALSE, row.names = F)
 
@@ -1582,6 +1590,8 @@ splicing.MFdiff.plot <- function(RedData, NRData, plotCol){
 #         proportion relative to total points, 
 #         and plotting coordinates
 quad_count <- function(dat, x, y, lim = 5){
+  dat <- dat[dat[[x]] != dat[[y]],]
+  
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
     dplyr::count(na.rm = T,
@@ -1600,7 +1610,9 @@ quad_count <- function(dat, x, y, lim = 5){
     # specificy coordinates for texts on plot
     dplyr::mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
            !!y := lim/2*(2*(top - 0.5)+(UP - 0.5)))
-  
+    
+  print(count)
+    
   return(count)
 }
 
@@ -1625,11 +1637,13 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
                     Red = RedData[[plotCol]],
                     NR = NRData[[plotCol]]))
   
+  tmp <- na.omit(tmp)
+  
   lim = max(abs(min(tmp$Red, na.rm = T)), 
             abs(min(tmp$NR, na.rm = T)), 
             max(tmp$Red, na.rm = T), 
             max(tmp$NR, na.rm = T), na.rm = T)
-  lim=lim+(lim/2)
+  lim=lim*2
     
   # count the percentages
   quad_n <- quad_count(dat=tmp, x="Red", y="NR", lim=lim)
@@ -1647,9 +1661,11 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
     geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
 
     # add percentages
-    geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 10) +
+    geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 7.5) +
     coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
     labs(x = "Red", y = "Non-Red") +
+    scale_x_continuous(breaks = c(-1, 0, 1)) +
+    scale_y_continuous(breaks = c(-1, 0, 1)) +
     guides(color = guide_legend(override.aes = list(shape = c(NA, NA), # c(16, 16)
                                                     size = c(4, 4),
                                                     alpha = 1))) +
@@ -1666,7 +1682,9 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
           axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
           axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
           plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-          plot.margin = margin(6,6,6,6)
+          plot.margin = margin(6,6,6,6),
+          axis.line.x = element_blank(), 
+          axis.line.y = element_blank()
     )
   return(splice.plot)
 }
@@ -1681,17 +1699,17 @@ for(i in 1:dim(M.v.F.test.table)[1]){
   RedData <- get(paste0(M.v.F.test.table[i,2]))
   # subset appropriately
   RedData <- RedData[ 
-    #RedData$FlyBaseID %in% unique( A.m.sig.AS) &
-    RedData$FlyBaseID %in% ASE.sig.SSS,]
-    # RedData$FlyBaseID %in% subset.sss,]
+    # RedData$FlyBaseID %in% unique( A.f.sig.AS) &
+    # RedData$FlyBaseID %in% ASE.sig.SSS,]
+    RedData$FlyBaseID %in% subset.sss,]
     # RedData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
   
   # subset appropriately
   NRData <- get(paste0(M.v.F.test.table[i, 3]))
   NRData <- NRData[
-    #NRData$FlyBaseID %in% unique(A.m.sig.AS) &
-    NRData$FlyBaseID %in% ASE.sig.SSS,]
-    # NRData$FlyBaseID %in% subset.sss,]
+    # NRData$FlyBaseID %in% unique(A.f.sig.AS) &
+    # NRData$FlyBaseID %in% ASE.sig.SSS,]
+    NRData$FlyBaseID %in% subset.sss,]
     # NRData$FlyBaseID %in% filter.low.exp.genes.q25,] # filter.low.exp.genes.q25
   
   M.v.F.test.table$N <- length(!is.na(RedData$M.dis.F))
@@ -1719,16 +1737,6 @@ C.m.compare.plot
 
 M.v.F.test.table
 
-A.m.splice_ase.not.sss.cor.plot.dist <- A.m.compare.plot #+ coord_cartesian(xlim = c(-1,1))
-A.f.splice_ase.not.sss.cor.plot.dist <- A.f.compare.plot #+ coord_cartesian(xlim = c(-1,1))
-C.m.splice_ase.not.sss.cor.plot.dist <- C.m.compare.plot #+ coord_cartesian(xlim = c(-1,1))
-
-
-A.f.splice_ase.q25.filtered.
-A.m.splice_ase.q50.filtered.perc.sim
-A.f.splice_ase.q75.filtered
-A.f.splice_ase.q100.filtered
-
 write.table(M.v.F.test.table, file = "Results/tmp.csv", sep = ",", quote = FALSE, row.names = F)
 
 
@@ -1738,18 +1746,39 @@ A.m.nonsig.sss.ase
 #######
 
 
+Fig5_main <- ggarrange(NA,
+                       A.f.compare.plot + ggtitle(expression(bold("Exp. Females"))) +
+                         theme(axis.title.x = element_blank(), 
+                                               axis.title.y = element_blank(),
+                                               plot.title = element_text(hjust = 0.5, size = 25, vjust = 1.5, color = "red3"),
+                               panel.border = element_rect(colour = "red3", fill=NA, size=3)),
+                       NA,  
+                       A.m.compare.plot + ggtitle(expression(bold("Exp. Males"))) +
+                         theme(axis.title.x = element_blank(), 
+                                                axis.title.y = element_blank(),
+                               plot.title = element_text(hjust = 0.5, size= 25, vjust = 1.5, color = "steelblue3"),
+                               panel.border = element_rect(colour = "steelblue3", fill=NA, size=3)),
+                       NA, 
+                       C.m.compare.plot + ggtitle(expression(bold("Ctrl. Males"))) +
+                         theme(axis.title.x = element_blank(), 
+                                                axis.title.y = element_blank(),
+                               plot.title = element_text(hjust = 0.5, size = 25, vjust = 1.5, color = "#888889"),
+                               panel.border = element_rect(colour = "#888889", fill=NA, size=3)),
+          widths = c(0.05, 1, 0.05, 1, 0.05, 1),
+          heights = c(1, 0.05),
+          ncol = 6, nrow = 2)
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/splicing/SSAVvSDIU.percentSim.pdf",   # The directory you want to save the file in
-    width = 5, # 12, 24, 20 The width of the plot in inches
-    height = 5) # 10, 20, 13 The height of the plot in inches
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig5_main_AS.pdf",   # The directory you want to save the file in
+    width = 21, # 12, 24, 20 The width of the plot in inches
+    height = 7) # 10, 20, 13 The height of the plot in inches
 
 # A.m.compare.plot
 
-# ggarrange(A.m.splice_sdiu.sss.perc.sim, NA, C.m.splice_sdiu.sss.perc.sim, NA, A.f.splice_sdiu.sss.perc.sim,
-#           widths = c(1, 0.05, 1, 0.05, 1),
-#           ncol = 5, labels = c("Am)", NA, "Cm)", NA, "Af)"),
-#           font.label = list(size = 30))
+annotate_figure(Fig5_main, left = text_grob(expression(bold(Delta*italic("d")*", Non-Red")), 
+                                           rot = 90, size = 30),
+                bottom = text_grob(expression(bold(Delta*italic("d")*", Red")), 
+                                  size = 30))
 
 # ggarrange(C.m.splice_ase.sss.cor.plot.dist ,
 #           NA,
@@ -1773,8 +1802,8 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/splicing/SSAVvSDIU.percentSim.pdf",   
 #                       "C)", NA, "D)"),
 #           font.label = list(size = 30))
 
-plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x, 
-     test[test$FlyBaseID %in% test.filter.25,]$percent.sim.y, xlab = "SSAV", ylab ="Osada")
+# plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x, 
+#      test[test$FlyBaseID %in% test.filter.25,]$percent.sim.y, xlab = "SSAV", ylab ="Osada")
 
 
 dev.off()
@@ -1806,17 +1835,6 @@ ggplot(plot_splicing.profiles_All, aes(trt2, M.dis.F, color = geno)) +
     geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
     labs(y = "(M-F)/(M+F)") +
     scale_colour_manual(values = c("#888888", "red3")) + # "Chr-2", "Chr-3", "X-Chr"
-    # guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
-    #                                                 size = c(5, 5, 5),
-    #                                                 alpha = 1))) +
-    # # add star do signify significant difference from 0
-    # geom_text(data = perm_dat %>% mutate(sig1 = if_else(holm_Sig , "*", "ns")),
-    #           aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5,
-    #           position = position_dodge(width = 0.8), show.legend = FALSE) +
-    # # add number of genes per category
-    # geom_text(data = perm_dat, aes(label = n, y = Inf, group = trt2), 
-    #           position = position_dodge(width = 0.8), vjust = 5, size = 6, show.legend = FALSE) +
-    # line at y = 0
     geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype= "solid", color = "black") +
     geom_vline(xintercept = c(1.5, 2.5), color = "grey") +
     # default theme settings:
@@ -1877,3 +1895,25 @@ ggplot() +
         axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
         plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
         plot.margin = margin(6,6,6,6))
+
+
+
+# compare SSAV vs Controls
+A.m.C.m.Red <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
+A.m.C.m.NR <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
+test <- merge(A.m.C.m.Red, A.m.C.m.NR, by = "FlyBaseID")
+test <- na.omit(test)
+t.test(test$percent.dissim.x, test$percent.dissim.y, paired = T)
+
+Figure_6B <- plot_corr(test, x="percent.dissim.x", y="percent.dissim.y", 
+                       colx = "red3", coly = "grey9", colNonCon = "grey",
+                       xlab = "Red", ylab = "NonRed", title = "", lim = 1.2) +
+  labs(x = expression(italic("d")["C"]*", Red Males"),
+       y = expression(italic("d")["C"]*", Non-Red Males")) +
+  theme(axis.title.x = element_text(vjust = 1.5, margin = margin(25,0,20,0)), 
+        axis.title.y = element_text(vjust = 1, margin = margin(0,20,0,20))) +
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+Figure_6B
+
+head(test)
+

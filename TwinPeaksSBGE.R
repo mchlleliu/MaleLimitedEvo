@@ -134,8 +134,7 @@ hist(SSAV.geno_ASE$exp_SBGE_ase, breaks = 100)
 hist(A.f.geno_ASE$exp_SBGE_ase, breaks = 100)
 hist(A.m.geno_ASE$exp_SBGE_ase, breaks = 100)
 
-# splines with GAM
-#######
+# fit cubic splines with GAM
 plotSplinesDelta <- function(df){
   gam_mod <- gam(I(Sig) ~ s(sapply(exp_SBGE_ase, FUN = convert.Log2Sex.To.CKdelta), k = 5, bs = "cs"),
                data = df, method = "REML", family = "binomial")
@@ -162,10 +161,9 @@ plotSplinesDelta <- function(df){
 
 return(return.plot)
 }
-#######
 
 
-# bootstrap regression (using CK delta)
+# bootstrap fourth degree polynomial regression (using CK delta)
 boot_reg_delta <- function(dat, boot_N, degree){
 
   # convert to Cheng and Kirpatrick delta SBGE estimate
@@ -201,7 +199,7 @@ boot_reg_delta <- function(dat, boot_N, degree){
   return(out_boot)
 }
 
-# bootstrap regression (using CK delta)
+# bootstrap fourth degree polynomial regression (using CK delta)
 boot_reg_Log2SB <- function(dat, boot_N, degree){
   
   boot_pred <- NULL
@@ -233,15 +231,9 @@ boot_reg_Log2SB <- function(dat, boot_N, degree){
 }
 
 
-
-A.f.geno.reg_Log2SB.noSL <- boot_reg_Log2SB(A.f.geno_ASE.noSL, 1000, 4)
-A.f.geno.reg_delta.noSL <- boot_reg_delta(A.f.geno_ASE.noSL, 1000, 4)
-
-A.f.geno.reg_Log2SB <- boot_reg_Log2SB(A.f.geno_ASE, 1000, 4)
-A.f.geno.reg_delta <- boot_reg_delta(A.f.geno_ASE, 1000, 4)
-
 # plotting female CK plot with delta
 ######
+# A.f.geno.reg_delta <- boot_reg_delta(A.f.geno_ASE, 1000, 4)
 # SA_dist <- ggplot(A.f.reg_delta) + 
 #   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
 #               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -288,6 +280,7 @@ Fig2_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.
 
 # plot female data with log2FC sex-bias
 ######
+A.f.geno.reg_Log2SB <- boot_reg_Log2SB(A.f.geno_ASE, 1000, 4)
 SA_dist <- ggplot(A.f.reg_Log2SB) + 
   geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -333,14 +326,10 @@ Fig2_CKsuppl_fem_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c
                               ncol = 3, widths = c(0.005, 1, 0.005)) 
 ######
 
-A.m.geno.reg_Log2SB.noSL <- boot_reg_Log2SB(A.m.geno_ASE.noSL, 1000, 4)
-A.m.geno.reg_delta.noSL <- boot_reg_delta(A.m.geno_ASE.noSL, 1000, 4)
-
-A.m.geno.reg_Log2SB <- boot_reg_Log2SB(A.m.geno_ASE, 1000, 4)
-A.m.geno.reg_delta <- boot_reg_delta(A.m.geno_ASE, 1000, 4)
 
 # plotting male CK plot delta
 ######
+# A.m.geno.reg_delta <- boot_reg_delta(A.m.geno_ASE, 1000, 4)
 # SA_dist <- ggplot(A.m.geno.reg_delta) + 
 #   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
 #               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -387,6 +376,7 @@ Fig2_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
 
 # plot male data with log2FC sex-bias
 ######
+A.m.geno.reg_Log2SB <- boot_reg_Log2SB(A.m.geno_ASE, 1000, 4)
 SA_dist <- ggplot(A.m.geno.reg_Log2SB) + 
   geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -434,15 +424,9 @@ Fig2_CKsuppl_male_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = 
 
 
 
-SSAV.geno.reg_Log2SB.noSL <- boot_reg_Log2SB(SSAV.geno_ASE.noSL, 1000, 4)
-SSAV.geno.reg_delta.noSL <- boot_reg_delta(SSAV.geno_ASE.noSL, 1000, 4)
-
-SSAV.geno.reg_Log2SB <- boot_reg_Log2SB(SSAV.geno_ASE, 10, 4)
-SSAV.geno.reg_delta <- boot_reg_delta(SSAV.geno_ASE, 1000, 4)
-
-
 # plotting all CK plot delta
 ######
+# SSAV.geno.reg_delta <- boot_reg_delta(SSAV.geno_ASE, 1000, 4)
 # SA_dist <- ggplot(SSAV.geno.reg_delta) + 
 #   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
 #               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -492,6 +476,7 @@ Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
   
 # plot all with log2FC sex-bias
 ######
+SSAV.geno.reg_Log2SB <- boot_reg_Log2SB(SSAV.geno_ASE, 10, 4)
 SA_dist <- ggplot(SSAV.geno.reg_Log2SB) + 
   geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
               size = 0.25, alpha = 0.7, fill = "grey")  +
@@ -656,8 +641,6 @@ twinPeaks <- function(dat){
   AllRequirementsMet = all (c(TP.requirement0, TP.requirement1, TP.requirement2, TP.requirement3a, TP.requirement3b))
   return(AllRequirementsMet)
 }
-
-
 PermuteTP <- function(dat, perm_N){
   
   print(twinPeaks(dat))

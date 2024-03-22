@@ -38,7 +38,7 @@ rep <- rep(c(1:4), 30)
 for(i in line) lines = c(lines, rep(i, 8))
 lines = lines[-1]
 design_exp <- data.frame(sex = sex, line = unlist(lines), rep = rep)
-rownames(design_exp) <- gset$
+
 
 design <- model.matrix(~0+sex+line, design_exp)
 
@@ -65,7 +65,7 @@ InnoMorrow_SBGE <- InnoMorrow_SBGE[!(InnoMorrow_SBGE$FlyBaseID %in% Chrs$FlyBase
                                      !(InnoMorrow_SBGE$FlyBaseID %in% Chrs$FlyBaseID[Chrs$Chr == "Y"]),] %>%
   dplyr::mutate(Sig = ifelse(FlyBaseID %in% Inno_Morrow$FlyBaseID, TRUE, FALSE)) 
 
-
+write.table(InnoMorrow_SBGE, "Data/InnoMorrow.SBGE.tsv", sep = "\t", quote = F)
 
 
 ### compare with SSAV DE analysis dataset
