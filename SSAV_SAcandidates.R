@@ -35,11 +35,11 @@ AS.candidates <- unique(c(jseq.A.f.geno$FlyBaseID[jseq.A.f.geno$sig.hit],
 AS.background <- unique(c(jseq.A.f.geno$FlyBaseID, 
                           jseq.A.m.geno$FlyBaseID))
 dim(jseq.All.geno)
-jseq.All.geno_Chr <- jseq.All.geno_Chr %>% 
+jseq.All.geno_Chr <- merge(jseq.All.geno, Chrs, by = "FlyBaseID") %>% 
   dplyr::mutate(Sig = ifelse(FlyBaseID %in% AS.candidates, TRUE, FALSE))
 
-test_df <- merge(jseq.All.geno, SSAV.geno, by ="FlyBaseID", all = T)
-dim(test_df)
+test_df <- merge(jseq.All.geno_Chr, SSAV.geno, by ="FlyBaseID", all = T)
+str(test_df)
 test_df <- test_df[!(is.na(test_df$Sig.x) & is.na(test_df$Sig.y)),]
 test_df <- test_df %>% 
   dplyr::mutate(Sig = ifelse((!is.na(Sig.x) & Sig.x), TRUE, 
@@ -47,11 +47,6 @@ test_df <- test_df %>%
 dim(test_df[is.na(test_df$Sig),])
 dim(test_df)
 
-# add AS candidates
-candidateList <- read.delim("Results/DE_AS_candidate.list.txt")
-colnames(candidateList) = "FlyBaseID"
-SSAV.geno <- SSAV.geno %>%
-  dplyr::mutate(Sig = ifelse(FlyBaseID %in% candidateList$FlyBaseID, TRUE, Sig))
 
 SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
 #########
@@ -66,27 +61,25 @@ str(InnoMorrow_SBGE)
 SSAV.geno <- SSAV.geno %>%
   dplyr::mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
 
-jseq.All.geno <- jseq.All.geno %>% 
+jseq.All.geno_Chr <- jseq.All.geno_Chr %>% 
   dplyr::mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
 
-
-test_df <- SSAV.geno[SSAV.geno$FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID,] 
 # combine InnoMorrow status with SSAV dataset
 test_df <- test_df %>% 
   mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
 
 test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsInnoMorr)
 test
-test <- fisher.test(x = jseq.All.geno$Sig, y = jseq.All.geno$IsInnoMorr)
+test <- fisher.test(x = jseq.All.geno_Chr$Sig, y = jseq.All.geno_Chr$IsInnoMorr)
 test
-test <- fisher.test(x = test_df$Sig, y = test_df$IsInnoMorr)
+test <- fisher.test(x = tmp.JS.table$sig.hit, y = tmp.JS.table$DE.Sig)
 test
 
 # enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
 mos_plot_InnoMorr
 
 ggbarstats(
-  test_df, IsInnoMorr, Sig,
+  tmp.JS.table, DE.Sig, sig.hit,
   results.subtitle = FALSE, label = "both",
   subtitle = paste0(
     "Fisher's exact test", ", p-value = ",
@@ -94,9 +87,9 @@ ggbarstats(
   ), 
   xlab = NULL
 ) +
-  scale_fill_manual(labels = c("SA_InnoMorr", "notSA_InnoMorr"),
-                    values = c("darkorchid4", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
-  scale_x_discrete(labels = c("Background", "Candidates")) +
+  scale_fill_manual(labels = c("DE", "not DE"),
+                    values = c("purple3", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
+  scale_x_discrete(labels = c("Background", "DS")) +
   theme(plot.title.position = c("panel"),
         legend.title = element_blank(),
         legend.position = c("bottom"),
@@ -127,7 +120,7 @@ colnames(Ruzicka) <- c("FlyBaseID", "FlyBaseName", "Chr", "SA_miss",
 
 SSAV.geno <- SSAV.geno %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
-jseq.All.geno <- jseq.All.geno %>% 
+jseq.All.geno_Chr <- jseq.All.geno_Chr %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
 
@@ -141,7 +134,7 @@ test_df <- test_df %>%
 
 test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsRuz)
 test
-test <- fisher.test(x = jseq.All.geno$Sig, y = jseq.All.geno$IsRuz)
+test <- fisher.test(x = jseq.All.geno_Chr$Sig, y = jseq.All.geno_Chr$IsRuz)
 test
 test <- fisher.test(x = test_df$Sig, y = test_df$IsRuz)
 test

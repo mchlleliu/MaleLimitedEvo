@@ -16,6 +16,8 @@ library(dplyr)
 library(ggplot2)
 library(ggblend)
 library(ggpubr)
+library(ggrepel)
+library(ggblend)
 #########
 
 # Load & set up plotting datasets
@@ -46,7 +48,7 @@ corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID")
 quad_count <- function(dat, x, y, lim = 5){
   
   dat <- dat[dat[[x]] != dat[[y]],]
-  
+  # 
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
     dplyr::count(right = .[[x]] > 0, # on the right side of plot?
@@ -114,8 +116,8 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   # count the percentages
   
   # comment in if plotting figure 6
-  # dat[[x]] = abs(dat[[x]])
-  # dat[[y]] = abs(dat[[y]])
+  dat[[x]] = abs(dat[[x]])
+  dat[[y]] = abs(dat[[y]])
   
   quad_n <- quad_count(dat, x, y, lim)
   # manage the colour of points
@@ -125,11 +127,11 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
     geom_point(size = 2, shape = 16, alpha = 0.5, color = quad_col$quadrant) +  
     
     # add lines to separate quadrants
-    geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
-    geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
-    geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+    # geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+    # geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+    # geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
-    geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
+    # geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
     
     # add percentages
     geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 10) +
@@ -175,18 +177,18 @@ concordant <- corr.plot[!is.na(corr.plot$Red.exp_trt) & !is.na(corr.plot$NR.exp_
 hist(concordant$Red.exp_trt - concordant$NR.exp_trt)
 t.test(concordant$Red.exp_trt, concordant$NR.exp_trt, paired = T)
 t.test(abs(corr.plot$Red.exp_trt),abs(corr.plot$NR.exp_trt), paired = T)
-all_RedvNR <- plot_corr(corr.plot, 
+all_RedvNR <- plot_corr(concordant, 
                         "Red.exp_trt", "NR.exp_trt", 
                         "red3", "grey9", "darkgrey",
                         "SSAV/Control in Red males", 
                         "SSAV/Control in NonRed males", 
                         1.78, "") +
-  labs(x = expression(atop(paste("Absolute "*Log["2"]*"FC"), paste("in Red Males"))),
-       y = expression(atop(paste("Absolute "*Log["2"]*"FC"), paste("in Non-Red Males")))) +
-  theme(title = element_blank())  
-  # scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
-  # scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
-  # coord_cartesian(xlim = c(0, 1.75), ylim = c(0, 1.75))
+  labs(x = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in Red Males"))),
+       y = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in NonRed Males")))) +
+  theme(title = element_blank())  +
+  scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
+  scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
+  coord_cartesian(xlim = c(0, 1.75), ylim = c(0, 1.75))
 
 all_RedvNR
 
@@ -230,17 +232,32 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
                       2.5, "Highly MB (n = 2,372)")
 ########
 
+Figure6 <- ggarrange(NA,NA,NA,NA,NA, 
+                     NA, all_RedvNR + ggtitle(expression(bold("Differential Expression"))) +
+              theme(axis.title.x = element_blank(), 
+                    axis.title.y = element_blank(),
+                    plot.title = element_text(hjust = 0.5, size = 30, vjust = 3)),
+            NA, Figure_6B + ggtitle(expression(bold("Differential Splicing"))) +
+              theme(axis.title.x = element_blank(), 
+                    axis.title.y = element_blank(),
+                    plot.title = element_text(hjust = 0.5, size = 30, vjust = 3)), NA,
+            ncol = 5,nrow = 3, widths = c(0.1, 1, 0.075, 1, 0.1), heights = c(0.1,1, 0.05),
+            labels = c(NA,NA,NA,NA,NA,
+                       NA, "A)", NA, "B)", NA), hjust=0.75, vjust = -0.25,
+            font.label = list(size = 40))
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig6_suppl.pdf",   # The directory you want to save the file in
-    width = 10, # 20; The width of the plot in inches
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig6_main.pdf",   # The directory you want to save the file in
+    width = 20, # 20; The width of the plot in inches
     height = 10) # 30; The height of the plot in inches
 
-# ggarrange(all_RedvNR, NA, Figure_6B,
-#           ncol = 3, widths = c(1, 0.05, 1),
-#           labels = c("A)", NA, "B)"), 
-#           font.label = list(size = 30))
+annotate_figure(Figure6, left = text_grob("Experimental vs. Control Difference: \nNonRed Males", 
+                                            rot = 90, size = 30, vjust = 1),
+                bottom = text_grob("Experimental vs. Control Difference: \nRed Males", 
+                                   size = 30))
 
-all_RedvNR
+
+# all_RedvNR
 
 # ggarrange(more_fbg, NA, fbg,
 #           NA, NA, NA,
@@ -295,9 +312,11 @@ ggplot(corr.plot %>% mutate(absDiff = ifelse(Diff < 0, "NonRed", "Red"))) +
 
 # Prepare dataset
 ##########
-Red.m.trt$geno <- "Red"
-NR.m.trt$geno <- "NR"
-binned.plot <- rbind(Red.m.trt, NR.m.trt)
+tmp.Red$trt = "Red"
+colnames(tmp.Red)[1:3] = c("exp_trt", "se_trt", "padj")
+tmp.NR$trt = "NR"
+colnames(tmp.NR)[1:3] = c("exp_trt", "se_trt", "padj")
+binned.plot <- rbind(tmp.Red, tmp.NR)
 binned.plot <- merge(binned.plot, ASE, by = "FlyBaseID", all = T)
 binned.plot <- merge(binned.plot, Chrs, by = "FlyBaseID")
 binned.plot <- binned.plot[!is.na(binned.plot$exp_trt) &
@@ -333,8 +352,9 @@ permDiff_RedNR <- TwoPerm_SBGE(perm_dat = tmp_RedNR,
 
 # Plotting codes
 #########
+
 # For 2 groups dot plot with regression line
-p <- ggplot(binned.plot, aes(exp_SBGE_ase, exp_trt, color = geno)) +
+p <- ggplot(binned.plot, aes(exp_SBGE_ase, exp_trt, color = trt)) +
   geom_point(size = 0.4, shape = 16, alpha = 0.5) +
   geom_smooth(method = "lm",
               formula = y ~ x,
@@ -372,8 +392,8 @@ p
 
 
 # Binned dot-plot for A-versus-C in males
-b <- ggplot(binned.plot, aes(SBGE_comp, exp_trt, color = geno)) +
-  geom_point(aes(color = geno), size = 1, shape = 16, alpha = 0.3, 
+b <- ggplot(binned.plot[binned.plot$FlyBaseID %in% SSAV.geno$FlyBaseID[SSAV.geno$Sig],], aes(SBGE_comp, exp_trt, color = trt)) +
+  geom_point(aes(color = trt), size = 1, shape = 16, alpha = 0.3, 
              position = position_jitterdodge(jitter.width = 0.2)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
   labs(x = "SBGE (ASE)", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])

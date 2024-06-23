@@ -138,6 +138,51 @@ TwoPerm <- function(perm_dat, x_col,
 }
 
 
+PairedTwoPerm <- function(perm_dat, x1, x2, n_perm = 10000,
+                          alternative = c("two.sided","less","greater")){
+ 
+  summary.test <- NULL # return object
+  perm_dat <- perm_dat[!is.na(perm_dat[[x1]]) & 
+                         !is.na(perm_dat[[x2]]),] # only keep paired observations
+  
+  n1 <- length(na.omit(perm_dat[[x1]]))
+  n2 <- length(na.omit(perm_dat[[x2]]))
+  
+ if(n1 == n2) {
+  # find difference for each paired observation
+  perm_dat <- perm_dat %>%
+    dplyr::mutate(Diff = .[[x1]] - .[[x2]])
+
+  # observed mean difference
+  obs.diff <- mean(perm_dat$Diff)
+  
+  diff.permuted <- rep(12345, n_perm)
+  
+  for (i in 1:n_perm){
+    signs <- sample(c(-1,1), size = n1, replace = TRUE)
+    perm_diffs = signs*perm_dat$Diff
+    diff.permuted[i] = mean(perm_diffs)
+  }
+
+  # assign p-value
+  if(alternative[1]=="less"){
+    pval = (sum(diff.permuted <= obs.diff) + 1) / (n_perm + 1)
+  } else if(alternative[1]=="greater"){
+    pval = (sum(diff.permuted >= obs.diff) + 1) / (n_perm + 1)
+  } else{
+    pval = (sum(abs(diff.permuted) > abs(obs.diff)) + 1) / (n_perm + 1)
+  }
+
+
+  summary.test <- data.frame(obs.stat = obs.diff, 
+                             N = n1, 
+                             pval = pval, 
+                             Sig = (pval < 0.05 & n1 > 30 & n2 > 30))
+  }
+  
+  return(summary.test)
+}
+
 
 # Function to permute based on SBGE category
 # args: perm_dat = the dataset containing a numeric column to permute

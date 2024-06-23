@@ -124,7 +124,10 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 
 ## Candidates vs Non-candidates
 ########
-boot_testes_All
+boot_testes_All <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$testesSpecificity),], 
+                                x_col = "testesSpecificity", 
+                                groupBy = "Sig",
+                                SBGE_cat = "SBGE_comp")
 boot_ovaries_All <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$ovariesSpecificity),], 
                                 x_col = "ovariesSpecificity", 
                                 groupBy = "Sig",

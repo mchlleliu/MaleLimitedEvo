@@ -215,6 +215,9 @@ dds.Int <- DESeqDataSetFromHTSeqCount(sampleTable = Males,
 dds.A.Red.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.Red,
                                             design = ~ rep + sex)
 
+dds.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A,
+                                      design = ~ rep + sex)
+
 # For sex differences in A.NR
 dds.A.NR.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR,
                                            design = ~ rep + sex)
@@ -239,7 +242,7 @@ minCountPerSample = 1 #min read count per sample
 minAvgPerCat = 10 #min average read per category
 
 # Specify the contrast
-focal.contrast <-  dds.A.m.geno # Change accordingly
+focal.contrast <-  dds.sex # Change accordingly
 
 # Specify the samples for each category of the focal contrasts (some tricky ones commented here)
 # this is based on the order of the sample names
@@ -249,8 +252,8 @@ focal.contrast <-  dds.A.m.geno # Change accordingly
 # denominator <- samplename[seq(1, 24, by = 2)] #A-NR
 
 # dds.A.m.geno
-numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
-denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
+# numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
+# denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
 
 # dds.A.f.geno
 # numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
@@ -284,9 +287,13 @@ denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
 # numerator <- samplename[seq(3, 24, by = 4)]
 # denominator <- samplename[seq(2, 24, by =4)]
 
+# dds.A.sex
+numerator <- samplename[c(seq(3, 24, by = 4), seq(4, 24, by = 4))]
+denominator <-samplename[c(seq(1, 24, by = 4), seq(2, 24, by =4))]
+
 # Analysis details
 # print "str(sampleTable)" to see your options here
-factor.numerator.denominator = c("geno", "Red", "NR") # that is c("factor", "numerator", "denominator"); flip if desired
+factor.numerator.denominator = c("sex", "Male", "Female") # that is c("factor", "numerator", "denominator"); flip if desired
 alpha.threshold = 0.05 # this sets alpha for the adjusted pvalue; default is 0.1.
 ##########
 
@@ -400,10 +407,10 @@ Results.df <- data.frame(cbind(DESeq.Results$log2FoldChange,
                                DESeq.Results$padj,
                                DESeq.Results$FlyBaseID # fix accordingly (e.g. FlyBaseID)
 ))
-colnames(Results.df) <- c("exp_geno", "se_geno", "padj", "FlyBaseID") # fix accordingly (e.g. maybe c()[1] == "exp_trt", and/or c()[4] == "FlyBaseID")
+colnames(Results.df) <- c("exp_sex", "se_sex", "padj", "FlyBaseID") # fix accordingly (e.g. maybe c()[1] == "exp_trt", and/or c()[4] == "FlyBaseID")
 str(Results.df)
-Results.df$exp_geno <- as.numeric(Results.df$exp_geno) # fix accordingly
-Results.df$se_geno <- as.numeric(Results.df$se_geno) # fix accordingly
+Results.df$exp_sex <- as.numeric(Results.df$exp_sex) # fix accordingly
+Results.df$se_sex <- as.numeric(Results.df$se_sex) # fix accordingly
 Results.df$padj <- as.numeric(Results.df$padj)
 str(Results.df)
 
@@ -412,6 +419,10 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv
             row.names = FALSE, col.names = TRUE)
 ##########
 
+
+# check correlation between log2FC in SSAV (A) and in ASE
+test <- merge(Results.df, ASE, by = "FlyBaseID")
+cor.test(test$exp_sex, test$exp_SBGE_ase)
 
 check_test <- merge(Results.df,SDIU, by = "FlyBaseID")
 ggplot(check_test) + 
@@ -431,14 +442,16 @@ plot_corr(check_test,"exp_SBGE_ase", "Whole.SBGE.Osada", colx = "purple", coly =
 # Assign significant genes
 ##########
 # If not already in environment, read in df to specify the results df to be used 
-Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv", header = TRUE)
+# C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+# Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/NR.m.trt_raw.tsv", header = TRUE)
 
 # Function to sort significant and non-significant genes by adding logical column
 assign_sig <- function(contrast_df){
   contrast_df <- na.omit(contrast_df)
   contrast_df$Sig = FALSE
   for(i in 1:nrow(contrast_df)){
-    if(contrast_df$padj[i] < alpha.threshold){
+    if(contrast_df$padj[i] < alpha.threshold & 
+       !contrast_df$FlyBaseID[i] %in% C.m.geno$FlyBaseID[C.m.geno$Sig]){
       contrast_df$Sig[i] = TRUE
     }
   }
@@ -453,15 +466,27 @@ dim(Results.df[Results.df$Sig == TRUE, ]) # right number?
 
 
 # this is only for A.m.geno
-# order A.m.geno by p-values & get the 200 lowest
+# Results.df <- Results.df[order(Results.df$padj),]
+# Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),]
+# colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
+# Results.df$Sig <- FALSE
+# Results.df[1:350,]$Sig <- TRUE
+# droplevels(Results.df)
+
+# get candidates for males, but exclude mtDNA genes and Chr4
 Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),]
-View(Results.df)
 colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
 Results.df$Sig <- FALSE
-Results.df[1:350,]$Sig <- TRUE
+i = 1
+while(dim(Results.df[Results.df$Sig,])[1] < 350){
+  if(!Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID[Chrs$Chr == "Y"] & 
+     Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID){
+  Results.df$Sig[i] <- TRUE
+  }
+  i = i + 1
+}
 droplevels(Results.df)
-
-
+dim(Results.df[Results.df$Sig,])
 
 ## change this to the correct file name
 write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
@@ -485,6 +510,7 @@ SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, 
                                                       ifelse(is.na(A.m.Sig) & is.na(A.f.Sig), NA, FALSE)))) 
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig),]
+dim(SSAV.geno[SSAV.geno$Sig,])
 
 # only keep concordant changes
 SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.exp_geno > 0) |

@@ -151,7 +151,7 @@ plotSplinesDelta <- function(df){
     geom_ribbon(aes(ymin = fit - se, ymax = fit + se, y = NULL),
               alpha = 0.3) +
     geom_line()  +
-    labs(y = "Log Likelihood of Antagonism", x = "") +
+    labs(y = "Likelihood of Antagonism", x = "") +
     theme_classic() +
     theme(plot.title.position = c("panel"),
           axis.text.x = element_blank(),
@@ -524,7 +524,7 @@ Fig2_CKsuppl_all_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c
 ######
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_supplCK.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.pdf",   # The directory you want to save the file in
     width = 24, # 14 18 24 The width of the plot in inches
     height = 20) # 10 20 20 The height of the plot in inches
 

@@ -103,7 +103,7 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   
   # plot
   corr <- ggplot(dat, aes_string(x = x, y = y)) +
-    geom_point(size = 2, shape = 16, alpha = 0.5, color = quad_col$quadrant) +  
+    geom_point(size = 3, shape = 16, alpha = 0.75, color = quad_col$quadrant) +  
     geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
@@ -177,22 +177,22 @@ corr.plot <- merge(tmp.females, tmp.C.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ],
                    x = "f.exp_geno", y = "C.m.exp_geno", 
-                   "black", "black", "red",
+                   "black", "black", "grey65",
                    "Red/NR in SSAV females", "Red/NR in Control males", 
                    2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Females"),
-       y = expression(Log["2"]*"FC (Red/NR) in C Males"))
+  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Females"),
+       y = expression(Log["2"]*"FC (Red/NR) in Ctrl. Males"))
 
 # SSAV females vs SSAV males
 corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ], 
                    "f.exp_geno", "m.exp_geno", 
-                   "black", "black", "red", 
+                   "black", "black", "grey65",
                    "Red/NR in SSAV females", "Red/NR in SSAV males", 
                    2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Females"),
-       y = expression(Log["2"]*"FC (Red/NR) in SM Males"))
+  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Females"),
+       y = expression(Log["2"]*"FC (Red/NR) in Exp. Males"))
 
 ########
 
@@ -205,28 +205,28 @@ corr.plot <- merge(tmp.males, tmp.C.males, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "C.m.exp_geno",  
-                            "black", "black", "red",
+                            "black", "black", "grey65",
                             "Red/NR in SSAV males", "Red/NR in Control males", 
                             2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Males"),
-       y = expression(Log["2"]*"FC (Red/NR) in C Males"))
+  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Males"),
+       y = expression(Log["2"]*"FC (Red/NR) in Ctrl. Males"))
 
 # SSAV males vs SSAV females
 corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
 corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "f.exp_geno", 
-                            "black", "black", "red",
-                            "Red/NR in SSAV males", "Red/NR in SSAV females", 
+                            "black", "black", "grey65",
+                            "Red/NR in Exp. Males", "Red/NR in Exp. Females", 
                             2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in SM Males"),
-       y = expression(Log["2"]*"FC (Red/NR) in SM Females"))
+  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Males"),
+       y = expression(Log["2"]*"FC (Red/NR) in Exp. Females"))
 
 ########
 
 
 # Save the plots
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Corr_plots/SSAV_Control_4x4.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S2.pdf",   # The directory you want to save the file in
     width = 20, # The width of the plot in inches
     height = 20) # The height of the plot in inches
 ggarrange(AfAm_male_cand, NA, AmAf_fem_cand,

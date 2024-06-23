@@ -23,7 +23,52 @@ library(ggplot2)
 
 
 
-# Get chromosome locations  
+# Get Singh & Agrawal 2023 data's chromosome locations
+######
+SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SDIU)[2] <- "FlyBaseID"
+SDIU <- mutate(SDIU, SBGEcat.body.Osada = case_when(
+  SBGEcat.body.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.body.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.body.Osada == "FB" ~ "c.fbg",
+  SBGEcat.body.Osada == "UB" ~ "d.ubg",
+  SBGEcat.body.Osada == "MB" ~ "e.mbg",
+  SBGEcat.body.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.body.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.body.Osada  # Keep other values unchanged
+))
+
+SDIU <- mutate(SDIU, SBGEcat.head.Osada = case_when(
+  SBGEcat.head.Osada == "extFB"   ~ "a.ext.fbg",
+  SBGEcat.head.Osada == "sFB"  ~ "b.more.fbg",
+  SBGEcat.head.Osada == "FB" ~ "c.fbg",
+  SBGEcat.head.Osada == "UB" ~ "d.ubg",
+  SBGEcat.head.Osada == "MB" ~ "e.mbg",
+  SBGEcat.head.Osada == "sMB" ~ "f.more.mbg",
+  SBGEcat.head.Osada == "extMB" ~ "g.ext.mbg",
+  TRUE              ~ SBGEcat.head.Osada  # Keep other values unchanged
+))
+str(SDIU)
+
+Chrs <- SDIU[, c("FlyBaseID", "chrm")]
+Chrs <- Chrs %>% dplyr::mutate(
+  Chr = case_when(
+  chrm == "2L" ~ "2",
+  chrm == "2R" ~ "2",
+  chrm == "3L" ~ "3",
+  chrm == "3R" ~ "3",
+  chrm == "4" ~ "4",
+  chrm == "X" ~ "X",
+  chrm == "Y" ~ "Y",  
+))
+head(Chrs)
+Chrs$Chr <- as.factor(Chrs$Chr)
+str(Chrs)
+
+######
+
+
+# Get chromosome locations from current ref
 ##########
 
 all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
@@ -59,11 +104,12 @@ chr3 <- rbind(chr3L, chr3R)
 chr3$Chr <- rep("3", dim(chr3)[1])
 
 Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
-Chrs$Chr <- as.factor(Chrs$Chr)
+Chrs$Chr <- as.character(Chrs$Chr)
 
-Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
-Chrs_All$Chr <- as.factor(Chrs_All$Chr)
+str(Chrs)
 ##########
+
+
 
 # Prepare plotting dataset
 ########
@@ -72,16 +118,19 @@ Chrs_All$Chr <- as.factor(Chrs_All$Chr)
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
-# jseq.All.geno <- read.delim("Results/jseq.All.geno.txt")
+jseq.All.geno <- read.delim("Results/jseq.All.geno.txt")
 
 # include Chr 
 A.m.geno_Chr <- merge(A.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.m.geno_Chr <- A.m.geno_Chr[!is.na(A.m.geno_Chr$Sig) & !is.na(A.m.geno_Chr$Chr),]
 A.f.geno_Chr <- merge(A.f.geno, Chrs, by = "FlyBaseID", all = TRUE)
 A.f.geno_Chr <- A.f.geno_Chr[!is.na(A.f.geno_Chr$Sig) & !is.na(A.f.geno_Chr$Chr),]
+C.m.geno_Chr <- merge(C.m.geno, Chrs, by = "FlyBaseID", all = TRUE)
+C.m.geno_Chr <- C.m.geno_Chr[!is.na(C.m.geno_Chr$Sig) & !is.na(C.m.geno_Chr$Chr),]
 
-jseq.All.geno_Chr <- merge(jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", "geneWisePadj.y", "sig.hit.y", "sig.hit")],
+jseq.All.geno_Chr <- merge(jseq.All.geno,
                            Chrs, by = "FlyBaseID", all = T)
 jseq.All.geno_Chr <- unique(na.omit(jseq.All.geno_Chr))
 jseq.All.geno_Chr <- jseq.All.geno_Chr[!jseq.All.geno_Chr$FlyBaseID %in% DsRed_genes$V1,]
@@ -161,8 +210,8 @@ plotChrprop <- function(dat, xlab){
   return(plot_vec)
 }
 
-# propChr(jseq.All.geno_Chr)
-# plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
+propChr(jseq.All.geno_Chr[jseq.All.geno_Chr$Chr != "Y",])
+plotChrprop(jseq.All.geno_Chr, "Chr") + coord_cartesian(ylim=c(-0.02, 0.05))
 
 
 propChr(SSAV.geno_Chr[SSAV.geno_Chr$Chr != "Y",])
@@ -243,7 +292,5 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/Chromosomal_dist_ALL.pdf",   # The dir
 #           font.label = list(size = 30))
 All_geno
 dev.off()
-
-
 
 

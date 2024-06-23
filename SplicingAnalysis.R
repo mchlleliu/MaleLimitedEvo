@@ -1,6 +1,6 @@
 ###################################
 #
-#                                   Grieshop et al. 2023
+#                                   Grieshop et al. 2024/
 #                  DsRed experimental evolution - transcriptomics analysis
 #                 Differential splicing analysis for Red vs Non-Red samples
 # 
@@ -99,6 +99,14 @@ jseq.A.f.geno <- jseq.A.f.geno[!(jseq.A.f.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.A.m.geno <- jseq.A.m.geno[!(jseq.A.m.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.C.m.geno <- jseq.C.m.geno[!(jseq.C.m.geno$FlyBaseID %in% DsRed_genes$V1),]
 
+jseq.A.f.geno <- merge(jseq.A.f.geno, Chrs, by = "FlyBaseID")
+jseq.A.m.geno <- merge(jseq.A.m.geno, Chrs, by = "FlyBaseID")
+jseq.C.m.geno <- merge(jseq.C.m.geno, Chrs, by = "FlyBaseID")
+
+jseq.A.f.geno <- jseq.A.f.geno[jseq.A.f.geno$Chr!= "Y",]
+jseq.A.m.geno <- jseq.A.m.geno[jseq.A.m.geno$Chr!= "Y",]
+jseq.C.m.geno <- jseq.C.m.geno[jseq.C.m.geno$Chr!= "Y",]
+
 # make a list of samples. This is just so we can automate 
 # it easier in subsequent steps bcs i don't want to write everything thrice lol T-T.
 SSAV.sample.types <- data.frame(sampleType = c("A.m", "A.f", "C.m")) %>% 
@@ -166,14 +174,20 @@ for(i in SSAV.sample.types$raw.JS.table){
 }
 
 # Assign significantly spliced genes 
-jseq.C.m.geno <- jseq.C.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRThreshold, TRUE, FALSE))
+jseq.C.m.geno <- jseq.C.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= 0.1, TRUE, FALSE))
+length(unique(jseq.C.m.geno[!is.na(jseq.C.m.geno$sig.hit) & jseq.C.m.geno$sig.hit,]$FlyBaseID))
+
 # do not assign as significantly spliced if the controls also differ
-jseq.A.f.geno <- jseq.A.f.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRThreshold & 
+jseq.A.f.geno <- jseq.A.f.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= 0.1 & 
                                                              !(FlyBaseID %in% jseq.C.m.geno[jseq.C.m.geno$sig.hit,]$FlyBaseID),
                                                            TRUE, FALSE))
-jseq.A.m.geno <- jseq.A.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= FDRThreshold &
+length(unique(jseq.A.f.geno[!is.na(jseq.A.f.geno$sig.hit) & jseq.A.f.geno$sig.hit,]$FlyBaseID))
+
+jseq.A.m.geno <- jseq.A.m.geno %>% mutate(sig.hit = ifelse(geneWisePadj <= 0.1 &
                                                              !(FlyBaseID %in% jseq.C.m.geno[jseq.C.m.geno$sig.hit,]$FlyBaseID),
                                                            TRUE, FALSE))
+length(unique(jseq.A.m.geno[!is.na(jseq.A.m.geno$sig.hit) & jseq.A.m.geno$sig.hit,]$FlyBaseID))
+
 jseq.All.geno <- merge(jseq.A.m.geno[,c("FlyBaseID", "geneWisePadj", "sig.hit")], 
                        jseq.A.f.geno[,c("FlyBaseID", "geneWisePadj", "sig.hit")], 
                        by = "FlyBaseID", all = T) 
@@ -308,7 +322,12 @@ length(filter.low.exp.genes.q25) # list of genes that passed the 25% filter
 
 # differential splicing analysis for SSAV samples
 #######
+# install.packages("ggVennDiagram")
+library(ggVennDiagram)
+
 # downstream checks for significantly spliced genes
+
+SSAV.sample.types$DEdata <- c("A.m.geno_Chr", "A.f.geno_Chr", "C.m.geno_Chr", "SSAV.geno_Chr")
 
 # check how many genes were spliced differently between Red and NR, 
 # do some Fisher's exact tests for association with sex-specific splicing in SSS data or in ASE data:
@@ -321,12 +340,16 @@ All.geno.tmp <- read.delim("Results/All.geno_candidates.tsv", header = TRUE, sep
 # initialize dataframe object to store results (wow that variable name do be long)
 fishers.test.RedNR.splice.results <- data.frame(sampleType = SSAV.sample.types$sampleType)
 
+
 # get data for Suppl. table
 for(i in 1:dim(SSAV.sample.types)[1]){
   tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2]))
   tmp.JS.table <- tmp.JS.table[!is.na(tmp.JS.table$sig.hit),]
+  
+  DE_data <- get(paste0(SSAV.sample.types[i, 3]))
+  
   if(i < 4) {
-    tmp.JS.table <- tmp.JS.table[,c(2,26)]
+    tmp.JS.table <- tmp.JS.table[,c(1,27)]
     tmp.JS.table = tmp.JS.table[!duplicated(tmp.JS.table$FlyBaseID),]
   }
   
@@ -337,11 +360,11 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   
   # assign overlap with SSS
   tmp.JS.table = tmp.JS.table %>% 
-    mutate(Osada.SSS = ifelse(FlyBaseID %in% SinghAgrawalSDIU[!is.na(SinghAgrawalSDIU$SDIU.body.sig) &
+    dplyr::mutate(Osada.SSS = ifelse(FlyBaseID %in% SinghAgrawalSDIU[!is.na(SinghAgrawalSDIU$SDIU.body.sig) &
                               SinghAgrawalSDIU$SDIU.body.sig,]$FlyBaseID, 
                               TRUE, ifelse(is.na(SinghAgrawalSDIU$SDIU.body.sig), NA, FALSE)))
   tmp.JS.table = tmp.JS.table %>% 
-    mutate(ASE.SSS = ifelse(FlyBaseID %in% jseq.ASE[!is.na(jseq.ASE$SSS) & 
+    dplyr::mutate(ASE.SSS = ifelse(FlyBaseID %in% jseq.ASE[!is.na(jseq.ASE$SSS) & 
                              jseq.ASE$SSS,]$FlyBaseID, 
                              TRUE, ifelse(is.na(jseq.ASE$SSS), NA, FALSE)))
   
@@ -352,9 +375,9 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   
   # any overlap with differentially expressed genes?
   tmp.JS.table = tmp.JS.table %>% 
-    mutate(DE.Sig = ifelse(FlyBaseID %in% A.f.geno[!is.na(A.f.geno$Sig) 
-                                                       & A.f.geno$Sig,]$FlyBaseID, 
-                           TRUE, ifelse(is.na(A.f.geno$Sig), NA, FALSE)))
+    dplyr::mutate(DE.Sig = ifelse(FlyBaseID %in% DE_data[!is.na(DE_data$Sig) 
+                                                       & DE_data$Sig,]$FlyBaseID, 
+                           TRUE, ifelse(is.na(DE_data$Sig), NA, FALSE)))
   
   fishers.test.RedNR.splice.results$N.filter25[i] = length(tmp.JS.table$FlyBaseID)
   fishers.test.RedNR.splice.results$N.sig.filter25[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) & 
@@ -409,8 +432,11 @@ for(i in 1:dim(SSAV.sample.types)[1]){
                                                                        tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$ASE.SSS)$p.value
   
   # test for DE overlap, 25% FPKM filter
+  if(i != 3){
   fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
                                                                            tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$DE.Sig)$p.value
+  }
+  else  {  fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- NA}
   
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
 }
@@ -423,10 +449,11 @@ clipr::write_clip(unique(jseq.All.geno$FlyBaseID[!is.na(jseq.All.geno$sig.hit) &
 
 
 # save table
-# write.table(fishers.test.RedNR.splice.results, file = "Results/splicing.Red.NR.fisher.tests.csv", sep = ",", quote = FALSE, row.names = F)
+# write.table(fishers.test.RedNR.splice.results, file = "Results/splicing.Red.NR.fisher.tests_filtered.csv", sep = ",", quote = FALSE, row.names = F)
 
 test.fisher.results <- fisher.test(A.all.tmp.fisher$sig.hit, A.all.tmp.fisher$ASE.SSS)
 summary(test.fisher.results)
+
 
 SSS.sdiu <- ggbarstats(
   A.all.tmp.fisher, ASE.SSS, sig.hit,
@@ -857,24 +884,18 @@ MCsim.MvF.dist <- compareSplicingProfiles(fem.exp_MCsim, male.exp_MCsim)
 mean(MCsim.MvF.dist$percent.dissim, na.rm = T)
 mean(MCsim.MvF.dist[MCsim.MvF.dist$FlyBaseID %in% subset.sss,]$percent.dissim, na.rm = T)
 
+MCabs.MvF.dist <- compareSplicingProfiles(fem.exp_MCabs, male.exp_MCabs)
+MCcom.MvF.dist <- compareSplicingProfiles(fem.exp_MCcom, male.exp_MCcom)
 
 
 
 
 # test M/F correlation between populations...
 test <- merge(A.MvF.dist, ASE.MvF.dist, by = "FlyBaseID")
-cor.test(test$percent.sim.x, test$percent.sim.y)
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
 plot(test$percent.sim.x, test$percent.sim.y, xlab = "SSAV", ylab ="ASE")
 plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x, 
      test[test$FlyBaseID %in% test.filter.25,]$percent.sim.y, xlab = "SSAV", ylab ="ASE")
-
-
-test <- merge(ASE.MvF.dist, SinghAgrawal.MvF.dist, by = "FlyBaseID")
-cor.test(test$percent.sim.x, test$percent.sim.y)
-plot(test$percent.sim.x, test$percent.sim.y, xlab = "ASE", ylab ="Osada")
-plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x, 
-     test[test$FlyBaseID %in% test.filter.25,]$percent.sim.y, xlab = "ASE", ylab ="Osada")
-
 
 test <- merge(A.MvF.dist, SinghAgrawal.MvF.dist, by = "FlyBaseID")
 cor.test(test$percent.sim.x, test$percent.sim.y)
@@ -882,6 +903,12 @@ plot(test$percent.sim.x, test$percent.sim.y, xlab = "SSAV", ylab ="Osada")
 plot(test[test$FlyBaseID %in% test.filter.25,]$percent.dissim.x, 
      test[test$FlyBaseID %in% test.filter.25,]$percent.dissim.y, xlab = "SSAV", ylab ="Osada")
 
+test <- merge(A.MvF.dist, MCsim.MvF.dist, by = "FlyBaseID")
+cor.test(test$percent.sim.x, test$percent.sim.y)
+test <- merge(A.MvF.dist, MCabs.MvF.dist, by = "FlyBaseID")
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
+test <- merge(A.MvF.dist, MCcom.MvF.dist, by = "FlyBaseID")
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
 
 
 
@@ -906,7 +933,7 @@ ASE.SDIU.compare.fem <- CompareDistances(Fem.ASE.SinghAgrw.M.dist.m, Fem.ASE.Sin
 splicing.MF.metric.plot(RedData = ASE.SDIU.compare.male[ASE.SDIU.compare.male$FlyBaseID %in% subset.sss,], 
                         NRData = ASE.SDIU.compare.fem[ASE.SDIU.compare.fem$FlyBaseID %in% subset.sss,], 
                         plotCol = "M.dis.F",
-                        colour_red = "steelblue3", colour_NR = "magenta4")
+                        colour_red = "steelblue3", colour_NR = "#D55E00")
 
 
 # Osada vs ASE populations
@@ -932,7 +959,7 @@ SDIU.ASE.compare.fem <- CompareDistances(Fem.SinghAgrw.ASE.M.dist.m, Fem.SinghAg
 splicing.MF.metric.plot(RedData = SDIU.ASE.compare.male[SDIU.ASE.compare.male$FlyBaseID %in% subset.sss,], 
                         NRData = SDIU.ASE.compare.fem[SDIU.ASE.compare.fem$FlyBaseID %in% subset.sss,], 
                         plotCol = "M.dis.F",
-                        colour_red = "steelblue3", colour_NR = "magenta4")
+                        colour_red = "steelblue3", colour_NR = "#D55E00")
 
 
 Male.MCsim.ASE.M.dist.f <- compareSplicingProfiles(male.exp_MCsim, fem.exp_ASE)
@@ -969,7 +996,7 @@ SDIU.MCsim.compare.fem <- CompareDistances(Fem.SinghAgrw.MCsim.M.dist.m, Fem.Sin
 splicing.MF.metric.plot(RedData = SDIU.MCsim.compare.male[SDIU.MCsim.compare.male$FlyBaseID %in% subset.sss,], 
                         NRData = SDIU.MCsim.compare.fem[SDIU.MCsim.compare.fem$FlyBaseID %in% subset.sss,], 
                         plotCol = "M.dis.F",
-                        colour_red = "steelblue3", colour_NR = "magenta4")
+                        colour_red = "steelblue3", colour_NR = "#D55E00")
 
 
 Male.MCsim.SinghAgrw.M.dist.m <- compareSplicingProfiles(male.exp_MCsim, male.exp_SinghAgrw)
@@ -1004,29 +1031,30 @@ length(sss.all)
 
 
 # change MCabs/MCsim/MCcom
-Male.ASE.MCabs.M.dist.f <- compareSplicingProfiles(male.exp_ASE, fem.exp_MCabs)
-Male.ASE.MCabs.M.dist.m <- compareSplicingProfiles(male.exp_ASE, male.exp_MCabs)
-Fem.ASE.MCabs.M.dist.f <- compareSplicingProfiles(fem.exp_ASE, fem.exp_MCabs)
-Fem.ASE.MCabs.M.dist.m <- compareSplicingProfiles(fem.exp_ASE, male.exp_MCabs)
+Male.ASE.MCsim.M.dist.f <- compareSplicingProfiles(male.exp_ASE, fem.exp_MCsim)
+Male.ASE.MCsim.M.dist.m <- compareSplicingProfiles(male.exp_ASE, male.exp_MCsim)
+Fem.ASE.MCsim.M.dist.f <- compareSplicingProfiles(fem.exp_ASE, fem.exp_MCsim)
+Fem.ASE.MCsim.M.dist.m <- compareSplicingProfiles(fem.exp_ASE, male.exp_MCsim)
 
 
 # dot plots to check how many points fall into the "irregular" category, but for the MC populations
 # "irregular" meaning that when looking at males (females), 
 # the points fall closer to the reference females (males)
-test.M <- merge(Male.ASE.MCcom.M.dist.m, Male.ASE.MCcom.M.dist.f, by = "FlyBaseID")
-test.F <- merge(Fem.ASE.MCcom.M.dist.m, Fem.ASE.MCcom.M.dist.f, by = "FlyBaseID")
-plot_corr(test.F[test.F$FlyBaseID %in% sss.all& 
+test.M <- merge(Male.ASE.MCsim.M.dist.m, Male.ASE.MCsim.M.dist.f, by = "FlyBaseID")
+test.F <- merge(Fem.ASE.MCsim.M.dist.m, Fem.ASE.MCsim.M.dist.f, by = "FlyBaseID")
+plot_corr(test.F[test.F$FlyBaseID %in% sss.all & 
                    !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y), ], 
-          x = "dist.x", y = "dist.y", colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
+          x = "percent.dissim.x", y = "percent.dissim.y", 
+          colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
           ylab = "to females", lim = 1, title = "") + coord_cartesian(xlim = c(0,1), ylim = c(0,1))
 
 
 # get a list of all irregular genes from each MC population treatment
 # list of genes in females where expression profile is more dissimilar to female ref than male ref
-fem.com <- test.F[test.F$FlyBaseID %in% sss.all & 
+fem.sim <- test.F[test.F$FlyBaseID %in% sss.all & 
                     !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y) &
                     test.F$percent.dissim.x <= test.F$percent.dissim.y, ]$FlyBaseID
-male.com <- test.M[test.M$FlyBaseID %in% sss.all & 
+male.sim <- test.M[test.M$FlyBaseID %in% sss.all & 
                      !is.na(test.M$percent.dissim.x) & !is.na(test.M$percent.dissim.y) &
                      test.M$percent.dissim.x >= test.M$percent.dissim.y, ]$FlyBaseID
 
@@ -1047,8 +1075,12 @@ all.exclude <- unique(c(fem.sim, fem.abs, fem.com, male.sim, male.abs, male.com)
 subset.sss <- (sss.all[!sss.all %in% all.exclude &
                          !sss.all %in% DsRed_genes$V1])
 length(all.exclude)
-sum(subset.sss %in% Osada.sig.sss)
+length(subset.sss)
+write.table(subset.sss, file = "JunctionSeq/dimorphic.subset.list.txt", 
+            quote = F, col.names = "FlyBaseID")
 
+subset.sss <- read.delim("JunctionSeq/dimorphic.subset.list.txt", header = T)
+subset.sss <- subset.sss$FlyBaseID
 
 # distance from SSAV females to SinghAgrawal females
 ASE.SinghAgrw.F.dist <- compareSplicingProfiles(fem.exp_ASE, fem.exp_SinghAgrw)
@@ -1069,7 +1101,7 @@ SinghAgrw.sim.compare.fem <- CompareDistances(Fem.SinghAgrw.sim.M.dist.m, Fem.Si
 splicing.MF.metric.plot(RedData = SinghAgrw.sim.compare.male[SinghAgrw.sim.compare.male$FlyBaseID %in% sss.all,], 
                         NRData = SinghAgrw.sim.compare.fem[SinghAgrw.sim.compare.fem$FlyBaseID %in% sss.all,], 
                         plotCol = "M.dis.F",
-                        colour_red = "steelblue3", colour_NR = "magenta4")
+                        colour_red = "steelblue3", colour_NR = "#D55E00")
 
 
 # distance from SSAV males to ASE males
@@ -1411,6 +1443,7 @@ splicing.MF.diff.dot.plot(RedData = A.m.Red.v.Males_MCsim, NRData = A.m.NR.v.Mal
 splicing.MF.diff.dot.plot(RedData = A.m.Red.v.Fem_MCsim, NRData = A.m.NR.v.Fem_MCsim, plotCol = "percent.dissim") + 
   coord_cartesian(xlim=c(0,1.5),ylim=c(0,1.5))
 
+
 # lists for different subsets of genes that can be used to stratify downstream analyses
 #######
 # genes with significant differences in splicing
@@ -1555,13 +1588,13 @@ splicing.MF.metric.plot <- function(RedData, NRData,
 }
 
 
-splicing.MFdiff.plot <- function(RedData, NRData, plotCol){
+splicing.MFdiff.plot <- function(RedData, NRData, plotCol, color){
   tmp <- data.frame(FlyBaseID = RedData$FlyBaseID,
                     diff = RedData[[plotCol]] - NRData[[plotCol]])
   
   splice.plot <- ggplot() + 
     geom_histogram(data= tmp, 
-                   aes(x= diff), color = "grey20", fill = "grey20", alpha = 0.5, bins = 45) +
+                   aes(x= diff), color = color, fill = color, alpha = 0.5, binwidth = 0.08) +
     labs(x = "female <<---------------------->> male") +
     geom_vline(xintercept = 0, color = "black", linewidth = 1) +
     # coord_cartesian(xlim=c(-0.5,0.5)) +
@@ -1576,7 +1609,10 @@ splicing.MFdiff.plot <- function(RedData, NRData, plotCol){
           axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
           axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
           plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-          plot.margin = margin(6,6,6,6))
+          plot.margin = margin(6,6,6,6),
+          axis.line.x = element_blank(),
+          axis.line.y = element_blank())
+
   return(splice.plot)
 }
 
@@ -1594,22 +1630,39 @@ quad_count <- function(dat, x, y, lim = 5){
   
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
-    dplyr::count(na.rm = T,
-                 right = .[[x]] > 0, # on the right side of plot?
+    dplyr::count(right = .[[x]] > 0, # on the right side of plot?
                  top = .[[y]] > 0, # on the top side of plot?
-                 UP = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III up-left or quadrant IV up-right
-                 top & abs(.[[x]]) < abs(.[[y]])) %>%  # quadrant I up-right or quadrant II up-left
+                 UP = (!top & !right & .[[x]] < .[[y]]) | # quadrant III x < y
+                      (top & right & .[[x]] > .[[y]])) %>%  # quadrant I x > y
     dplyr::mutate(perc = n/sum(n, na.rm = T)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
     dplyr::mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
            dir_UP = conc & UP, # concordant changes where x > y
            dir_DOWN = conc & !UP) %>% # concordant changes where x < y
-    
+
     # TRUE = 1, FALSE = 0
     # specificy coordinates for texts on plot
-    dplyr::mutate(!!x := lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
-           !!y := lim/2*(2*(top - 0.5)+(UP - 0.5)))
+    # specificy coordinates for texts on plot
+    dplyr::mutate(!!x := ifelse(!top, lim/2*(2*(right - 0.5)+(UP - 0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
+                                ifelse(UP, lim/2*(2*(right-0.5)+(UP+0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
+                                       lim/2*(2*(.05)+(-0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)))),
+                  
+                   !!y := ifelse(!top, lim/2*(2*(top - 0.5)+(UP-0.5)), 
+                                ifelse(UP, lim/2*(2*(top - 0.5)+(-0.5)), 
+                                          lim/2*(2*(top - 0.5)+(0.5))) )) %>%
+# 
+    dplyr::mutate(!!x := ifelse((!right & top & !UP), .[[x]]*2,
+                                  ifelse(right & !top & !UP, .[[x]]*2 , .[[x]])),
+                  !!y := ifelse((!right & top & !UP), .[[y]]/1.5,
+                                  ifelse(right & !top & !UP, .[[y]]/1.5, .[[y]])))
+# 
+#   # adjustments for males
+#   dplyr::mutate(!!x := ifelse((!right & !top & UP), .[[x]]/1.5,
+#                               ifelse((!right & !top & !UP), .[[x]]/1.2, .[[x]] )),
+#                 !!y := ifelse((!right & !top & !UP), .[[y]]/1.3,
+#                               ifelse((!right & !top & UP), .[[y]]/1.2, .[[y]] )))
+  
     
   print(count)
     
@@ -1623,7 +1676,7 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
            top = .[[y]] > 0, # on the top part of plot?
            # for the concordant quadrants (I & III)... 
            DOWN = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III where x > y
-             top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
+            top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
     # add the colour
     dplyr:: mutate(quadrant = ifelse(right & top | (!right & !top), 
                              ifelse(DOWN, colx, coly), 
@@ -1632,7 +1685,7 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 }
 
 
-splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
+splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
   tmp <- as_tibble(data.frame(FlyBaseID = RedData$FlyBaseID,
                     Red = RedData[[plotCol]],
                     NR = NRData[[plotCol]]))
@@ -1643,25 +1696,26 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
             abs(min(tmp$NR, na.rm = T)), 
             max(tmp$Red, na.rm = T), 
             max(tmp$NR, na.rm = T), na.rm = T)
-  lim=lim*2
+  lim = lim + 0.3
     
   # count the percentages
   quad_n <- quad_count(dat=tmp, x="Red", y="NR", lim=lim)
   # manage the colour of points
-  quad_col <- colour_quadrant(tmp, "Red", "NR", "red3", "grey20", "grey60")
+  # quad_col <- colour_quadrant(tmp, "Red", "NR", "grey2", "grey2", "grey20")
 
   splice.plot <- ggplot(tmp, aes(x = Red, y = NR)) +
-    geom_point(size = 2, shape = 16, alpha = 0.5, color = quad_col$quadrant) +
+    geom_point(size = 2, shape = 16, alpha = 0.5, color = color) + # quad_col$quadrant,
+    # #CC3399, #0072B2, #666666
 
     # add lines to separate quadrants
     geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
-    geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
+    # geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
 
     # add percentages
-    geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 7.5) +
+    # geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 8.5) +
     coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
     labs(x = "Red", y = "Non-Red") +
     scale_x_continuous(breaks = c(-1, 0, 1)) +
@@ -1683,13 +1737,13 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol){
           axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
           plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
           plot.margin = margin(6,6,6,6),
-          axis.line.x = element_blank(), 
+          axis.line.x = element_blank(),
           axis.line.y = element_blank()
     )
   return(splice.plot)
 }
 
-
+    
 sampleTypes <- c("A.m", "A.f", "C.m")
 M.v.F.test.table <- data.frame(sampleType = sampleTypes) %>% 
   mutate(Red.MvF.compare = paste0(sampleType,".Red.compare_ase"), # .Red.compare_SinghAgrw .Red.compare_ase
@@ -1726,7 +1780,7 @@ for(i in 1:dim(M.v.F.test.table)[1]){
   rm(test)
   
   tmp.plot <- splicing.MF.diff.dot.plot(RedData = RedData, 
-                                        NRData = NRData, plotCol = "M.dis.F")
+                                        NRData = NRData, plotCol = "M.dis.F", color = "grey")
   
   assign(paste0(M.v.F.test.table[i,1],".compare.plot"), tmp.plot)
 }
@@ -1745,40 +1799,110 @@ A.m.nonsig.sss.ase
 
 #######
 
+A.m.compare.plot.Fig <- splicing.MF.diff.dot.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+                                                  A.m.NR.compare_ase[A.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
+                                                  plotCol = "M.dis.F", color = "#0072B2") +
+  coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
+
+C.m.compare.plot.Fig <- splicing.MF.diff.dot.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss_ASE$FlyBaseID[subset.sss_ASE$SBGE_comp=="c.ubg"],],
+                                                  C.m.NR.compare_ase[C.m.NR.compare_ase$FlyBaseID %in% subset.sss_ASE$FlyBaseID[subset.sss_ASE$SBGE_comp=="c.ubg"],], 
+                                                  plotCol = "M.dis.F", color = "#666666") +
+  coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
+
+A.f.compare.plot.Fig <- splicing.MF.diff.dot.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
+                                                  A.f.NR.compare_ase[A.f.NR.compare_ase$FlyBaseID %in% subset.sss,], 
+                                                  plotCol = "M.dis.F", color = "#D55E00") +
+  coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
+
+
 
 Fig5_main <- ggarrange(NA,
-                       A.f.compare.plot + ggtitle(expression(bold("Exp. Females"))) +
+                       A.f.compare.plot.Fig + ggtitle(expression(bold("Exp. Females"))) +
                          theme(axis.title.x = element_blank(), 
                                                axis.title.y = element_blank(),
-                                               plot.title = element_text(hjust = 0.5, size = 25, vjust = 1.5, color = "red3"),
-                               panel.border = element_rect(colour = "red3", fill=NA, size=3)),
+                                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                               panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
                        NA,  
-                       A.m.compare.plot + ggtitle(expression(bold("Exp. Males"))) +
+                       A.m.compare.plot.Fig + ggtitle(expression(bold("Exp. Males"))) +
                          theme(axis.title.x = element_blank(), 
                                                 axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size= 25, vjust = 1.5, color = "steelblue3"),
-                               panel.border = element_rect(colour = "steelblue3", fill=NA, size=3)),
+                               plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
+                               panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
                        NA, 
-                       C.m.compare.plot + ggtitle(expression(bold("Ctrl. Males"))) +
+                       C.m.compare.plot.Fig + ggtitle(expression(bold("Ctrl. Males"))) +
                          theme(axis.title.x = element_blank(), 
                                                 axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 25, vjust = 1.5, color = "#888889"),
-                               panel.border = element_rect(colour = "#888889", fill=NA, size=3)),
-          widths = c(0.05, 1, 0.05, 1, 0.05, 1),
-          heights = c(1, 0.05),
-          ncol = 6, nrow = 2)
+                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
+                               panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
+          widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+          ncol = 6)
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig5_main_AS.pdf",   # The directory you want to save the file in
+fig_5A <- annotate_figure(Fig5_main, left = text_grob(expression(bold(italic(phi)["NonRed"])), 
+                                                      rot = 90, size = 40),
+                          bottom = text_grob(expression(bold(italic(phi)["Red"])), 
+                                             size = 40))
+
+
+A.m.diff.plot.Fig <- splicing.MFdiff.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+                                          A.m.NR.compare_ase[A.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
+                                          plotCol = "M.dis.F", color = "#0072B2") +
+  annotate("label", label = expression(atop(bar(x)*" = 0.049", italic("P")*" < 10"^-5*"***")), 
+           x =  1.05, y = 315, size = 8.5, label.padding=unit(1, "lines"))
+
+A.f.diff.plot.Fig <- splicing.MFdiff.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
+                                          A.f.NR.compare_ase[A.f.NR.compare_ase$FlyBaseID %in% subset.sss,], 
+                                          plotCol = "M.dis.F", color = "#D55E00") +
+  annotate("label", label = expression(atop(bar(x)*" = -0.008", italic("P")*" = 0.014"*"*")),
+           x =  -1.05, y = 625, size = 8.5,  label.padding=unit(1, "lines"))
+
+C.m.diff.plot.Fig <- splicing.MFdiff.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+                                          C.m.NR.compare_ase[C.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
+                                          plotCol = "M.dis.F", color = "#666666")+
+  annotate("label", label = expression(atop(bar(x)*" = -0.015", italic("P")*" < 10"^-5*"***")), 
+           x =  -1.05, y = 405, size = 8.5,  label.padding=unit(1, "lines"))
+
+
+Fig5_main <- ggarrange(NA,
+                    A.f.diff.plot.Fig + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                            panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
+                    NA,  
+                    A.m.diff.plot.Fig  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
+                            panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
+                    NA, 
+                    C.m.diff.plot.Fig  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
+                            panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
+                    widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+                    ncol = 6)
+
+fig_5B <- annotate_figure(Fig5_main, left = text_grob("Count", 
+                                            rot = 90, size = 40),
+                bottom = text_grob(expression(bold(italic(phi)["Red"]*" - "*italic(phi)["NonRed"])), 
+                                   size = 40))
+
+
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig5_main.pdf",   # The directory you want to save the file in
     width = 21, # 12, 24, 20 The width of the plot in inches
-    height = 7) # 10, 20, 13 The height of the plot in inches
+    height = 14) # 10, 20, 13 The height of the plot in inches
 
 # A.m.compare.plot
 
-annotate_figure(Fig5_main, left = text_grob(expression(bold(Delta*italic("d")*", Non-Red")), 
-                                           rot = 90, size = 30),
-                bottom = text_grob(expression(bold(Delta*italic("d")*", Red")), 
-                                  size = 30))
+ggarrange(fig_5A, 
+          NA, 
+          fig_5B, 
+          nrow = 3, heights = c(1, 0.07, 1),
+          labels = c("A)", NA, "B)"),
+          font.label = list(size = 40))
 
 # ggarrange(C.m.splice_ase.sss.cor.plot.dist ,
 #           NA,
@@ -1903,17 +2027,76 @@ A.m.C.m.Red <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
 A.m.C.m.NR <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
 test <- merge(A.m.C.m.Red, A.m.C.m.NR, by = "FlyBaseID")
 test <- na.omit(test)
-t.test(test$percent.dissim.x, test$percent.dissim.y, paired = T)
+# test <- test[test$FlyBaseID %in% subset.sss,]
+
 
 Figure_6B <- plot_corr(test, x="percent.dissim.x", y="percent.dissim.y", 
                        colx = "red3", coly = "grey9", colNonCon = "grey",
                        xlab = "Red", ylab = "NonRed", title = "", lim = 1.2) +
-  labs(x = expression(italic("d")["C"]*", Red Males"),
-       y = expression(italic("d")["C"]*", Non-Red Males")) +
+  labs(x = expression(italic("d"["Red,C"])),
+       y = expression(italic("d"["NonRed,C"]))) +
   theme(axis.title.x = element_text(vjust = 1.5, margin = margin(25,0,20,0)), 
         axis.title.y = element_text(vjust = 1, margin = margin(0,20,0,20))) +
   coord_cartesian(xlim = c(0,1), ylim = c(0,1))
 Figure_6B
 
 head(test)
+
+
+
+
+# compare A.m(Red-NR) vs C.m(Red-NR)
+A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.compare_ase$FlyBaseID,
+                                 M.dis.F.Red = A.m.Red.compare_ase$M.dis.F,
+                                 M.dis.F.NR = A.m.NR.compare_ase$M.dis.F)
+A.m.Red.vs.NR$diff.Am <- A.m.Red.vs.NR$M.dis.F.Red - A.m.Red.vs.NR$M.dis.F.NR
+head(A.m.Red.vs.NR)
+
+C.m.Red.vs.NR <- data.frame(FlyBaseID = C.m.Red.compare_ase$FlyBaseID,
+                            M.dis.F.Red = C.m.Red.compare_ase$M.dis.F,
+                            M.dis.F.NR = C.m.NR.compare_ase$M.dis.F)
+C.m.Red.vs.NR$diff.Cm <- C.m.Red.vs.NR$M.dis.F.Red - C.m.Red.vs.NR$M.dis.F.NR
+head(C.m.Red.vs.NR)
+
+test <- merge(A.m.Red.vs.NR, C.m.Red.vs.NR, by = "FlyBaseID")
+test <- na.omit(test)
+test <- test[test$FlyBaseID %in% subset.sss,]
+PairedTwoPerm(test, "diff.Am", "diff.Cm")
+
+
+test <- data.frame(x = seq(-1,1, by= 0.2), y = seq(-1,1, by= 0.2))
+ggplot(test, aes(x,y)) + coord_cartesian(xlim = c(-1,1), ylim = c(-1,1)) +
+  # add lines to separate quadrants
+  geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
+  labs(x = expression(bold(italic(phi)*", Red")), y = expression(bold(italic(phi)*", NonRed"))) +
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  guides(color = guide_legend(override.aes = list(shape = c(NA, NA), # c(16, 16)
+                                                  size = c(4, 4),
+                                                  alpha = 1))) +
+  
+  # some theme settings...
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c("None"),
+        legend.box.background = element_rect(),
+        legend.text = element_text(size = 20, color = "black"),
+        plot.tag = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6),
+        panel.border = element_rect(colour = "black", fill=NA, size=3),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank()
+  )
+
+
+subset.sss_ASE <- ASE[ASE$FlyBaseID %in% subset.sss,]
+hist(subset.sss_ASE$exp_SBGE_ase, breaks = 100)
 

@@ -91,33 +91,6 @@ str(ASE)
 
 ##########
 
-# Get Singh & Agrawal 2023 data
-##########
-SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
-colnames(SDIU)[2] <- "FlyBaseID"
-SDIU <- mutate(SDIU, SBGEcat.body.Osada = case_when(
-  SBGEcat.body.Osada == "extFB"   ~ "a.ext.fbg",
-  SBGEcat.body.Osada == "sFB"  ~ "b.more.fbg",
-  SBGEcat.body.Osada == "FB" ~ "c.fbg",
-  SBGEcat.body.Osada == "UB" ~ "d.ubg",
-  SBGEcat.body.Osada == "MB" ~ "e.mbg",
-  SBGEcat.body.Osada == "sMB" ~ "f.more.mbg",
-  SBGEcat.body.Osada == "extMB" ~ "g.ext.mbg",
-  TRUE              ~ SBGEcat.body.Osada  # Keep other values unchanged
-))
-
-SDIU <- mutate(SDIU, SBGEcat.head.Osada = case_when(
-  SBGEcat.head.Osada == "extFB"   ~ "a.ext.fbg",
-  SBGEcat.head.Osada == "sFB"  ~ "b.more.fbg",
-  SBGEcat.head.Osada == "FB" ~ "c.fbg",
-  SBGEcat.head.Osada == "UB" ~ "d.ubg",
-  SBGEcat.head.Osada == "MB" ~ "e.mbg",
-  SBGEcat.head.Osada == "sMB" ~ "f.more.mbg",
-  SBGEcat.head.Osada == "extMB" ~ "g.ext.mbg",
-  TRUE              ~ SBGEcat.head.Osada  # Keep other values unchanged
-))
-str(SDIU)
-##########
 
 ## prepare dataset
 ##########
@@ -140,15 +113,33 @@ SSAV.geno_rMF_ASE <- SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$Sig) &
                                  !is.na(SSAV.geno_rMF_ASE$rMF) & 
                                  !is.na(SSAV.geno_rMF_ASE$exp_SBGE_ase),]
 sum(SSAV.geno$FlyBaseID[SSAV.geno$Sig] %in% Aneil$FlyBaseID)
+
 ##########
 
+# split by expression magnitude
+#######
+SSAV.geno_rMF_ASE_exp <- merge(SSAV.geno_rMF_ASE, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")])
+SSAV.geno_rMF_ASE_exp <- SSAV.geno_rMF_ASE_exp[!is.na(SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva) &
+                                                 !is.na(SSAV.geno_rMF_ASE_exp$Sig) & 
+                                                 !is.na(SSAV.geno_rMF_ASE_exp$rMF),]
 
+summary(lm(rMF ~ Sig + log.avgExp.AdultLarva + SBGE_comp, data = SSAV.geno_rMF_ASE_exp))
+
+q <- quantile(SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
+SSAV.geno_rMF_ASE_exp_LOW <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva <= q[2],]
+SSAV.geno_rMF_ASE_exp_MED <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva > q[2] &
+                                                     SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva <= q[3],]
+SSAV.geno_rMF_ASE_exp_HI <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva > q[3],]
+dim(SSAV.geno_rMF_ASE_exp_HI)
+#######
 
 
 ## plotting function
 pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
+  
   # set y-axis value above each error bar
   if(!is.na(SBGE_cat)){
+    perm_dat$pval <- as.numeric(perm_dat$pval)
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
       dplyr::group_by(.[[SBGE_cat]]) %>%
       dplyr::summarise(max = q95 + 0.05) %>% # 0.05
@@ -178,11 +169,13 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
       geom_point(aes_string(SBGE_cat, "q50", color = "Sig"), 
                  position = position_jitterdodge(jitter.width = 0.001), size = 6) +
       geom_errorbar(aes_string(SBGE_cat, "q50", color = "Sig"),
-                    ymin = boot_dat$q05, ymax = boot_dat$q95, 
+                    ymin = boot_dat$q05, ymax = boot_dat$q95, size = 1, 
                     position = position_jitterdodge(jitter.width = 0.01), width = 0.5) +
       labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
            y = print(x_col)) +
-      geom_text(data = perm_dat %>% mutate(sig1 = if_else(Sig==1, "*", "")),
+      geom_text(data = perm_dat %>% mutate(sig1 = if_else(pval < 0.0001, "***",
+                                                          ifelse(pval < 0.01, "**", 
+                                                                 ifelse(pval < 0.05, "*", "")))),
                 aes_string(x =SBGE_cat, y = "y_star", label = "sig1"), color = "black", size = 16) +
       geom_text(data = perm_dat,aes_string(x =SBGE_cat, y = "y_count_FALSE", label = "n_FALSE"), 
                 color = "black", size = 7.5, hjust = 1) +
@@ -200,19 +193,21 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
                     ymin = boot_dat$q05, ymax = boot_dat$q95, show.legend = FALSE,
                     position = position_jitterdodge(jitter.width = 0.01), width = 0.5) +
       labs(y = print(x_col)) +
-      geom_text(data = perm_dat %>% mutate(sig1 = if_else(Sig==1, "*", "")),
+      geom_text(data = perm_dat %>% mutate(sig1 = if_else(pval < 0.0001, "***",
+                                                          ifelse(pval < 0.01, "**", 
+                                                                 ifelse(pval < 0.05, "*", "")))),
                 aes(x = 1.5, y = y_star+0.01, label = sig1), color = "black", size = 10) +
       geom_text(data = perm_dat,aes_string(x = "Sig", y = "y_count_FALSE", label = "n_FALSE"), 
                 color = "black", size = 7.5) +
       geom_text(data = perm_dat,aes_string(x = "Sig", y = "y_count_TRUE", label = "n_TRUE"), 
-                color = "black", size = 7.5, hjust = -6.5, nudge_x = 0.45) +
-      scale_x_discrete(labels = c("Background","Candidates")) +
+                color = "black", size = 7.5, hjust = -3) +
+      scale_x_discrete(labels = c("BG","DE")) +
       labs(x = "\nSex-biased Gene Expression", y = print(x_col)) 
   }
   
   pointSE_plot <- pointSE_plot +
-    scale_colour_manual(values = c("orange3", "forestgreen"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
-                        labels = c("Background", "Candidates")) + # "Chr-2", "Chr-3", "X-Chr"
+    scale_colour_manual(values = c("#AA4499", "#009E73"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2", "#E69F00", "#009E73"
+                        labels = c("Background", "DE")) + # "Chr-2", "Chr-3", "X-Chr"
     guides(color = guide_legend(override.aes = list(shape = c(16, 16),
                                                     size = c(7.5, 7.5),
                                                     alpha = 1))) +
@@ -243,7 +238,44 @@ perm_rMF <- TwoPerm(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
 boot_rMF <- TwoBoot(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
-rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF")
+rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+
+# by expression magnitude
+perm_rMF_LOW <- TwoPerm(SSAV.geno_rMF_ASE_exp_LOW, x_col = "rMF", groupBy = "Sig")
+boot_rMF_LOW <- TwoBoot(SSAV.geno_rMF_ASE_exp_LOW, x_col = "rMF", groupBy = "Sig")
+rMF_all_LOW <- pointSEplot(boot_dat = boot_rMF_LOW, perm_dat = perm_rMF_LOW, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+
+perm_rMF_MED <- TwoPerm(SSAV.geno_rMF_ASE_exp_MED, x_col = "rMF", groupBy = "Sig")
+boot_rMF_MED <- TwoBoot(SSAV.geno_rMF_ASE_exp_MED, x_col = "rMF", groupBy = "Sig")
+rMF_all_MED <- pointSEplot(boot_dat = boot_rMF_MED, perm_dat = perm_rMF_MED, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+
+perm_rMF_HI <- TwoPerm(SSAV.geno_rMF_ASE_exp_HI, x_col = "rMF", groupBy = "Sig")
+boot_rMF_HI <- TwoBoot(SSAV.geno_rMF_ASE_exp_HI, x_col = "rMF", groupBy = "Sig")
+rMF_all_HI <- pointSEplot(boot_dat = boot_rMF_HI, perm_dat = perm_rMF_HI, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+
+
+exp_levels_rMF <- ggarrange(rMF_all + theme(axis.title.x = element_blank(),
+                        axis.title.y = element_blank(), axis.text.x = element_blank()),
+          ggarrange(rMF_all_LOW + theme(axis.title.x = element_blank(),
+                                        axis.title.y = element_blank(),
+                                        axis.text.x = element_blank()), 
+                             rMF_all_MED + theme(axis.title.x = element_blank(),
+                                                 axis.title.y = element_blank(),
+                                                 axis.text.x = element_blank()), 
+                             rMF_all_HI + theme(axis.title.x = element_blank(),
+                                                axis.title.y = element_blank(),
+                                                axis.text.x = element_blank()), 
+                    ncol = 3),
+          nrow = 2, heights = c(2, 1))
+
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_rMF_exp.pdf",   # The directory you want to save the file in
+    width = 14, # 12, 24, 20 The width of the plot in inches
+    height = 14) # 10, 20, 13 The height of the plot in inches
+
+annotate_figure(exp_levels_rMF + theme(plot.margin = margin(10,10,10,0)), left = text_grob("rMF", 
+                                                                                           rot = 90, size = 40))
+dev.off()
 
 
 perm_rMF_simp <- TwoPerm(SSAV.geno_rMF_ASE[SSAV.geno_rMF_ASE$SBGE_comp != "a.more.fbg" & 
@@ -402,16 +434,15 @@ Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig4_suppl_newA.mCand.all.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig3_main.pdf",   # The directory you want to save the file in
     width = 17, # The width of the plot in inches
-    height = 18) # 9 The height of the plot in inches
-ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
-          Fig4B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
-          labels = c("A)", "B)"),
-          nrow = 2, heights = c(1, 0.9),
-          common.legend = TRUE, legend = "bottom",
-          font.label = list(size = 30), hjust = -0.01)
-# Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1), 
-#                   axis.text.x = element_text(size = 25))
+    height = 9) # 9 18 The height of the plot in inches
+# ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
+#           Fig4B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
+#           labels = c("A)", "B)"),
+#           nrow = 2, heights = c(1, 0.9),
+#           common.legend = TRUE, legend = "bottom",
+#           font.label = list(size = 30), hjust = -0.01)
+Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1),
+                  axis.text.x = element_text(size = 25))
 dev.off()
-

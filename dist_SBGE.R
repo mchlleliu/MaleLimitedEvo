@@ -43,7 +43,7 @@ str(ASE)
 x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
 x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
 y0 = 1 # tolerance of middle bins ### I DONT GET THIS
-# xmid1 = (x1 + x2)/2
+# # xmid1 = (x1 + x2)/2
 
 # Simple (3 levels)
 # one level of female-biased gene expression
@@ -85,7 +85,7 @@ more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
 # 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
 ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
 str(ASE)
-rm(more.fbg, fbg, ubg, mbg, more.mbg)
+
 ##########
 
 # Prepare plotting dataset 
@@ -116,6 +116,19 @@ SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & !is.na(SSAV.geno_ASE$
 SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
 SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
 str(SSAV.geno_ASE)
+
+
+SSAV.geno_ASE_exp <- merge(SSAV.geno_ASE, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")])
+SSAV.geno_ASE_exp <- SSAV.geno_ASE_exp[!is.na(SSAV.geno_ASE_exp$log.avgExp.AdultLarva) &
+                                   !is.na(SSAV.geno_ASE_exp$Sig) & 
+                                    !is.na(SSAV.geno_ASE_exp$exp_SBGE_ase),]
+
+q <- quantile(SSAV.geno_ASE_exp$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
+SSAV.geno_ASE_exp_LOW <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva <= q[2],]
+SSAV.geno_ASE_exp_MED <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva > q[2] &
+                                             SSAV.geno_ASE_exp$log.avgExp.AdultLarva <= q[3],]
+SSAV.geno_ASE_exp_HI <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva > q[3],]
+dim(SSAV.geno_ASE_exp_MED)
 #########
 
 
@@ -328,11 +341,11 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
     annotate('ribbon', x = c(-Inf, Inf), ymin = prop_all$lower, ymax = prop_all$upper, 
              alpha = 0.20, fill = 'grey30') +
     geom_errorbar(ymin = plot_dat[plot_dat$Sig,]$lower, ymax = plot_dat[plot_dat$Sig,]$upper,
-                  width = 0.5, size = 0.75) +
-    geom_point(fill = "forestgreen", color = "forestgreen", size = 7) + 
+                  width = 0.5, size = 1, color = "#009E73") +
+    geom_point(fill = "#009E73", color = "#009E73", size = 7) + 
     labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
-         y = "Proportion of Candidate Genes") +
-    scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) +
+         y = "Proportion of DE Genes") +
+    scale_x_discrete(labels = c("H.FB", "FB", "UB", "MB", "H.MB")) +
     scale_y_continuous(limits = c(0, 0.20)) +
     geom_text(data = plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "upper" , label = "count" ), 
               size = 7.5, vjust = -0.7) +
@@ -358,11 +371,40 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
 
 
 
-propSBGE(SSAV.geno_ASE, "SBGE_comp")
+propSBGE(SSAV.geno_ASE_exp_HI, "SBGE_comp")
 propSBGE(A.f.geno_ASE, "SBGE_comp")
 propSBGE(A.m.geno_ASE, "SBGE_comp")
 
 bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
+bin_All_LOW <- plotSBGEprop(SSAV.geno_ASE_exp_LOW, "SBGE_comp", "SBGE (ASE)")
+bin_All_MED <- plotSBGEprop(SSAV.geno_ASE_exp_MED, "SBGE_comp", "SBGE (ASE)") +   
+  scale_x_discrete(labels = c("FB", "UB", "MB", "H.MB"))
+bin_All_HI <- plotSBGEprop(SSAV.geno_ASE_exp_HI, "SBGE_comp", "SBGE (ASE)") + 
+  coord_cartesian(ylim = c(0, 0.4))
+
+
+exp_levels_SBGE <- ggarrange(bin_All + theme(axis.title.x = element_blank(),
+                                            axis.title.y = element_blank()),
+                            ggarrange(bin_All_LOW + theme(axis.title.x = element_blank(),
+                                                          axis.title.y = element_blank()), 
+                                      bin_All_MED + theme(axis.title.x = element_blank(),
+                                                          axis.title.y = element_blank()), 
+                                      bin_All_HI + theme(axis.title.x = element_blank(),
+                                                         axis.title.y = element_blank()), 
+                                      ncol = 3),
+                            nrow = 2, heights = c(2, 1))
+
+
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_SBGE_exp.pdf",   # The directory you want to save the file in
+    width = 14, # 12, 24, 20 The width of the plot in inches
+    height = 14) # 10, 20, 13 The height of the plot in inches
+
+annotate_figure(exp_levels_SBGE + theme(plot.margin = margin(10,10,10,0)), 
+                left = text_grob("freq",rot = 90, size = 40),
+                bottom = text_grob("Sex-biased gene expression", size = 40))
+dev.off()
+
+
 bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
 bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
 
@@ -371,7 +413,7 @@ bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesi
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main_newAmCand.pdf",   # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig2_main_filtered.pdf",   # The directory you want to save the file in
     width = 14, # 14 24 The width of the plot in inches
     height = 10) # 10 20 The height of the plot in inches
 # ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
@@ -381,8 +423,8 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig2_main_newAmCand.pdf",   # T
 #           ncol = 3, nrow = 3,
 #           font.label = list(size = 30), hjust = -0.01)
 
-bin_All
-
+bin_All + coord_cartesian(ylim = c(0,0.15))
+# 
 # ggarrange(bin_A.m, NA, bin_A.f,
 #           labels = c("A)", NA, "B)"),
 #           widths = c(1, 0.05, 1),
@@ -391,3 +433,7 @@ bin_All
 dev.off()
 
 ##########
+
+
+# calculate average log2FC male female in our data and all 
+# figure 6 "Experimental vs. Control Difference: Red Males"

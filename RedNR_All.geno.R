@@ -116,12 +116,32 @@ All.geno <- rbind(A.m.geno_ASE[-5], A.f.geno_ASE, C.m.geno_ASE)
 All.geno$SBGE_simp <- as.factor(All.geno$SBGE_simp)
 All.geno$SBGE_comp <- as.factor(All.geno$SBGE_comp)
 All.geno$trt2 <- as.factor(All.geno$trt2)
+All.geno <- merge(All.geno, Chrs, by = "FlyBaseID")
 str(All.geno)
 #########
 
 
 # Permute against 0
 ########
+## One sample permutation test for differences n.e to 0 (see boot_permute.R for function)
+## by SBGE category
+# only subset.sss
+permed_A.f.geno_sss <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af" & All.geno$FlyBaseID %in% subset.sss,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_A.m.geno_sss <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Am" & All.geno$FlyBaseID %in% subset.sss,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_C.m.geno_sss <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Cm" & All.geno$FlyBaseID %in% subset.sss,],
+                                x_col = "exp_geno", SBGE_cat = "SBGE_comp")
+permed_A.f.geno_sss$trt2 <- "Af"
+permed_A.m.geno_sss$trt2 <- "Am"
+permed_C.m.geno_sss$trt2 <- "Cm"
+permed_All.geno_sss <- rbind(permed_A.f.geno_sss, permed_A.m.geno_sss, permed_C.m.geno_sss)
+permed_All.geno_sss <- permed_All.geno_sss %>%
+  mutate(holm_padj = p.adjust(permed_All.geno$pval, method = "holm")) %>% 
+  mutate(holm_Sig = ifelse(holm_padj < 0.005, TRUE, FALSE))
+rm(permed_A.f.geno_sss, permed_A.m.geno_sss, permed_C.m.geno_sss) # remove clutter
+
+
 ## One sample permutation test for differences n.e to 0 (see boot_permute.R for function)
 ## by SBGE category
 permed_A.f.geno <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af",],
@@ -230,22 +250,42 @@ perm_A.m.C.m_MaleSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
 # store in object: All.exp_geno, A.f.sig.exp_geno, A.m.sig.exp_geno
 # Binned dot-plot
 ########
+ggplot(All.geno[All.geno$Chr == "2",], aes(SBGE_comp, exp_geno, color = trt2)) +
+  geom_point(aes(color = trt2), size = 1, shape = 16, 
+             alpha = 0.3, position = position_jitterdodge(jitter.width = 0.35)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
+  labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
+       y = expression(Log["2"]*"FC (Red/NonRed)")) +
+  # title = "C-males") +
+  scale_colour_manual(values = c("#D55E00", "#0072B2", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
+                      labels = c("Exp. Females", "Exp. Males", "Ctrl. Males")) + # "Chr-2", "Chr-3", "X-Chr"
+  guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
+                                                  size = c(5, 5, 5),
+                                                  alpha = 1))) +
+  geom_hline(yintercept = 0)
+
 binPlot_RedNR <- function(dat, perm_dat){
+  
+  perm_dat$pval <- as.numeric(perm_dat$pval)
+  
   ggplot(dat, aes(SBGE_comp, exp_geno, color = trt2)) +
   geom_point(aes(color = trt2), size = 1, shape = 16, 
              alpha = 0.3, position = position_jitterdodge(jitter.width = 0.35)) +
   geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
   labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
-       y = expression(Log["2"]*"FC (Red/NR)")) +
+       y = expression(Log["2"]*"FC (Red/NonRed)")) +
   # title = "C-males") +
-  scale_colour_manual(values = c("red3", "steelblue3", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
+  scale_colour_manual(values = c("#D55E00", "#0072B2", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
                       labels = c("Exp. Females", "Exp. Males", "Ctrl. Males")) + # "Chr-2", "Chr-3", "X-Chr"
   guides(color = guide_legend(override.aes = list(shape = c(18, 18, 18),
                                                   size = c(5, 5, 5),
                                                   alpha = 1))) +
   # add star do signify significant difference from 0
-  geom_text(data = perm_dat %>% mutate(sig1 = if_else(!is.na(holm_Sig) , ifelse(holm_Sig,"*", "ns"), "")),
-            aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5,
+  geom_text(data = perm_dat %>% mutate(sig1 = if_else(n < 30, "",
+                                                      ifelse(pval < 0.001, "***", 
+                                                             ifelse(pval < 0.01, "**" ,
+                                                                    ifelse(pval < 0.05, "*", "ns"))))),
+            aes(x =SBGE_comp, y = 1.6, label = sig1), size = 7.5,
             position = position_dodge(width = 0.8), show.legend = FALSE) +
   # add number of genes per category
   geom_text(data = perm_dat, aes(label = n, y = Inf, group = trt2), 
@@ -254,7 +294,7 @@ binPlot_RedNR <- function(dat, perm_dat){
   geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype= "solid", color = "black") +
     geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), color = "grey") +
   scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) + # "Highly ant.", "Antagonistic", "Uncorrelated", "Concordant", "Highly con." .... "Strong pur.", "Purifying sel.", "Neutral", "Positive sel.", "Strong pos."
-  scale_y_continuous(limits = c(-2, 2), breaks = c(-2, -1, 0, 1, 2)) +
+  scale_y_continuous(limits = c(-1.6, 1.6), breaks = c(-1.5, -1.0, 0, 1.0, 1.5)) +
   # default theme settings:
   theme_classic() +
   theme(plot.title.position = c("panel"),
@@ -264,53 +304,56 @@ binPlot_RedNR <- function(dat, perm_dat){
         axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
         axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
         axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
-        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        axis.title.y = element_text(size=30, margin = margin(0,20,0,0), color = "black"),
         plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
         plot.margin = margin(6,6,6,6),
         panel.border = element_rect(colour = "black", fill=NA, size=1)
   ) 
 }
 
+All.exp_geno_sss <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% subset.sss,], permed_All.geno_sss) 
+
+
 All.exp_geno <- binPlot_RedNR(All.geno, permed_All.geno) + 
-  geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.7, -1.35), xmin = c(1, 2, 3, 4, 5), 
+  geom_signif(y_position = c(-1.2, -1.2, -1.3, -1.4, -1.35), xmin = c(1, 2, 3, 4, 5), 
               xmax = c(1.3, 2.3, 3.3, 4.3, 5.3),
-  annotation = c("*", "*", "*", "*", "*"), tip_length = -0.01, 
+  annotation = c("***", "***", "***", "***", "***"), tip_length = -0.01, 
   textsize = 10, size = 0.75, vjust = 1.85, color = "darkblue")
 
 All.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
                                   permed_All.geno_Sig) +
   geom_signif(y_position = c(-1.18, -1.4, -1.3, -1.3), xmin = c(2, 3, 4, 5), 
               xmax = c(2.3, 3.3, 4.3, 5.3),
-              annotation = c("*", "*", "*", "*"), tip_length = -0.01, 
+              annotation = c("***", "***", "***", "***"), tip_length = -0.01, 
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 A.f.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AfSig) +
   geom_signif(y_position = c(-1.1, -1.1, -1.25), xmin = c(2, 3, 4), 
               xmax = c(2.3, 3.3, 4.3),
-              annotation = c("*", "*", "*"), tip_length = -0.01, 
+              annotation = c("***", "***", "***"), tip_length = -0.01, 
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AmSig) +
-  geom_signif(y_position = c(-1.15, -1.27, -1.255, -1.22), xmin = c(2, 3, 4, 5), 
-              xmax = c(2.3, 3.3, 4.3, 5.3),
-              annotation = c("*", "*", "*", "*"), tip_length = -0.01, 
+  geom_signif(y_position = c(-1.27, -1.255, -1.22), xmin = c(3, 4, 5), 
+              xmax = c(3.3, 4.3, 5.3),
+              annotation = c("***", "***", "***"), tip_length = -0.01, 
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/finals/Fig3_main.newCand.pdf",  # The directory you want to save the file in
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_suppl.pdf",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
-    height = 8 ) # 8 20 The height of the plot in inches
-# ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-          # NA,
-          # A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-          # NA, A.f.sig.exp_geno, NA,
-          # labels = c("A)", NA, "B)", NA, "C)", NA),
-          # heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
-          # font.label = list(size = 25),
-          # common.legend = TRUE, legend = "bottom")
-All.exp_geno
+    height = 20 ) # 8 20 The height of the plot in inches
+ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+NA,
+A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+NA, A.f.sig.exp_geno, NA,
+labels = c("A)", NA, "B)", NA, "C)", NA),
+heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+font.label = list(size = 25),
+common.legend = TRUE, legend = "bottom")
+# All.exp_geno
 dev.off()
 ########
 
