@@ -99,39 +99,27 @@ A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
-# load rMF calculations by Aneil (also in Singh & Agrawal 2023)
-Aneil <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/rmf.For.Karl.To.Use.v2.txt", header=TRUE)
-colnames(Aneil) <- c("FlyBaseID", "rMF", "Var.F", "pVal.F", "Var.M", "pVal.M")
-Aneil <- na.omit(Aneil) # There's an N/A for rMF
+# load rMF calculations in Singh & Agrawal 2023
+# (estimated from the Huang et al. 2015 data set) 
+rMF <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/rmf.For.Karl.To.Use.v2.txt", header=TRUE)
+colnames(rMF) <- c("FlyBaseID", "rMF", "Var.F", "pVal.F", "Var.M", "pVal.M")
+rMF <- na.omit(rMF) # There's an N/A for rMF
 
-
-SSAV.geno_rMF <- merge(SSAV.geno, Aneil, by = "FlyBaseID", all = TRUE)
+# combine rMF info with Exp. population dataset
+SSAV.geno_rMF <- merge(SSAV.geno, rMF, by = "FlyBaseID", all = TRUE)
 SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$Sig) & !is.na(SSAV.geno_rMF$rMF),]
 
-SSAV.geno_rMF_ASE <- merge(SSAV.geno_rMF, ASE, by = "FlyBaseID", all = T)
-SSAV.geno_rMF_ASE <- SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$Sig) & 
-                                 !is.na(SSAV.geno_rMF_ASE$rMF) & 
-                                 !is.na(SSAV.geno_rMF_ASE$exp_SBGE_ase),]
-sum(SSAV.geno$FlyBaseID[SSAV.geno$Sig] %in% Aneil$FlyBaseID)
+# add SBGE info based of Mishra et al. 2022 dataset
+SSAV.geno_rMF <- merge(SSAV.geno_rMF, ASE, by = "FlyBaseID", all = T)
+SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$Sig) & 
+                                 !is.na(SSAV.geno_rMF$rMF) & 
+                                 !is.na(SSAV.geno_rMF$exp_SBGE_ase),]
 
+# how many genes in our dataset has an estimated rMF value? 
+sum(SSAV.geno$FlyBaseID[SSAV.geno$Sig] %in% rMF$FlyBaseID)
+rm(rMF) # clear this object since it has already been incorporated elsewhere
 ##########
 
-# split by expression magnitude
-#######
-SSAV.geno_rMF_ASE_exp <- merge(SSAV.geno_rMF_ASE, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")])
-SSAV.geno_rMF_ASE_exp <- SSAV.geno_rMF_ASE_exp[!is.na(SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva) &
-                                                 !is.na(SSAV.geno_rMF_ASE_exp$Sig) & 
-                                                 !is.na(SSAV.geno_rMF_ASE_exp$rMF),]
-
-summary(lm(rMF ~ Sig + log.avgExp.AdultLarva + SBGE_comp, data = SSAV.geno_rMF_ASE_exp))
-
-q <- quantile(SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
-SSAV.geno_rMF_ASE_exp_LOW <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva <= q[2],]
-SSAV.geno_rMF_ASE_exp_MED <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva > q[2] &
-                                                     SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva <= q[3],]
-SSAV.geno_rMF_ASE_exp_HI <- SSAV.geno_rMF_ASE_exp[SSAV.geno_rMF_ASE_exp$log.avgExp.AdultLarva > q[3],]
-dim(SSAV.geno_rMF_ASE_exp_HI)
-#######
 
 
 ## plotting function
@@ -234,117 +222,139 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 ########
 # use the boot and permute functions in boot_permute.R
 # run permutation to test for significant difference between candidates vs non-candidates
-perm_rMF <- TwoPerm(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig")
+perm_rMF <- TwoPerm(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
-boot_rMF <- TwoBoot(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig")
+boot_rMF <- TwoBoot(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
 rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
 
-# by expression magnitude
-perm_rMF_LOW <- TwoPerm(SSAV.geno_rMF_ASE_exp_LOW, x_col = "rMF", groupBy = "Sig")
-boot_rMF_LOW <- TwoBoot(SSAV.geno_rMF_ASE_exp_LOW, x_col = "rMF", groupBy = "Sig")
-rMF_all_LOW <- pointSEplot(boot_dat = boot_rMF_LOW, perm_dat = perm_rMF_LOW, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
 
-perm_rMF_MED <- TwoPerm(SSAV.geno_rMF_ASE_exp_MED, x_col = "rMF", groupBy = "Sig")
-boot_rMF_MED <- TwoBoot(SSAV.geno_rMF_ASE_exp_MED, x_col = "rMF", groupBy = "Sig")
-rMF_all_MED <- pointSEplot(boot_dat = boot_rMF_MED, perm_dat = perm_rMF_MED, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
-
-perm_rMF_HI <- TwoPerm(SSAV.geno_rMF_ASE_exp_HI, x_col = "rMF", groupBy = "Sig")
-boot_rMF_HI <- TwoBoot(SSAV.geno_rMF_ASE_exp_HI, x_col = "rMF", groupBy = "Sig")
-rMF_all_HI <- pointSEplot(boot_dat = boot_rMF_HI, perm_dat = perm_rMF_HI, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
-
-
-exp_levels_rMF <- ggarrange(rMF_all + theme(axis.title.x = element_blank(),
-                        axis.title.y = element_blank(), axis.text.x = element_blank()),
-          ggarrange(rMF_all_LOW + theme(axis.title.x = element_blank(),
-                                        axis.title.y = element_blank(),
-                                        axis.text.x = element_blank()), 
-                             rMF_all_MED + theme(axis.title.x = element_blank(),
-                                                 axis.title.y = element_blank(),
-                                                 axis.text.x = element_blank()), 
-                             rMF_all_HI + theme(axis.title.x = element_blank(),
-                                                axis.title.y = element_blank(),
-                                                axis.text.x = element_blank()), 
-                    ncol = 3),
-          nrow = 2, heights = c(2, 1))
-
-
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_rMF_exp.pdf",   # The directory you want to save the file in
-    width = 14, # 12, 24, 20 The width of the plot in inches
-    height = 14) # 10, 20, 13 The height of the plot in inches
-
-annotate_figure(exp_levels_rMF + theme(plot.margin = margin(10,10,10,0)), left = text_grob("rMF", 
-                                                                                           rot = 90, size = 40))
-dev.off()
-
-
-perm_rMF_simp <- TwoPerm(SSAV.geno_rMF_ASE[SSAV.geno_rMF_ASE$SBGE_comp != "a.more.fbg" & 
-                                         SSAV.geno_rMF_ASE$SBGE_comp != "e.more.mbg",], 
+# exclude highly sex-biased genes
+perm_rMF_simp <- TwoPerm(SSAV.geno_rMF[SSAV.geno_rMF$SBGE_comp != "a.more.fbg" & 
+                                         SSAV.geno_rMF$SBGE_comp != "e.more.mbg",], 
                          x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
-boot_rMF_simp <- TwoBoot(SSAV.geno_rMF_ASE[SSAV.geno_rMF_ASE$SBGE_comp != "a.more.fbg" & 
-                                    SSAV.geno_rMF_ASE$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
+boot_rMF_simp <- TwoBoot(SSAV.geno_rMF[SSAV.geno_rMF$SBGE_comp != "a.more.fbg" & 
+                                        SSAV.geno_rMF$SBGE_comp != "e.more.mbg",], x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
 rMF_all_simp <- pointSEplot(boot_dat = boot_rMF_simp, perm_dat = perm_rMF_simp, x_col = "rMF")
 
 
 # Separately for male and female candidates
-perm_rMF_A.m <- TwoPerm(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.m.Sig),], "rMF", "A.m.Sig")
-boot_rMF_A.m <- TwoBoot(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.m.Sig),], "rMF", "A.m.Sig")
+perm_rMF_A.m <- TwoPerm(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),], "rMF", "A.m.Sig")
+boot_rMF_A.m <- TwoBoot(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),], "rMF", "A.m.Sig")
 
-perm_rMF_A.f <- TwoPerm(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.f.Sig),], "rMF", "A.f.Sig")
-boot_rMF_A.f <- TwoBoot(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.f.Sig),], "rMF", "A.f.Sig")
+perm_rMF_A.f <- TwoPerm(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], "rMF", "A.f.Sig")
+boot_rMF_A.f <- TwoBoot(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], "rMF", "A.f.Sig")
 
 ########
 
 
 
+# ------------- rMF by exp. magnitude ----------------
+# expression magnitude was calculated in Singh & Agrawal 2023, using data from SEBIDA
+SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SDIU)[2] <- "FlyBaseID"
+
+
+SSAV.geno_rMF <- merge(SSAV.geno_rMF, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")], by = "FlyBaseID")
+SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$log.avgExp.AdultLarva) &
+                                 !is.na(SSAV.geno_rMF$Sig) & 
+                                 !is.na(SSAV.geno_rMF$rMF),]
+
+rm(SDIU) # remove this data set from env
+
+# linear model testing whether SA candidate status is still a significant predictor of rMF,
+# controlling for rMF variation caused by expression level
+summary(lm(rMF ~ Sig + log.avgExp.AdultLarva + SBGE_comp, data = SSAV.geno_rMF))
+
+q <- quantile(SSAV.geno_rMF$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
+SSAV.geno_rMF_LOW <- SSAV.geno_rMF[SSAV.geno_rMF$log.avgExp.AdultLarva <= q[2],]
+SSAV.geno_rMF_MED <- SSAV.geno_rMF[SSAV.geno_rMF$log.avgExp.AdultLarva > q[2] &
+                                     SSAV.geno_rMF$log.avgExp.AdultLarva <= q[3],]
+SSAV.geno_rMF_HI <- SSAV.geno_rMF[SSAV.geno_rMF$log.avgExp.AdultLarva > q[3],]
+dim(SSAV.geno_rMF_HI)
+
+# by expression magnitude
+# low (0%-33%)
+perm_rMF_LOW <- TwoPerm(SSAV.geno_rMF_LOW, x_col = "rMF", groupBy = "Sig")
+boot_rMF_LOW <- TwoBoot(SSAV.geno_rMF_LOW, x_col = "rMF", groupBy = "Sig")
+rMF_all_LOW <- pointSEplot(boot_dat = boot_rMF_LOW, perm_dat = perm_rMF_LOW, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+# medium (33%-66%)
+perm_rMF_MED <- TwoPerm(SSAV.geno_rMF_MED, x_col = "rMF", groupBy = "Sig")
+boot_rMF_MED <- TwoBoot(SSAV.geno_rMF_MED, x_col = "rMF", groupBy = "Sig")
+rMF_all_MED <- pointSEplot(boot_dat = boot_rMF_MED, perm_dat = perm_rMF_MED, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+# high (66%-100%)
+perm_rMF_HI <- TwoPerm(SSAV.geno_rMF_HI, x_col = "rMF", groupBy = "Sig")
+boot_rMF_HI <- TwoBoot(SSAV.geno_rMF_HI, x_col = "rMF", groupBy = "Sig")
+rMF_all_HI <- pointSEplot(boot_dat = boot_rMF_HI, perm_dat = perm_rMF_HI, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+
+# combine low, medium, high expression
+exp_levels_rMF <- ggarrange(rMF_all + theme(axis.title.x = element_blank(),
+                                            axis.title.y = element_blank(), axis.text.x = element_blank()),
+                            ggarrange(rMF_all_LOW + theme(axis.title.x = element_blank(),
+                                                          axis.title.y = element_blank(),
+                                                          axis.text.x = element_blank()), 
+                                      rMF_all_MED + theme(axis.title.x = element_blank(),
+                                                          axis.title.y = element_blank(),
+                                                          axis.text.x = element_blank()), 
+                                      rMF_all_HI + theme(axis.title.x = element_blank(),
+                                                         axis.title.y = element_blank(),
+                                                         axis.text.x = element_blank()), 
+                                      ncol = 3),
+                            nrow = 2, heights = c(2, 1))
+
+
+# save plot
+# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_rMF_exp.pdf",   # The directory you want to save the file in
+#     width = 14, # 12, 24, 20 The width of the plot in inches
+#     height = 14) # 10, 20, 13 The height of the plot in inches
+# 
+annotate_figure(exp_levels_rMF + theme(plot.margin = margin(10,10,10,0)),
+                left = text_grob("rMF",
+                                 rot = 90, size = 40))
+# dev.off()
+########
+
+
 ## ------------- rMF by SBGE categories ----------------
-#########
 ## for all candidates (combined male and female candidates)
 # run permutation
-perm_rMF_SBGE <- TwoPerm_SBGE(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+perm_rMF_SBGE <- TwoPerm_SBGE(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
 # bootstrap 95% conf. interval
-boot_rMF_SBGE <- TwoBoot_SBGE(SSAV.geno_rMF_ASE, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
+boot_rMF_SBGE <- TwoBoot_SBGE(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig", SBGE_cat = "SBGE_comp")
 # plot
-rMF_SBGE <- pointSEplot(boot_dat = boot_rMF_SBGE[boot_rMF_SBGE$SBGE_comp != "a.more.fbg" & 
-                                                   boot_rMF_SBGE$SBGE_comp != "e.more.mbg",], 
-                        perm_dat = perm_rMF_SBGE[perm_rMF_SBGE$SBGE_comp != "a.more.fbg" & 
-                                                   perm_rMF_SBGE$SBGE_comp != "e.more.mbg",],
+rMF_SBGE <- pointSEplot(boot_dat = boot_rMF_SBGE, 
+                        perm_dat = perm_rMF_SBGE,
                         x_col = "rMF", SBGE_cat = "SBGE_comp") + 
-  scale_x_discrete(labels = c("Female-Biased", "Unbiased", "Male-Biased"))
+  coord_cartesian(ylim = c(-0.25, 1))
 
 
 ## only female candidates
 # run permutation
-perm_rMF_SBGE_A.f <- TwoPerm_SBGE(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.f.Sig),], 
+perm_rMF_SBGE_A.f <- TwoPerm_SBGE(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),], 
                                   x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
 # bootstrap 95% conf. interval
-boot_rMF_SBGE_A.f <- TwoBoot_SBGE(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.f.Sig),],
+boot_rMF_SBGE_A.f <- TwoBoot_SBGE(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.f.Sig),],
                                   x_col = "rMF", groupBy = "A.f.Sig", SBGE_cat = "SBGE_comp")
 # plot
-rMF_SBGE_A.f <- pointSEplot(boot_dat = boot_rMF_SBGE_A.f[boot_rMF_SBGE_A.f$SBGE_comp != "a.more.fbg" & 
-                                                           boot_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
-                            perm_dat = perm_rMF_SBGE_A.f[perm_rMF_SBGE_A.f$SBGE_comp != "a.more.fbg" & 
-                                                           perm_rMF_SBGE_A.f$SBGE_comp != "e.more.mbg",], 
-                        x_col = "rMF", SBGE_cat = "SBGE_comp") + # might just cut off the Highly SB genes 
-  scale_x_discrete(labels = c("Female-Biased", "Unbiased", "Male-Biased")) 
+rMF_SBGE_A.f <- pointSEplot(boot_dat = boot_rMF_SBGE_A.f, 
+                            perm_dat = perm_rMF_SBGE_A.f, 
+                        x_col = "rMF", SBGE_cat = "SBGE_comp")
 
 
 ## only male candidates
 # run permutation
-perm_rMF_SBGE_A.m <- TwoPerm_SBGE(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.m.Sig),], 
+perm_rMF_SBGE_A.m <- TwoPerm_SBGE(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),], 
                                   x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
 # bootstrap 95% conf. interval
-boot_rMF_SBGE_A.m <- TwoBoot_SBGE(SSAV.geno_rMF_ASE[!is.na(SSAV.geno_rMF_ASE$A.m.Sig),],
+boot_rMF_SBGE_A.m <- TwoBoot_SBGE(SSAV.geno_rMF[!is.na(SSAV.geno_rMF$A.m.Sig),],
                                   x_col = "rMF", groupBy = "A.m.Sig", SBGE_cat = "SBGE_comp")
 # plot
-rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m[boot_rMF_SBGE_A.m$SBGE_comp != "a.more.fbg" & 
-                                                           boot_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",], 
-                            perm_dat = perm_rMF_SBGE_A.m[perm_rMF_SBGE_A.m$SBGE_comp != "a.more.fbg" & 
-                                                           perm_rMF_SBGE_A.m$SBGE_comp != "e.more.mbg",],
-                            x_col = "rMF", SBGE_cat = "SBGE_comp") + # might just cut off the Highly SB genes
-  theme(axis.text.x = element_blank())
+rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m, 
+                            perm_dat = perm_rMF_SBGE_A.m,
+                            x_col = "rMF", SBGE_cat = "SBGE_comp") +
+  theme(axis.text.x = element_blank()) # remove x-axis labels for final plot
 
 #########
 
@@ -354,6 +364,12 @@ rMF_SBGE_A.m <- pointSEplot(boot_dat = boot_rMF_SBGE_A.m[boot_rMF_SBGE_A.m$SBGE_
 # All genes
 ###### 
 # prepare the combined bootstrap and permutation dataset
+# perm_All_SBGE_rMF is a data frame with:
+#   Sig: DE status
+#   q05: lower confidence interval from 95% bootstrap
+#   q50: point estimate of the mean
+#   q95: upper confidence interval from 95% bootstrap
+#   SBGE_comp: analysis group (all, or by SBGE categories)
 perm_All_SBGE_rMF <- c("a.all", perm_rMF)
 perm_All_SBGE_rMF <- rbind(perm_All_SBGE_rMF, perm_rMF_SBGE)
 
@@ -361,13 +377,8 @@ boot_All_SBGE_rMF <- boot_rMF
 boot_All_SBGE_rMF$SBGE_comp <- "a.all"
 boot_All_SBGE_rMF <- rbind(boot_All_SBGE_rMF, boot_rMF_SBGE)
 
-boot_All_SBGE_rMF_simp <- boot_All_SBGE_rMF[boot_All_SBGE_rMF$SBGE_comp != "a.more.fbg" &
-                                         boot_All_SBGE_rMF$SBGE_comp != "e.more.mbg" ,]
-perm_All_SBGE_rMF_simp <- perm_All_SBGE_rMF[perm_All_SBGE_rMF$SBGE_comp != "a.more.fbg" &
-                                              perm_All_SBGE_rMF$SBGE_comp != "e.more.mbg" ,]
 
-
-Fig4_main <- pointSEplot(boot_dat = boot_All_SBGE_rMF,
+Fig3_main <- pointSEplot(boot_dat = boot_All_SBGE_rMF,
                          perm_dat = perm_All_SBGE_rMF, 
                          x_col = "rMF", SBGE_cat = "SBGE_comp") +
   coord_cartesian(ylim = c(-0.2,1)) +
@@ -388,12 +399,8 @@ boot_All_SBGE_rMF_A.m <- boot_rMF_A.m
 colnames(boot_All_SBGE_rMF_A.m)[1] <- "Sig" 
 boot_All_SBGE_rMF_A.m$SBGE_comp <- "a.all"
 boot_All_SBGE_rMF_A.m <- rbind(boot_All_SBGE_rMF_A.m, boot_rMF_SBGE_A.m)
-# boot_All_SBGE_rMF_A.m <- boot_All_SBGE_rMF_A.m[boot_All_SBGE_rMF_A.m$SBGE_comp != "a.more.fbg" &
-#                                               boot_All_SBGE_rMF_A.m$SBGE_comp != "e.more.mbg" ,]
-# perm_All_SBGE_rMF_A.m <- perm_All_SBGE_rMF_A.m[perm_All_SBGE_rMF_A.m$SBGE_comp != "a.more.fbg" &
-#                                                  perm_All_SBGE_rMF_A.m$SBGE_comp != "e.more.mbg" ,]
 
-Fig4A_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.m,
+Fig3A_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.m,
                            perm_dat = perm_All_SBGE_rMF_A.m, 
                            x_col = "rMF", SBGE_cat = "SBGE_comp") +
   scale_x_discrete(labels = c("All", "Highly FB", "Female-Biased", 
@@ -414,13 +421,7 @@ colnames(boot_All_SBGE_rMF_A.f)[1] <- "Sig"
 boot_All_SBGE_rMF_A.f$SBGE_comp <- "a.all"
 boot_All_SBGE_rMF_A.f <- rbind(boot_All_SBGE_rMF_A.f, boot_rMF_SBGE_A.f)
 
-# exclude highly sex-biased genes
-# boot_All_SBGE_rMF_A.f <- boot_All_SBGE_rMF_A.f[boot_All_SBGE_rMF_A.f$SBGE_comp != "a.more.fbg" &
-#                                                  boot_All_SBGE_rMF_A.f$SBGE_comp != "e.more.mbg" ,]
-# perm_All_SBGE_rMF_A.f <- perm_All_SBGE_rMF_A.f[perm_All_SBGE_rMF_A.f$SBGE_comp != "a.more.fbg" &
-#                                                  perm_All_SBGE_rMF_A.f$SBGE_comp != "e.more.mbg" ,]
-
-Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
+Fig3B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
                            perm_dat = perm_All_SBGE_rMF_A.f, 
                            x_col = "rMF", SBGE_cat = "SBGE_comp") +
   scale_x_discrete(labels = c("All", "Highly FB", "Female-Biased", 
@@ -433,16 +434,16 @@ Fig4B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 
-
+# Figure 3
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig3_main.pdf",   # The directory you want to save the file in
     width = 17, # The width of the plot in inches
     height = 9) # 9 18 The height of the plot in inches
-# ggarrange(Fig4A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
-#           Fig4B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
+# ggarrange(Fig3A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
+#           Fig3B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
 #           labels = c("A)", "B)"),
 #           nrow = 2, heights = c(1, 0.9),
 #           common.legend = TRUE, legend = "bottom",
 #           font.label = list(size = 30), hjust = -0.01)
-Fig4_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1),
+Fig3_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1),
                   axis.text.x = element_text(size = 25))
 dev.off()

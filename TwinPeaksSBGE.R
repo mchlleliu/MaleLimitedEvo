@@ -127,12 +127,12 @@ str(SSAV.geno_ASE)
 
 # Cheng & Kirkpatrick 2016 logistic regression & Twin Peaks model
 # convert Log2FC(M/F) to delta
-convert.Log2Sex.To.CKdelta<-function(x) (1-2^(-x))/(1+2^(-x))
+convert.Log2Sex.To.CKdelta <- function(x) (1-2^(-x))/(1+2^(-x))
 
-
-hist(SSAV.geno_ASE$exp_SBGE_ase, breaks = 100)
+# plot distribution of SBGE values (log2FC) in SSAV population
 hist(A.f.geno_ASE$exp_SBGE_ase, breaks = 100)
 hist(A.m.geno_ASE$exp_SBGE_ase, breaks = 100)
+
 
 # fit cubic splines with GAM
 plotSplinesDelta <- function(df){
@@ -162,14 +162,13 @@ plotSplinesDelta <- function(df){
 return(return.plot)
 }
 
-
-# bootstrap fourth degree polynomial regression (using CK delta)
-boot_reg_delta <- function(dat, boot_N, degree){
+# bootstrap fourth degree polynomial regression
+boot_CK_polynomial <- function(dat, boot_N, degree){
 
   # convert to Cheng and Kirpatrick delta SBGE estimate
-  dat <- dat %>% 
+  dat <- dat %>%
     dplyr::mutate(delta = convert.Log2Sex.To.CKdelta(exp_SBGE_ase))
-  
+
   boot_pred <- NULL
   
   
@@ -199,53 +198,24 @@ boot_reg_delta <- function(dat, boot_N, degree){
   return(out_boot)
 }
 
-# bootstrap fourth degree polynomial regression (using CK delta)
-boot_reg_Log2SB <- function(dat, boot_N, degree){
-  
-  boot_pred <- NULL
-  
-  # bootstrapping
-  for (i in 1:boot_N) {
-    # Resample data 
-    sub_sample = dat %>% 
-      dplyr::sample_frac(size = 1, replace = T)
-    #Running the regression on these data
-    mod_boot <- glm(Sig ~ poly(exp_SBGE_ase, degree = degree, raw = TRUE), 
-                    data = sub_sample, family = "binomial")
-    
-    # predict using current model
-    boot_pred <- rbind(boot_pred, 
-                       cbind(i, dat$exp_SBGE_ase, predict(mod_boot, newdata = dat, type = "response")))
-  }
-  
-  colnames(boot_pred) <- c("bs", "exp_SBGE_ase", "Prob")
-  
-  out_boot <- as_tibble(boot_pred) %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(exp_SBGE_ase) %>%
-    dplyr::summarise(q05 = quantile(Prob, 0.025),
-              q50 = quantile(Prob, 0.5),
-              q95 = quantile(Prob, 0.975))
-  
-  return(out_boot)
-}
-
 
 # plotting female CK plot with delta
 ######
-# A.f.geno.reg_delta <- boot_reg_delta(A.f.geno_ASE, 1000, 4)
-# SA_dist <- ggplot(A.f.reg_delta) + 
-#   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
-#               size = 0.25, alpha = 0.7, fill = "grey")  +
-#   geom_line(aes(x=delta, y=q50), size = 1) +
-#   labs(y="P(Sexually Antagonistic)") +
-#   theme_classic() +
-#   theme(plot.title.position = c("panel"),
-#         axis.text.x = element_blank(),
-#         axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
-#         axis.title.x = element_blank(),
-#         axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
+# bootstrapped 4th degree polynomial version
+A.f.geno.reg_delta <- boot_CK_polynomial(A.f.geno_ASE, 1000, 4)
+SA_dist <- ggplot(A.f.geno.reg_delta) +
+  geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
+              size = 0.25, alpha = 0.7, fill = "grey")  +
+  geom_line(aes(x=delta, y=q50), size = 1) +
+  labs(y="P(Sexually Antagonistic)") +
+  theme_classic() +
+  theme(plot.title.position = c("panel"),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black"))
 
+# cubic spline version
 SA_dist <- plotSplinesDelta(A.f.geno_ASE) 
 
 SBGE_dist <- ggplot(A.f.geno_ASE) + 
@@ -278,57 +248,10 @@ Fig2_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.
                               ncol = 2, widths = c(1, 0.01)) 
 ######
 
-# plot female data with log2FC sex-bias
-######
-A.f.geno.reg_Log2SB <- boot_reg_Log2SB(A.f.geno_ASE, 1000, 4)
-SA_dist <- ggplot(A.f.reg_Log2SB) + 
-  geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
-              size = 0.25, alpha = 0.7, fill = "grey")  +
-  geom_line(aes(x=exp_SBGE_ase, y=q50), size = 1) +
-  labs(y="P(Sexually Antagonistic)") +
-  theme_classic() +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
-
-
-SBGE_dist <- ggplot(check_test) + 
-  geom_density(aes(exp_SBGE_ase), fill = "grey", color = "grey") +
-  labs(x=expression("Log2FC sex-bias"),y="Number of loci") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=18, margin = margin(5,0,5,0), color = "black"),
-        axis.text.y = element_text(size=12, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_text(size=24, margin = margin(10,0,10,0), color = "black"),
-        axis.title.y = element_text(size=15, margin = margin(0,10,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)) 
-
-datSBGE <- ggplot_build(SBGE_dist)
-x1 <- min(which(datSBGE$data[[1]]$x >= -5))
-x2 <- max(which(datSBGE$data[[1]]$x <= -1))
-x3 <- min(which(datSBGE$data[[1]]$x >= 1))
-x4 <- max(which(datSBGE$data[[1]]$x <= 5))
-
-SBGE_dist <- SBGE_dist +  
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x1:x2],
-                            y=datSBGE$data[[1]]$y[x1:x2]),
-            aes(x=x, y=y), fill="grey36") +
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x3:x4],
-                            y=datSBGE$data[[1]]$y[x3:x4]),
-            aes(x=x, y=y), fill="grey36")
-
-
-Fig2_CKsuppl_fem_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                       coord_cartesian(xlim = c(-10,10)), NA,
-                              NA, SBGE_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                coord_cartesian(xlim = c(-10,10)), NA,
-                              nrow = 2, heights = c(1, 0.30),
-                              ncol = 3, widths = c(0.005, 1, 0.005)) 
-######
-
 
 # plotting male CK plot delta
 ######
+# bootstrapped 4th degree polynomial version
 # A.m.geno.reg_delta <- boot_reg_delta(A.m.geno_ASE, 1000, 4)
 # SA_dist <- ggplot(A.m.geno.reg_delta) + 
 #   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
@@ -342,6 +265,7 @@ Fig2_CKsuppl_fem_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c
 #         axis.title.x = element_blank(),
 #         axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
 
+# cubic spline version
 SA_dist <- plotSplinesDelta(A.m.geno_ASE)
 
 SBGE_dist <- ggplot(A.m.geno_ASE) + 
@@ -374,58 +298,10 @@ Fig2_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
                               ncol = 2, widths = c(1, 0.01)) 
 ######
 
-# plot male data with log2FC sex-bias
-######
-A.m.geno.reg_Log2SB <- boot_reg_Log2SB(A.m.geno_ASE, 1000, 4)
-SA_dist <- ggplot(A.m.geno.reg_Log2SB) + 
-  geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
-              size = 0.25, alpha = 0.7, fill = "grey")  +
-  geom_line(aes(x=exp_SBGE_ase, y=q50), size = 1) +
-  labs(y="P(Sexually Antagonistic)") +
-  theme_classic() +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
-
-
-SBGE_dist <- ggplot(A.m.geno.reg_Log2SB) + 
-  geom_density(aes(exp_SBGE_ase), fill = "grey", color = "grey") +
-  labs(x=expression("Log2FC sex-bias"),y="Number of loci") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=18, margin = margin(5,0,5,0), color = "black"),
-        axis.text.y = element_text(size=12, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_text(size=24, margin = margin(10,0,10,0), color = "black"),
-        axis.title.y = element_text(size=15, margin = margin(0,30,0,10), color = "black"),
-        plot.margin = margin(6,6,6,6)) 
-
-datSBGE <- ggplot_build(SBGE_dist)
-x1 <- min(which(datSBGE$data[[1]]$x >= -5))
-x2 <- max(which(datSBGE$data[[1]]$x <= -1))
-x3 <- min(which(datSBGE$data[[1]]$x >= 1))
-x4 <- max(which(datSBGE$data[[1]]$x <= 5))
-
-SBGE_dist <- SBGE_dist +  
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x1:x2],
-                            y=datSBGE$data[[1]]$y[x1:x2]),
-            aes(x=x, y=y), fill="grey36") +
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x3:x4],
-                            y=datSBGE$data[[1]]$y[x3:x4]),
-            aes(x=x, y=y), fill="grey36") 
-
-
-Fig2_CKsuppl_male_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                       coord_cartesian(xlim = c(-10,15), ylim = c(0, 0.1)), NA,
-                                     NA, SBGE_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                       coord_cartesian(xlim = c(-10,15)), NA,
-                                     nrow = 2, heights = c(1, 0.30),
-                                     ncol = 3, widths = c(0.005, 1, 0.005)) 
-######
-
-
 
 # plotting all CK plot delta
 ######
+# bootstrapped 4th degree polynomal version
 # SSAV.geno.reg_delta <- boot_reg_delta(SSAV.geno_ASE, 1000, 4)
 # SA_dist <- ggplot(SSAV.geno.reg_delta) + 
 #   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
@@ -439,6 +315,7 @@ Fig2_CKsuppl_male_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = 
 #         axis.title.x = element_blank(),
 #         axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black")) 
 
+# cubic splines version
 SA_dist <- plotSplinesDelta(SSAV.geno_ASE)
 
 SBGE_dist <- ggplot(SSAV.geno_ASE) + 
@@ -473,56 +350,6 @@ Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
 
 ######
 
-  
-# plot all with log2FC sex-bias
-######
-SSAV.geno.reg_Log2SB <- boot_reg_Log2SB(SSAV.geno_ASE, 10, 4)
-SA_dist <- ggplot(SSAV.geno.reg_Log2SB) + 
-  geom_ribbon(aes(x= exp_SBGE_ase, ymin=q05, ymax=q95),
-              size = 0.25, alpha = 0.7, fill = "grey")  +
-  geom_line(aes(x=exp_SBGE_ase, y=q50), size = 1) +
-  labs(y="P(Sexually Antagonistic)") +
-  theme_classic() +
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
-
-
-SBGE_dist <- ggplot(SSAV.geno.reg_Log2SB) + 
-  geom_density(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta)), fill = "grey", color = "grey") +
-  labs(x=expression("Log2FC sex-bias"),y="Number of loci") +
-  geom_vline(xintercept = 0) +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=18, margin = margin(5,0,5,0), color = "black"),
-        axis.text.y = element_text(size=12, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_text(size=24, margin = margin(10,0,10,0), color = "black"),
-        axis.title.y = element_text(size=15, margin = margin(0,30,0,10), color = "black"),
-        plot.margin = margin(6,6,6,6)) 
-
-datSBGE <- ggplot_build(SBGE_dist)
-x1 <- min(which(datSBGE$data[[1]]$x >= -5))
-x2 <- max(which(datSBGE$data[[1]]$x <= -1))
-x3 <- min(which(datSBGE$data[[1]]$x >= 1))
-x4 <- max(which(datSBGE$data[[1]]$x <= 5))
-
-SBGE_dist <- SBGE_dist +  
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x1:x2],
-                            y=datSBGE$data[[1]]$y[x1:x2]),
-            aes(x=x, y=y), fill="grey36") +
-  geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x3:x4],
-                            y=datSBGE$data[[1]]$y[x3:x4]),
-            aes(x=x, y=y), fill="grey36")
-
-
-Fig2_CKsuppl_all_log2FC <- ggarrange(NA, SA_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                        coord_cartesian(xlim = c(-15,10)), NA,
-                                      NA, SBGE_dist + scale_x_continuous(expand = c(0, 0)) + 
-                                        coord_cartesian(xlim = c(-15,10)), NA,
-                                      nrow = 2, heights = c(1, 0.30),
-                                      ncol = 3, widths = c(0.005, 1, 0.005)) 
-######
-
 
 pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.pdf",   # The directory you want to save the file in
     width = 24, # 14 18 24 The width of the plot in inches
@@ -548,37 +375,40 @@ ggarrange(NA, Fig2_CKsuppl_all, NA,
 dev.off()
 
 
-# testing models for males
+# polynomial models
 #####
 # Fit fourth-order polynomial logistic regression
-SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.exp_geno) &
-                                 !is.na(SSAV.geno_ASE$A.f.exp_geno),]
-model6 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 6, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model5 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 5, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model4 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 4, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model3 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 3, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model2 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 2, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model1 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 1, raw = TRUE), data = SSAV.geno_ASE, family = "binomial")
-model0 <- glm(Sig ~ 1, data = SSAV.geno_ASE, family = "binomial") # null model
+# only keep the genes that could be assayed in both males and females
+test <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.exp_geno) &
+                      !is.na(SSAV.geno_ASE$A.f.exp_geno),]
 
-lrtest(model2, model4)
+model6 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 6, raw = TRUE), data = test, family = "binomial")
+model5 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 5, raw = TRUE), data = test, family = "binomial")
+model4 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 4, raw = TRUE), data = test, family = "binomial")
+model3 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 3, raw = TRUE), data = test, family = "binomial")
+model2 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 2, raw = TRUE), data = test, family = "binomial")
+model1 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 1, raw = TRUE), data = test, family = "binomial")
+model0 <- glm(Sig ~ 1, data = test, family = "binomial") # null model
+
+lrtest(model2, model4) # compare quadratic (one peak) vs quartic (two peaks) model
 AIC.vec = AIC(model0, model1, model2, model3, model4, model5, model6)
-plot(x=seq(0,6,by=1), y=AIC.vec$AIC)
+plot(x=seq(0,6,by=1), y=AIC.vec$AIC) # 4th seems to be the best fit
 
 # requirement "0" for Twin Peaks
-#Does model 4 have the best AIC?
+# Does model 4 have the best AIC?
 TP.requirement0 = AIC.vec[5,2] == min(AIC.vec$AIC)
 
-# test quadratic vs quartic models
-lrtest(model2, model4)
-
-
-
-ggplot(SSAV.geno_ASE %>% mutate(prob=ifelse(Sig, 1, 0))) + 
+# using log2FC SBGE. There is a twin peaks pattern, 
+# but NOT at moderate FB, more like quite strong FB...
+ggplot(test %>% mutate(prob=ifelse(Sig, 1, 0))) + 
   stat_smooth(aes(exp_SBGE_ase, prob), formula = y ~ poly(x, degree = 4, raw = TRUE), 
               method = "glm", method.args = list(family = "binomial")) 
 
-ggplot(SSAV.geno_ASE %>% mutate(prob=ifelse(Sig, 1, 0))) + 
+# using Cheng & Kirkpatrick's measure of SBGE (delta),
+# no Twin Peaks pattern. 
+# There seems to be an aggregation of genes with higher SBGE values at both ends,
+# thus causing the peaks at -1 and 1
+ggplot(test %>% mutate(prob=ifelse(Sig, 1, 0))) + 
   stat_smooth(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta), prob), 
               formula = y ~ poly(x, degree = 4, raw = TRUE), 
               method = "glm", method.args = list(family = "binomial"), se = T )
@@ -641,6 +471,8 @@ twinPeaks <- function(dat){
   AllRequirementsMet = all (c(TP.requirement0, TP.requirement1, TP.requirement2, TP.requirement3a, TP.requirement3b))
   return(AllRequirementsMet)
 }
+
+# permute the twinPeaks test n times
 PermuteTP <- function(dat, perm_N){
   
   print(twinPeaks(dat))

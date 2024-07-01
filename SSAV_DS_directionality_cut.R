@@ -995,16 +995,16 @@ Figure_6B
 
 
 # Permute phi for A.m(Red-NR) vs C.m(Red-NR)
-A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.compare_ase$FlyBaseID,
-                            M.dis.F.Red = A.m.Red.compare_ase$M.dis.F,
-                            M.dis.F.NR = A.m.NR.compare_ase$M.dis.F)
-A.m.Red.vs.NR$diff.Am <- A.m.Red.vs.NR$M.dis.F.Red - A.m.Red.vs.NR$M.dis.F.NR
+A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.Phi$FlyBaseID,
+                            Phi.Red = A.m.Red.Phi$phi,
+                            Phi.NR = A.m.NR.Phi$phi)
+A.m.Red.vs.NR$diff.Am <- A.m.Red.vs.NR$Phi.Red - A.m.Red.vs.NR$Phi.NR
 head(A.m.Red.vs.NR)
 
-C.m.Red.vs.NR <- data.frame(FlyBaseID = C.m.Red.compare_ase$FlyBaseID,
-                            M.dis.F.Red = C.m.Red.compare_ase$M.dis.F,
-                            M.dis.F.NR = C.m.NR.compare_ase$M.dis.F)
-C.m.Red.vs.NR$diff.Cm <- C.m.Red.vs.NR$M.dis.F.Red - C.m.Red.vs.NR$M.dis.F.NR
+C.m.Red.vs.NR <- data.frame(FlyBaseID = C.m.Red.Phi$FlyBaseID,
+                            Phi.Red = C.m.Red.Phi$phi,
+                            Phi.NR = C.m.NR.Phi$phi)
+C.m.Red.vs.NR$diff.Cm <- C.m.Red.vs.NR$Phi.Red - C.m.Red.vs.NR$Phi.NR
 head(C.m.Red.vs.NR)
 
 test <- merge(A.m.Red.vs.NR, C.m.Red.vs.NR, by = "FlyBaseID")
