@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2024
 #             DsRed experimental evolution - transcriptomics analysis
 #             Data were prepared using file DsRed_transcriptomics.txt
 # 
@@ -34,7 +34,48 @@ library(tidyr)
 ##########
 
 
-# make dataframe for DESeq2
+# Set up data frame of chromosome locations (using BDGP6.28, release 102)
+# this is used for filtering out Y-linked genes and Chr 4 genes
+##########
+
+all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
+colnames(all.genes) = c("FlyBaseID")
+
+Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Xchr) = c("FlyBaseID")
+Xchr$Chr <- rep("X", dim(Xchr)[1])
+
+Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Ychr) = c("FlyBaseID")
+Ychr$Chr <- rep("Y", dim(Ychr)[1])
+
+
+chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2L) = c("FlyBaseID")
+chr2L$Chr <- rep("2L", dim(chr2L)[1])
+chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2R) = c("FlyBaseID")
+chr2R$Chr <- rep("2R", dim(chr2R)[1])
+# 
+chr2 <- rbind(chr2L, chr2R)
+chr2$Chr <- rep("2", dim(chr2)[1])
+
+chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3L) = c("FlyBaseID")
+chr3L$Chr <- rep("3L", dim(chr3L)[1])
+chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3R) = c("FlyBaseID")
+chr3R$Chr <- rep("3R", dim(chr3R)[1])
+#
+chr3 <- rbind(chr3L, chr3R)
+chr3$Chr <- rep("3", dim(chr3)[1])
+
+Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
+Chrs$Chr <- as.factor(Chrs$Chr)
+########
+
+
+# make data frame for DESeq2
 ##########
 
 # list the files by category
@@ -345,15 +386,18 @@ DESeq.Results = results(DESeq.Analysis,
                         # by defult, it will take the last term in the design (e.g. the interaction term, if that's last)
                         alpha = alpha.threshold, independentFiltering=T) 
 
-# 5b. Remove Y genes
+# 5b. Remove Y genes and DsRed marker genes
 # read in .tsv files of X and Y geneIDs (see end of DsRed "transcriptomics.txt")
 Ychr <- read.delim("~/Desktop/UofT/PRJ1/data/Y.chromosome.genes.tsv", sep = '\t', header = TRUE)
-# Flag genes near DsRed marker
+# Flag genes near DsRed marker (using release 6 this region encompasses: 10.7mb-11.875mb on 2R)
 DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
+
 # Make the FlyBaseIDs into rownames and index by this new column
 DESeq.Results$FlyBaseID = rownames(DESeq.Results)
+# do the removing
 DESeq.Results <- DESeq.Results[!(DESeq.Results$FlyBaseID %in% Ychr$geneID),]
 DESeq.Results <- DESeq.Results[!DESeq.Results$FlyBaseID %in% DsRed_genes$V1,]
+
 
 # 6. Look at the metadata for DEseq's independent filtering 
 plot(metadata(DESeq.Results)$filterNumRej, 
@@ -420,30 +464,11 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv
 ##########
 
 
-# check correlation between log2FC in SSAV (A) and in ASE
-test <- merge(Results.df, ASE, by = "FlyBaseID")
-cor.test(test$exp_sex, test$exp_SBGE_ase)
-
-check_test <- merge(Results.df,SDIU, by = "FlyBaseID")
-ggplot(check_test) + 
-  geom_density(aes(exp_geno), fill = "grey", color = "grey") +
-  labs(x=expression("Log2FC sex-bias"),y="Number of loci") +
-  theme_classic() +
-  theme(axis.text.x = element_text(size=18, margin = margin(5,0,5,0), color = "black"),
-        axis.text.y = element_text(size=12, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_text(size=24, margin = margin(10,0,10,0), color = "black"),
-        axis.title.y = element_text(size=15, margin = margin(0,10,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)) 
-cor.test(check_test$exp_SBGE_ase, check_test$Whole.SBGE.Osada)
-plot_corr(check_test,"exp_SBGE_ase", "Whole.SBGE.Osada", colx = "purple", coly = "blue2", 
-          colNonCon = "grey", xlab = "ASE", ylab = "Osada", lim = 15, title = "")
 
 # \\||// #
 # Assign significant genes
 ##########
-# If not already in environment, read in df to specify the results df to be used 
-# C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
-# Results.df <- read.delim(file = "~/Desktop/UofT/SSAV_RNA/Results/NR.m.trt_raw.tsv", header = TRUE)
+C.m.geno <- read.delim("Results/C.m.geno_raw.tsv") # load DESeq2 result for comparison between control Red and control NonRed males
 
 # Function to sort significant and non-significant genes by adding logical column
 assign_sig <- function(contrast_df){
@@ -451,7 +476,7 @@ assign_sig <- function(contrast_df){
   contrast_df$Sig = FALSE
   for(i in 1:nrow(contrast_df)){
     if(contrast_df$padj[i] < alpha.threshold & 
-       !contrast_df$FlyBaseID[i] %in% C.m.geno$FlyBaseID[C.m.geno$Sig]){
+       !contrast_df$FlyBaseID[i] %in% C.m.geno$FlyBaseID[C.m.geno$padj < 0.05]){ # do not assign as significant if it is also significant in the Controls
       contrast_df$Sig[i] = TRUE
     }
   }
@@ -465,94 +490,60 @@ Results.df <- assign_sig(Results.df)
 dim(Results.df[Results.df$Sig == TRUE, ]) # right number?
 
 
-# this is only for A.m.geno
-# Results.df <- Results.df[order(Results.df$padj),]
-# Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),]
-# colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
-# Results.df$Sig <- FALSE
-# Results.df[1:350,]$Sig <- TRUE
-# droplevels(Results.df)
-
-# get candidates for males, but exclude mtDNA genes and Chr4
-Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),]
-colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig"
+# this is only for the Exp. males comparison. Because the 5% FDR threshold is too stringent (due to variation between replicate measures), 
+# we take 350 genes with the highest log2FC value instead.
+Results.df <- Results.df[order(abs(Results.df$exp_geno), decreasing = T),] # order from greatest log2FC value
+colnames(Results.df)[colnames(Results.df) == "Sig"] = "Top.Sig" # keep the 5% FDR assigned significant genes, but assign it another name
+# Re-assign the significance column, and initially set to FALSE
 Results.df$Sig <- FALSE
-i = 1
+i = 1 # start count for number of significant gene
+# go through the list of genes until 350 genes are assigned as significant in the male data
 while(dim(Results.df[Results.df$Sig,])[1] < 350){
-  if(!Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID[Chrs$Chr == "Y"] & 
-     Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID){
+  if(!Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID[Chrs$Chr == "Y"] & # exclude Y-linked genes
+     Results.df$FlyBaseID[i] %in% Chrs$FlyBaseID){ # exclude genes on Chr 4 and pseudogenes
   Results.df$Sig[i] <- TRUE
   }
-  i = i + 1
+  i = i + 1 # update count
 }
 droplevels(Results.df)
-dim(Results.df[Results.df$Sig,])
+dim(Results.df[Results.df$Sig,]) # ensure there is 350 here.
+
+
 
 ## change this to the correct file name
-write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
-            row.names = FALSE, col.names = TRUE)
+# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+#             row.names = FALSE, col.names = TRUE)
 ##########
 
 
-# Combine SSAV males and females
+
+# Combine results from Red/NonRed comparisons in males and females
 ########
 setwd("~/Desktop/UofT/SSAV_RNA/")
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
 
-SSAV.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
-colnames(SSAV.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
+# combine results for exp. populations
+All.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+colnames(Exp.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
                           "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
-str(SSAV.geno)
-# column denotes genes that are candidates in males or females
-SSAV.geno <- SSAV.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
+str(Exp.geno)
+# column denotes genes that are candidates in the Red/NonRed male comparison or in the Red/NonRed female comparison
+Exp.geno <- Exp.geno %>% mutate(Sig = ifelse(!is.na(A.m.Sig) & A.m.Sig, TRUE,
                                                ifelse(!is.na(A.f.Sig) & A.f.Sig, TRUE, 
                                                       ifelse(is.na(A.m.Sig) & is.na(A.f.Sig), NA, FALSE)))) 
-SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig),]
-dim(SSAV.geno[SSAV.geno$Sig,])
+Exp.geno <- Exp.geno[!is.na(Exp.geno$Sig),] # remove genes not assayed in both males and females
+dim(Exp.geno[Exp.geno$Sig,]) # how many significant?
+
 
 # only keep concordant changes
-SSAV.geno.con <- na.omit(SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.exp_geno > 0) |
-                             (SSAV.geno$A.f.exp_geno < 0 & SSAV.geno$A.m.exp_geno < 0),])
+Exp.geno.con <- na.omit(Exp.geno[(Exp.geno$A.f.exp_geno > 0 & Exp.geno$A.m.exp_geno > 0) |
+                             (Exp.geno$A.f.exp_geno < 0 & Exp.geno$A.m.exp_geno < 0),])
+dim(Exp.geno.con) # how many concordant?
+
 
 ## save to file
-write.table(SSAV.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
-            row.names = FALSE, col.names = TRUE)
+# write.table(Exp.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
+#             row.names = FALSE, col.names = TRUE)
 ########
 
-
-########
-# candidates around DsRed marker excluded?
-dim(SSAV.geno[SSAV.geno$FlyBaseID %in% DsRed_genes$V1 & SSAV.geno$Sig,])
-dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Sig,])
-dim(A.m.geno[A.m.geno$FlyBaseID %in% DsRed_genes$V1 & A.m.geno$Top.Sig,])
-dim(A.f.geno[A.f.geno$FlyBaseID %in% DsRed_genes$V1 & A.f.geno$Sig,])
-# total = 18/592
-# male candidates = 6/200
-# male significant genes = 1/16
-# female candidates = 13/403
-
-########
-
-check_test <- merge(Results.df, ASE, by = "FlyBaseID")
-hist(check_test$exp_SBGE_ase, breaks = 100)
-cor.test(check_test$exp_geno.x, check_test$exp_geno.y)
-View(check_test[check_test$Sig.x != check_test$Sig.y,])
-
-A.f.countfiles.test <- data.frame(countdf[]) %>% 
-  tibble::rownames_to_column(var="FlyBaseID") %>%
-  dplyr::mutate(count.All = rowMeans(select_if(., is.numeric), na.rm = T))
-
-red.tmp <- data.frame(countdf[,str_detect(colnames(countdf), "_Red")]) %>% 
-  tibble::rownames_to_column(var="FlyBaseID") %>%
-  dplyr::mutate(count.All = rowMeans(select_if(., is.numeric), na.rm = T))
-
-nr.tmp <- data.frame(countdf[,str_detect(colnames(countdf), "_NR")]) %>% 
-  tibble::rownames_to_column(var="FlyBaseID") %>%
-  dplyr::mutate(count.All = rowMeans(select_if(., is.numeric), na.rm = T))
-
-tmp <- data.frame(cbind(countdf, lowCountAnySample.Either)) %>%
-  tibble::rownames_to_column(var="FlyBaseID")
-A.f.countfiles.test <- ASE[ASE$FlyBaseID %in% tmp$FlyBaseID[tmp$lowCountAnySample.Either==0],]
-hist(x = A.f.countfiles.test$exp_SBGE_ase)
