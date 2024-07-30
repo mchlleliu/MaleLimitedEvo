@@ -2,7 +2,7 @@
 #
 #                                   Grieshop et al. 2024
 #                  DsRed experimental evolution - transcriptomics analysis
-#                               Directionality of DS, cleaned
+#                 Differential splicing analysis for Red vs Non-Red samples
 # 
 # 
 ###################################
@@ -461,8 +461,8 @@ compareSplicingProfiles <- function(d1, d2){
   tmp <- tmp %>%
     dplyr::group_by(FlyBaseID) %>%
     dplyr::summarise(percent.sim = PercentSimilarity(frac.exp.per.gene.x, frac.exp.per.gene.y),
-                     percent.dissim = 1 - percent.sim,
-                     dist = EuclideanDistance(frac.exp.per.gene.x, frac.exp.per.gene.y))
+              percent.dissim = 1 - percent.sim,
+              dist = EuclideanDistance(frac.exp.per.gene.x, frac.exp.per.gene.y))
   return(tmp)
 }
 
@@ -478,7 +478,7 @@ EuclideanDistance <- function(v1, v2){
       if(is.na(v1[i])) v1[i] = 0 # if the counting bin is NA, assign 0
       if(is.na(v2[i])) v2[i] = 0 # if the counting bin is NA, assign 0
       # if(!is.na(v1[i]) & !(is.na(v2[i]))){ 
-      sumV = sumV + ((v1[i] - v2[i])^2)
+        sumV = sumV + ((v1[i] - v2[i])^2)
     }
     euc.dist = sqrt(sumV)
   }
@@ -505,12 +505,99 @@ PercentSimilarity<-function(v1, v2){
 # this function calculates phi,
 # which essentially compares the relative "distance" between point A and point B in 
 # a multidimensional gene space. (i.e., is the sample closer to point A or to point B ?)
-CalculatePhi <- function(dst1, dst2){ 
+CompareDistances <- function(dst1, dst2){ 
   tmp <- merge(dst1, dst2, by = "FlyBaseID") %>%
     dplyr::mutate(
-      phi = (percent.dissim.y - percent.dissim.x)/(percent.dissim.y + percent.dissim.x))
+      # using euclidean distance
+      M.sub.F = (dist.y - dist.x)/(dist.x+dist.y),
+        M.sub.F = ifelse(is.nan(M.sub.F), 0, M.sub.F),
+      # using percent similarity
+      M.sim.F = (percent.sim.x - percent.sim.y)/(percent.sim.x+percent.sim.y),
+      # using percent dissimilarity (1 - %sim)
+      M.dis.F = (percent.dissim.y - percent.dissim.x)/(percent.dissim.y + percent.dissim.x))
   return(tmp)
 }
+
+
+# average females expression in Experimental SSAV populations (combining Red and NR samples)
+########
+A.f.Red.norm.exp <- GeomNormCounts(countFiles.A.f.Red, A.f.Red.decoder)
+A.f.NR.norm.exp <- GeomNormCounts(countFiles.A.f.NR, A.f.NR.decoder)
+
+# average female in SSAV pop
+fem.exp <- merge(A.f.Red.norm.exp, A.f.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
+            glob.exp = (glob.exp.x + glob.exp.y)/2,
+            frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
+
+########
+
+# average male expression in Experimental SSAV populations (combining Red and NR samples)
+########
+# normalize exp. per gene for each counting bin 
+# in Red males
+A.m.Red.norm.exp <- GeomNormCounts(countFiles.A.m.Red, A.m.Red.decoder)
+# in Non-Red males
+A.m.NR.norm.exp <- GeomNormCounts(countFiles.A.m.NR, A.m.NR.decoder)
+
+# average male in SSAV pop
+male.exp <- merge(A.m.Red.norm.exp, A.m.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
+         glob.exp = (glob.exp.x + glob.exp.y)/2,
+         frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
+
+#######
+
+# average male expression in Control populations (combining Red and NR samples)
+########
+# expression of NR C males
+C.m.Red.norm.exp <- GeomNormCounts(countFiles.C.m.Red, C.m.Red.decoder)
+C.m.NR.norm.exp <- GeomNormCounts(countFiles.C.m.NR, C.m.NR.decoder)
+
+male.ctr.exp <- merge(C.m.Red.norm.exp, C.m.NR.norm.exp, by = c("FlyBaseID", "countBin")) %>%
+  dplyr::group_by(FlyBaseID, countBin) %>%
+  dplyr::summarise(total = (total.x + total.y)/2,
+            glob.exp = (glob.exp.x + glob.exp.y)/2,
+            frac.exp.per.gene = (frac.exp.per.gene.x + frac.exp.per.gene.y)/2)
+########
+
+
+# male and female profiles in external populations
+######
+# using ASE data
+male.exp_ASE <- GeomNormCounts(countFiles.m.ASE, M.decoder.ASE)
+fem.exp_ASE <- GeomNormCounts(countFiles.f.ASE, F.decoder.ASE)
+
+# Singh & Agrawal (Osada) data
+male.exp_Osada <- GeomNormCounts(countFiles.m.Osada, M.decoder.Osada)
+fem.exp_Osada <- GeomNormCounts(countFiles.f.Osada, F.decoder.Osada)
+
+# Monogamy data
+male.exp_MCabs <- GeomNormCounts(countFiles.m.MCabs, M.decoder.MCabs)
+fem.exp_MCabs <- GeomNormCounts(countFiles.f.MCabs, F.decoder.MCabs)
+
+# Simple Polygamy data
+male.exp_MCsim <- GeomNormCounts(countFiles.m.MCsim, M.decoder.MCsim)
+fem.exp_MCsim <- GeomNormCounts(countFiles.f.MCsim, F.decoder.MCsim)
+
+# Complex Polygamy data
+male.exp_MCcom <- GeomNormCounts(countFiles.m.MCcom, M.decoder.MCcom)
+fem.exp_MCcom <- GeomNormCounts(countFiles.f.MCcom, F.decoder.MCcom)
+######
+
+
+
+# distance between Red and Non-Red estimates
+######
+A.m.Red.v.NR <- compareSplicingProfiles(A.m.Red.norm.exp, A.m.NR.norm.exp)
+C.m.Red.v.NR <- compareSplicingProfiles(C.m.Red.norm.exp, C.m.NR.norm.exp)
+A.f.Red.v.NR <- compareSplicingProfiles(A.f.Red.norm.exp, A.f.NR.norm.exp)
+mean(C.m.Red.v.NR$percent.dissim, na.rm = T)
+mean(A.m.Red.v.NR$percent.dissim, na.rm = T)
+mean(A.f.Red.v.NR$percent.dissim, na.rm = T)
+######
 
 
 # Get a subset of SSS genes that are more consistently dimorphic
@@ -536,7 +623,7 @@ for(i in 1:dim(MC_data)[1]){
   Male.ASE.dist.MCm <- compareSplicingProfiles(male.exp_ASE, count_M)
   Fem.ASE.dist.MCf <- compareSplicingProfiles(fem.exp_ASE, count_F)
   Fem.ASE.dist.MCm <- compareSplicingProfiles(fem.exp_ASE, count_M)
-  
+
   # dot plots to check how many points fall into the "irregular" category, but for the MC populations
   # "irregular" meaning that when looking at males (females), 
   # the points fall closer to the reference females (males)
@@ -547,16 +634,16 @@ for(i in 1:dim(MC_data)[1]){
   #         x = "percent.dissim.x", y = "percent.dissim.y", 
   #         colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
   #         ylab = "to females", lim = 1, title = "") + coord_cartesian(xlim = c(0,1), ylim = c(0,1))
-  
+
   # get a list of all irregular genes from each MC population treatment
   # list of genes in females where expression profile is more dissimilar to female ref than male ref
   fem <- test.F[test.F$FlyBaseID %in% ASE.sig.SSS_filt25 & 
-                  !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y) &
-                  test.F$percent.dissim.x <= test.F$percent.dissim.y, ]$FlyBaseID
+                    !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y) &
+                    test.F$percent.dissim.x <= test.F$percent.dissim.y, ]$FlyBaseID
   male <- test.M[test.M$FlyBaseID %in% ASE.sig.SSS_filt25 & 
-                   !is.na(test.M$percent.dissim.x) & !is.na(test.M$percent.dissim.y) &
-                   test.M$percent.dissim.x >= test.M$percent.dissim.y, ]$FlyBaseID
-  
+                     !is.na(test.M$percent.dissim.x) & !is.na(test.M$percent.dissim.y) &
+                     test.M$percent.dissim.x >= test.M$percent.dissim.y, ]$FlyBaseID
+
   assign(paste0("fem.",MC_data[i, 1]), fem)
   assign(paste0("male.",MC_data[i, 1]), male)
 }
@@ -578,7 +665,7 @@ all.exclude <- unique(c(fem.sim, fem.abs, fem.com, male.sim, male.abs, male.com)
 # Extra filtering to removing genes near the DsRed marker
 DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
 subset.sss <- (ASE.sig.SSS_filt25[!ASE.sig.SSS_filt25 %in% all.exclude &
-                                    !ASE.sig.SSS_filt25 %in% DsRed_genes$V1])
+                         !ASE.sig.SSS_filt25 %in% DsRed_genes$V1])
 length(all.exclude)
 length(subset.sss)
 write_delim(data.frame(subset.sss), file = "JunctionSeq/dimorphic.subset.list.txt", delim = ",", col_names = F)
@@ -589,54 +676,318 @@ subset.sss <- subset.sss$V1
 #######
 
 
+# comparing profiles between populations
+# correlation sanity checks comparing references and SSAV males (females)
+#######
+
+### compare male-male OR female-female
+# test distance from males of ASE population to males from SSAV population
+test <- merge(male.exp_ASE, male.exp, by = c("FlyBaseID", "countBin"), all = T)
+cor.test(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+plot(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+
+# test distance from females of ASE population to females from SSAV population
+test <- merge(fem.exp_ASE, fem.exp, by = c("FlyBaseID", "countBin"), all = T)
+cor.test(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+plot(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+
+# the same thing above, but comparing Osada population and SSAV
+test <- merge(male.exp_Osada, male.exp, by = c("FlyBaseID", "countBin"), all = T)
+cor.test(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+plot(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+
+test <- merge(fem.exp_Osada, fem.exp, by = c("FlyBaseID", "countBin"), all = T)
+cor.test(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+plot(test$frac.exp.per.gene.x, test$frac.exp.per.gene.y)
+
+
+
+
+### compare dimorphism (Male/Female) between populations
+# sanity test for correlation between SSAV and ASE data M to F distance
+# is this method of quantifying isoform usage a reliable representation of dimorphism in isoform usage?
+# average distance SSAV males vs females
+A.dimorphism <- compareSplicingProfiles(fem.exp, male.exp)
+mean(A.dimorphism$percent.dissim, na.rm = T)
+# to run the code below, you need to run the section defining "subset.sss"
+# mean(A.dimorphism[A.dimorphism$FlyBaseID %in% subset.sss,]$percent.dissim, na.rm = T)
+
+A.Red.dimorphism <- compareSplicingProfiles(A.f.Red.norm.exp, A.m.Red.norm.exp)
+mean(A.Red.dimorphism$percent.dissim, na.rm = T)
+
+A.NR.dimorphism <- compareSplicingProfiles(A.f.NR.norm.exp, A.m.NR.norm.exp)
+mean(A.NR.dimorphism$percent.dissim, na.rm = T)
+
+# average ASE populations males vs females (Mishra et al. 2022)
+ASE.dimorphism <- compareSplicingProfiles(fem.exp_ASE, male.exp_ASE)
+mean(ASE.dimorphism$percent.dissim, na.rm = T)
+# mean(ASE.dimorphism[ASE.dimorphism$FlyBaseID %in% subset.sss,]$percent.dissim, na.rm = T)
+
+# average Osada populations males vs females (Singh & Agrawal 2023)
+Osada.dimorphism <- compareSplicingProfiles(fem.exp_Osada, male.exp_Osada)
+mean(Osada.dimorphism$percent.dissim, na.rm = T)
+# mean(Osada.dimorphism[Osada.dimorphism$FlyBaseID %in% subset.sss,]$percent.dissim, na.rm = T)
+
+# Average MC populations (Mishra et al. 2023)
+MCsim.dimorphism <- compareSplicingProfiles(fem.exp_MCsim, male.exp_MCsim)
+mean(MCsim.dimorphism$percent.dissim, na.rm = T)
+# mean(MCsim.dimorphism[MCsim.dimorphism$FlyBaseID %in% subset.sss,]$percent.dissim, na.rm = T)
+
+MCabs.dimorphism <- compareSplicingProfiles(fem.exp_MCabs, male.exp_MCabs)
+MCcom.dimorphism <- compareSplicingProfiles(fem.exp_MCcom, male.exp_MCcom)
+
+
+
+
+# test correlation in the metric of splicing dimorphism between populations...
+# SSAV vs ASE
+test <- merge(A.dimorphism, ASE.dimorphism, by = "FlyBaseID")
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
+plot(test$percent.sim.x, test$percent.sim.y, xlab = "SSAV", ylab ="ASE")
+
+# SSAV vs Osada
+test <- merge(A.dimorphism, Osada.dimorphism, by = "FlyBaseID")
+cor.test(test$percent.sim.x, test$percent.sim.y)
+plot(test$percent.sim.x, test$percent.sim.y, xlab = "SSAV", ylab ="Osada")
+
+# SSAV vs MCsim
+test <- merge(A.dimorphism, MCsim.dimorphism, by = "FlyBaseID")
+cor.test(test$percent.sim.x, test$percent.sim.y)
+# SSAV vs MCabs
+test <- merge(A.dimorphism, MCabs.dimorphism, by = "FlyBaseID")
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
+# SSAV vs MCcom
+test <- merge(A.dimorphism, MCcom.dimorphism, by = "FlyBaseID")
+cor.test(test$percent.dissim.x, test$percent.dissim.y)
+
+
+
+
+# compare each population, switching the population selected as the references
+# ASE vs Osada populations
+# ASE males to Osada females
+ref.Male.ASE.Fem.Osada <- compareSplicingProfiles(male.exp_ASE, fem.exp_Osada)
+mean(ref.Male.ASE.Fem.Osada$dist, na.rm = T)
+# ASE males to Osada males
+ref.Male.ASE.Male.Osada <- compareSplicingProfiles(male.exp_ASE, male.exp_Osada)
+mean(ref.Male.ASE.Male.Osada$dist, na.rm = T)
+# ASE females to Osada females
+ref.Fem.ASE.Fem.Osada <- compareSplicingProfiles(fem.exp_ASE, fem.exp_Osada)
+mean(ref.Fem.ASE.Fem.Osada$dist, na.rm = T)
+# ASE females to Osada males
+ref.Fem.ASE.Male.Osada <- compareSplicingProfiles(fem.exp_ASE, male.exp_Osada) 
+mean(ref.Fem.ASE.Male.Osada$dist, na.rm = T)
+
+# calculate Phi for ASE males and females to Osada reference
+refASE.Osada.compare.male <- CompareDistances(ref.Male.ASE.Male.Osada, ref.Male.ASE.Fem.Osada)
+refASE.Osada.compare.fem <- CompareDistances(ref.Fem.ASE.Male.Osada, ref.Fem.ASE.Fem.Osada)
+
+# The plot below can only be run when "subset.sss" and the plotting function have been called below.
+splicing.MF.metric.plot(RedData = refASE.Osada.compare.male[refASE.Osada.compare.male$FlyBaseID %in% subset.sss,],
+                        NRData = refASE.Osada.compare.fem[refASE.Osada.compare.fem$FlyBaseID %in% subset.sss,],
+                        plotCol = "M.dis.F",
+                        colour_red = "steelblue3", colour_NR = "#D55E00")
+
+
+
+#######
+
 
 # -------- male comparison -------------
 ########
-# expression of Red Experimental males 
-# to reference ASE males
+# expression of Red A males
+# comparison to males from external populations
+A.m.Red.v.Males <- compareSplicingProfiles(A.m.Red.norm.exp, male.exp)
 A.m.Red.v.Males_ase <- compareSplicingProfiles(A.m.Red.norm.exp, male.exp_ASE)
-# to reference ASE females
+A.m.Red.v.Males_Osada <- compareSplicingProfiles(A.m.Red.norm.exp, male.exp_Osada)
+A.m.Red.v.Males_MCsim <- compareSplicingProfiles(A.m.Red.norm.exp, male.exp_MCsim)
+
+# comparison to females from external populations
+A.m.Red.v.Fem <- compareSplicingProfiles(A.m.Red.norm.exp, fem.exp)
 A.m.Red.v.Fem_ase <- compareSplicingProfiles(A.m.Red.norm.exp, fem.exp_ASE)
-# calculate Phi for Red males
-A.m.Red.Phi <- CalculatePhi(A.m.Red.v.Males_ase, A.m.Red.v.Fem_ase) 
+A.m.Red.v.Fem_Osada <- compareSplicingProfiles(A.m.Red.norm.exp, fem.exp_Osada)
+A.m.Red.v.Fem_MCsim <- compareSplicingProfiles(A.m.Red.norm.exp, fem.exp_MCsim)
+
+# join both distances
+A.m.Red.compare <- CompareDistances(A.m.Red.v.Males, A.m.Red.v.Fem)
+A.m.Red.compare_ase <- CompareDistances(A.m.Red.v.Males_ase, A.m.Red.v.Fem_ase) 
+A.m.Red.compare_Osada <- CompareDistances(A.m.Red.v.Males_Osada, A.m.Red.v.Fem_Osada)
+A.m.Red.compare_MCsim <- CompareDistances(A.m.Red.v.Males_MCsim, A.m.Red.v.Fem_MCsim)
 
 # ---
-# expression of NR Experimental males
+# expression of NR A males
+A.m.NR.v.Males <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp)
 A.m.NR.v.Males_ase <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp_ASE) # with ASE data
+A.m.NR.v.Males_Osada <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp_Osada)
+A.m.NR.v.Males_MCsim <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp_MCsim)
+
+A.m.NR.v.Fem <- compareSplicingProfiles(A.m.NR.norm.exp, fem.exp)
 A.m.NR.v.Fem_ase <- compareSplicingProfiles(A.m.NR.norm.exp, fem.exp_ASE)
-A.m.NR.Phi <- CalculatePhi(A.m.NR.v.Males_ase, A.m.NR.v.Fem_ase)
+A.m.NR.v.Fem_Osada <- compareSplicingProfiles(A.m.NR.norm.exp, fem.exp_Osada)
+A.m.NR.v.Fem_MCsim <- compareSplicingProfiles(A.m.NR.norm.exp, fem.exp_MCsim)
+
+# join both distances
+A.m.NR.compare <- CompareDistances(A.m.NR.v.Males, A.m.NR.v.Fem) 
+A.m.NR.compare_ase <- CompareDistances(A.m.NR.v.Males_ase, A.m.NR.v.Fem_ase)
+A.m.NR.compare_Osada <- CompareDistances(A.m.NR.v.Males_Osada, A.m.NR.v.Fem_Osada)
+A.m.NR.compare_MCsim <- CompareDistances(A.m.NR.v.Males_MCsim, A.m.NR.v.Fem_MCsim)
 #######
 
 
 # -------- female comparison -------------
 ########
-# expression of Red Experimental females
+# expression of Red A females
+A.f.Red.v.Males <- compareSplicingProfiles(A.f.Red.norm.exp, male.exp)
 A.f.Red.v.Males_ase <- compareSplicingProfiles(A.f.Red.norm.exp, male.exp_ASE)
-A.f.Red.v.Fem_ase <- compareSplicingProfiles(A.f.Red.norm.exp, fem.exp_ASE)
-A.f.Red.Phi <- CalculatePhi(A.f.Red.v.Males_ase, A.f.Red.v.Fem_ase)
+A.f.Red.v.Males_Osada <- compareSplicingProfiles(A.f.Red.norm.exp, male.exp_Osada)
+A.f.Red.v.Males_MCsim <- compareSplicingProfiles(A.f.Red.norm.exp, male.exp_MCsim)
 
-# expression of NR Experimental females
+A.f.Red.v.Fem <- compareSplicingProfiles(A.f.Red.norm.exp, fem.exp)
+A.f.Red.v.Fem_ase <- compareSplicingProfiles(A.f.Red.norm.exp, fem.exp_ASE)
+A.f.Red.v.Fem_Osada <- compareSplicingProfiles(A.f.Red.norm.exp, fem.exp_Osada)
+A.f.Red.v.Fem_MCsim <- compareSplicingProfiles(A.f.Red.norm.exp, fem.exp_MCsim)
+
+# join both distances
+A.f.Red.compare <- CompareDistances(A.f.Red.v.Males, A.f.Red.v.Fem)
+A.f.Red.compare_ase <- CompareDistances(A.f.Red.v.Males_ase, A.f.Red.v.Fem_ase)
+A.f.Red.compare_Osada <- CompareDistances(A.f.Red.v.Males_Osada, A.f.Red.v.Fem_Osada)
+A.f.Red.compare_MCsim <- CompareDistances(A.f.Red.v.Males_MCsim, A.f.Red.v.Fem_MCsim)
+
+# expression of NR A females
+A.f.NR.v.Males <- compareSplicingProfiles(A.f.NR.norm.exp, male.exp)
 A.f.NR.v.Males_ase <- compareSplicingProfiles(A.f.NR.norm.exp, male.exp_ASE)
+A.f.NR.v.Males_Osada <- compareSplicingProfiles(A.f.NR.norm.exp, male.exp_Osada)
+A.f.NR.v.Males_MCsim <- compareSplicingProfiles(A.f.NR.norm.exp, male.exp_MCsim)
+
+A.f.NR.v.Fem <- compareSplicingProfiles(A.f.NR.norm.exp, fem.exp)
 A.f.NR.v.Fem_ase <- compareSplicingProfiles(A.f.NR.norm.exp, fem.exp_ASE)
-A.f.NR.Phi <- CalculatePhi(A.f.NR.v.Males_ase, A.f.NR.v.Fem_ase)
+A.f.NR.v.Fem_Osada <- compareSplicingProfiles(A.f.NR.norm.exp, fem.exp_Osada)
+A.f.NR.v.Fem_MCsim <- compareSplicingProfiles(A.f.NR.norm.exp, fem.exp_MCsim)
+
+A.f.NR.compare <- CompareDistances(A.f.NR.v.Males, A.f.NR.v.Fem)
+A.f.NR.compare_ase <- CompareDistances(A.f.NR.v.Males_ase, A.f.NR.v.Fem_ase)
+A.f.NR.compare_Osada <- CompareDistances(A.f.NR.v.Males_Osada, A.f.NR.v.Fem_Osada)
+A.f.NR.compare_MCsim <- CompareDistances(A.f.NR.v.Males_MCsim, A.f.NR.v.Fem_MCsim)
 #######
 
 # -------- control male comparison -------------
 #######
-# Control Red males
+C.m.Red.v.Males <- compareSplicingProfiles(C.m.Red.norm.exp, male.exp)
 C.m.Red.v.Males_ase <- compareSplicingProfiles(C.m.Red.norm.exp, male.exp_ASE)
-C.m.Red.v.Fem_ase <- compareSplicingProfiles(C.m.Red.norm.exp, fem.exp_ASE)
-C.m.Red.Phi <- CalculatePhi(C.m.Red.v.Males_ase, C.m.Red.v.Fem_ase)
+C.m.Red.v.Males_Osada <- compareSplicingProfiles(C.m.Red.norm.exp, male.exp_Osada)
+C.m.Red.v.Males_MCsim <- compareSplicingProfiles(C.m.Red.norm.exp, male.exp_MCsim)
 
-# Control NR males
+C.m.Red.v.Fem <- compareSplicingProfiles(C.m.Red.norm.exp, fem.exp)
+C.m.Red.v.Fem_ase <- compareSplicingProfiles(C.m.Red.norm.exp, fem.exp_ASE)
+C.m.Red.v.Fem_Osada <- compareSplicingProfiles(C.m.Red.norm.exp, fem.exp_Osada)
+C.m.Red.v.Fem_MCsim <- compareSplicingProfiles(C.m.Red.norm.exp, fem.exp_MCsim)
+
+C.m.Red.compare <- CompareDistances(C.m.Red.v.Males, C.m.Red.v.Fem)
+C.m.Red.compare_ase <- CompareDistances(C.m.Red.v.Males_ase, C.m.Red.v.Fem_ase)
+C.m.Red.compare_Osada <- CompareDistances(C.m.Red.v.Males_Osada, C.m.Red.v.Fem_Osada)
+C.m.Red.compare_MCsim <- CompareDistances(C.m.Red.v.Males_ase, C.m.Red.v.Fem_MCsim)
+
+C.m.NR.v.Males <- compareSplicingProfiles(C.m.NR.norm.exp, male.exp)
 C.m.NR.v.Males_ase <- compareSplicingProfiles(C.m.NR.norm.exp, male.exp_ASE)
+C.m.NR.v.Males_Osada <- compareSplicingProfiles(C.m.NR.norm.exp, male.exp_Osada)
+C.m.NR.v.Males_MCsim <- compareSplicingProfiles(C.m.NR.norm.exp, male.exp_MCsim)
+
+C.m.NR.v.Fem <- compareSplicingProfiles(C.m.NR.norm.exp, fem.exp)
 C.m.NR.v.Fem_ase <- compareSplicingProfiles(C.m.NR.norm.exp, fem.exp_ASE)
-C.m.NR.Phi <- CalculatePhi(C.m.NR.v.Males_ase, C.m.NR.v.Fem_ase)
+C.m.NR.v.Fem_Osada <- compareSplicingProfiles(C.m.NR.norm.exp, fem.exp_Osada)
+C.m.NR.v.Fem_MCsim <- compareSplicingProfiles(C.m.NR.norm.exp, fem.exp_MCsim)
+
+C.m.NR.compare <- CompareDistances(C.m.NR.v.Males, C.m.NR.v.Fem)
+C.m.NR.compare_ase <- CompareDistances(C.m.NR.v.Males_ase, C.m.NR.v.Fem_ase)
+C.m.NR.compare_Osada <- CompareDistances(C.m.NR.v.Males_Osada, C.m.NR.v.Fem_Osada)
+C.m.NR.compare_MCsim<- CompareDistances(C.m.NR.v.Males_MCsim, C.m.NR.v.Fem_MCsim)
 #######
 
 
+Red.Af.NR.Af <- compareSplicingProfiles(A.f.Red.norm.exp, A.f.NR.norm.exp)
+Red.Af.NR.Am <- compareSplicingProfiles(A.f.Red.norm.exp, A.m.NR.norm.exp)
+Red.Af.Red.Am <- compareSplicingProfiles(A.f.Red.norm.exp, A.m.Red.norm.exp)
+Red.Am.NR.Af <- compareSplicingProfiles(A.m.Red.norm.exp, A.f.NR.norm.exp)
+Red.Am.NR.Am <- compareSplicingProfiles(A.m.Red.norm.exp, A.m.NR.norm.exp)
+NR.Af.NR.Am <- compareSplicingProfiles(A.f.NR.norm.exp, A.m.NR.norm.exp)
+Red.Am.Red.Af <- compareSplicingProfiles(A.m.Red.norm.exp, A.f.Red.norm.exp)
+NR.Am.Red.Af <- compareSplicingProfiles(A.m.NR.norm.exp, A.f.Red.norm.exp)
+NR.Am.NR.Af <- compareSplicingProfiles(A.m.NR.norm.exp, A.f.NR.norm.exp)
+
+mean(NR.Am.Red.Af$percent.dissim, na.rm = T)
+mean(Red.Am.NR.Am[Red.Am.NR.Am$FlyBaseID %in% ASE.sig.SSS,]$percent.dissim, na.rm = T)
+mean(Red.Af.NR.Af[Red.Af.NR.Af$FlyBaseID %in% ASE.sig.SSS,]$percent.dissim, na.rm = T)
+
+
+
+# A bunch of t-tests 
+# comparing % dissimilarity between population samples
+# THIS IS NOT A COMPARISON OF PHI!
+######
+# Compare Red vs NR 
+# to males
+sampleTypes <- c("A.m", "A.f", "C.m")
+t.test.table <- data.frame(sampleType = c("A.m", "A.m", "A.f", "A.f", "C.m", "C.m"),
+                           againstASE = rep(c("male", "female"), 3))
+p.val.list <- NULL
+avg.Red <- NULL
+avg.NR <- NULL
+diff <- NULL
+
+for(i in sampleTypes) {
+  Fem_RedDat <- get(paste0(i,".Red.v.Fem_ase"))
+  Fem_NRDat <- get(paste0(i,".NR.v.Fem_ase")) 
+  
+  Male_RedDat <- get(paste0(i,".Red.v.Males_ase"))
+  Male_NRDat <- get(paste0(i,".NR.v.Males_ase"))
+  
+  Fem_RedDat <- Fem_RedDat[Fem_RedDat$FlyBaseID %in% subset.sss,] 
+  Fem_NRDat <- Fem_NRDat[Fem_NRDat$FlyBaseID %in% subset.sss,]
+  
+
+  Male_RedDat <- Male_RedDat[Male_RedDat$FlyBaseID %in% subset.sss,]
+  Male_NRDat <- Male_NRDat[Male_NRDat$FlyBaseID %in% subset.sss,]
+  
+  print(length(!is.na(Fem_RedDat$percent.dissim)))
+  print(length(!is.na(Fem_NRDat$percent.dissim)))
+  print(length(!is.na(Male_RedDat$percent.dissim)))
+  print(length(!is.na(Male_NRDat$percent.dissim)))
+  
+
+  p.val.list <- c(p.val.list, t.test(Male_RedDat$percent.dissim, 
+                                     Male_NRDat$percent.dissim, paired = T)$p.value)
+  print(t.test(Male_RedDat$percent.dissim, 
+               Male_NRDat$percent.dissim, paired = T))
+  p.val.list <- c(p.val.list, t.test(Fem_RedDat$percent.dissim, 
+                                     Fem_NRDat$percent.dissim, paired = T)$p.value)
+  print(t.test(Fem_RedDat$percent.dissim, 
+               Fem_NRDat$percent.dissim, paired = T))
+  
+  avg.Red <- c(avg.Red, mean(Male_RedDat$percent.dissim, na.rm = T))
+  avg.Red <- c(avg.Red, mean(Fem_RedDat$percent.dissim, na.rm = T))
+  
+  avg.NR <- c(avg.NR, mean(Male_NRDat$percent.dissim, na.rm = T))
+  avg.NR <- c(avg.NR, mean(Fem_NRDat$percent.dissim, na.rm = T))
+  
+  diff <- c(diff, t.test(Male_RedDat$percent.dissim, 
+                         Male_NRDat$percent.dissim, paired = T)$estimate)
+  diff <- c(diff, t.test(Fem_RedDat$percent.dissim, 
+                         Fem_NRDat$percent.dissim, paired = T)$estimate)
+  
+}
+
+t.test.table$pval = p.val.list
+t.test.table$avg.Red = avg.Red
+t.test.table$avg.NR = avg.NR
+t.test.table$diff = diff
+t.test.table
+
+write.table(t.test.table, file = "Results/tmp.csv", sep = ",", quote = FALSE, row.names = F)
+
+######
+
+
 # figures and t-tests comparing (M-F)/(M+F) metric (PHI)
-# generates Suppl. Table (S...)
 ######
 splicing.MF.metric.plot <- function(RedData, NRData, 
                                     colour_red = "red3", colour_NR = "grey20", 
@@ -689,7 +1040,7 @@ splicing.MFdiff.plot <- function(RedData, NRData, plotCol, color){
           plot.margin = margin(6,6,6,6),
           axis.line.x = element_blank(),
           axis.line.y = element_blank())
-  
+
   return(splice.plot)
 }
 
@@ -710,14 +1061,14 @@ quad_count <- function(dat, x, y, lim = 5){
     dplyr::count(right = .[[x]] > 0, # on the right side of plot?
                  top = .[[y]] > 0, # on the top side of plot?
                  UP = (!top & !right & .[[x]] < .[[y]]) | # quadrant III x < y
-                   (top & right & .[[x]] > .[[y]])) %>%  # quadrant I x > y
+                      (top & right & .[[x]] > .[[y]])) %>%  # quadrant I x > y
     dplyr::mutate(perc = n/sum(n, na.rm = T)) %>% # calculate percentage of points relative to total number of points
     
     # this is another strange one for setting up the coordinates
     dplyr::mutate(conc = right & top | (!right & !top), # quadrant I and quadrant III (the concordant changes)
-                  dir_UP = conc & UP, # concordant changes where x > y
-                  dir_DOWN = conc & !UP) %>% # concordant changes where x < y
-    
+           dir_UP = conc & UP, # concordant changes where x > y
+           dir_DOWN = conc & !UP) %>% # concordant changes where x < y
+
     # TRUE = 1, FALSE = 0
     # specificy coordinates for texts on plot
     # specificy coordinates for texts on plot
@@ -725,24 +1076,24 @@ quad_count <- function(dat, x, y, lim = 5){
                                 ifelse(UP, lim/2*(2*(right-0.5)+(UP+0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)), 
                                        lim/2*(2*(.05)+(-0.5)+((conc-0.001)*0.5)-(dir_UP*1.5)+(dir_DOWN*0.5)))),
                   
-                  !!y := ifelse(!top, lim/2*(2*(top - 0.5)+(UP-0.5)), 
+                   !!y := ifelse(!top, lim/2*(2*(top - 0.5)+(UP-0.5)), 
                                 ifelse(UP, lim/2*(2*(top - 0.5)+(-0.5)), 
-                                       lim/2*(2*(top - 0.5)+(0.5))) )) %>%
-    # 
+                                          lim/2*(2*(top - 0.5)+(0.5))) )) %>%
+# 
     dplyr::mutate(!!x := ifelse((!right & top & !UP), .[[x]]*2,
-                                ifelse(right & !top & !UP, .[[x]]*2 , .[[x]])),
+                                  ifelse(right & !top & !UP, .[[x]]*2 , .[[x]])),
                   !!y := ifelse((!right & top & !UP), .[[y]]/1.5,
-                                ifelse(right & !top & !UP, .[[y]]/1.5, .[[y]])))
-  # 
-  #   # adjustments for males
-  #   dplyr::mutate(!!x := ifelse((!right & !top & UP), .[[x]]/1.5,
-  #                               ifelse((!right & !top & !UP), .[[x]]/1.2, .[[x]] )),
-  #                 !!y := ifelse((!right & !top & !UP), .[[y]]/1.3,
-  #                               ifelse((!right & !top & UP), .[[y]]/1.2, .[[y]] )))
+                                  ifelse(right & !top & !UP, .[[y]]/1.5, .[[y]])))
+# 
+#   # adjustments for males
+#   dplyr::mutate(!!x := ifelse((!right & !top & UP), .[[x]]/1.5,
+#                               ifelse((!right & !top & !UP), .[[x]]/1.2, .[[x]] )),
+#                 !!y := ifelse((!right & !top & !UP), .[[y]]/1.3,
+#                               ifelse((!right & !top & UP), .[[y]]/1.2, .[[y]] )))
   
-  
+    
   print(count)
-  
+    
   return(count)
 }
 
@@ -750,22 +1101,22 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
   col <- dat %>%
     # logical columns to define where the point is locates
     dplyr::mutate(right = .[[x]] > 0, # on the right part of plot?
-                  top = .[[y]] > 0, # on the top part of plot?
-                  # for the concordant quadrants (I & III)... 
-                  DOWN = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III where x > y
-                    top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
+           top = .[[y]] > 0, # on the top part of plot?
+           # for the concordant quadrants (I & III)... 
+           DOWN = !top & abs(.[[x]]) > abs(.[[y]]) | # quadrant III where x > y
+            top & abs(.[[x]]) > abs(.[[y]])) %>% # quadrant I where x > y
     # add the colour
     dplyr:: mutate(quadrant = ifelse(right & top | (!right & !top), 
-                                     ifelse(DOWN, colx, coly), 
-                                     colNonCon))
+                             ifelse(DOWN, colx, coly), 
+                             colNonCon))
   return(col)
 }
 
 
 splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
   tmp <- as_tibble(data.frame(FlyBaseID = RedData$FlyBaseID,
-                              Red = RedData[[plotCol]],
-                              NR = NRData[[plotCol]]))
+                    Red = RedData[[plotCol]],
+                    NR = NRData[[plotCol]]))
   
   tmp <- na.omit(tmp)
   
@@ -774,23 +1125,23 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
             max(tmp$Red, na.rm = T), 
             max(tmp$NR, na.rm = T), na.rm = T)
   lim = lim + 0.3
-  
+    
   # count the percentages
   quad_n <- quad_count(dat=tmp, x="Red", y="NR", lim=lim)
   # manage the colour of points
   # quad_col <- colour_quadrant(tmp, "Red", "NR", "grey2", "grey2", "grey20")
-  
+
   splice.plot <- ggplot(tmp, aes(x = Red, y = NR)) +
     geom_point(size = 2, shape = 16, alpha = 0.5, color = color) + # quad_col$quadrant,
     # #CC3399, #0072B2, #666666
-    
+
     # add lines to separate quadrants
     geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
     # geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
-    
+
     # add percentages
     # geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 8.5) +
     coord_cartesian(xlim=c(-lim, lim), ylim = c(-lim,lim)) +
@@ -800,7 +1151,7 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
     guides(color = guide_legend(override.aes = list(shape = c(NA, NA), # c(16, 16)
                                                     size = c(4, 4),
                                                     alpha = 1))) +
-    
+
     # some theme settings...
     theme_classic() +
     theme(legend.title = element_blank(),
@@ -820,136 +1171,148 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
   return(splice.plot)
 }
 
-
+    
 sampleTypes <- c("A.m", "A.f", "C.m")
-Phi.test.table <- data.frame(sampleType = sampleTypes) %>% 
-  mutate(Red.MvF.compare = paste0(sampleType,".Red.Phi"), 
-         NR.MvF.compare = paste0(sampleType,".NR.Phi")) 
+M.v.F.test.table <- data.frame(sampleType = sampleTypes) %>% 
+  mutate(Red.MvF.compare = paste0(sampleType,".Red.compare_ase"), 
+         NR.MvF.compare = paste0(sampleType,".NR.compare_ase")) 
 
-for(i in 1:dim(Phi.test.table)[1]){
-  RedData <- get(paste0(Phi.test.table[i,2]))
+for(i in 1:dim(M.v.F.test.table)[1]){
+  RedData <- get(paste0(M.v.F.test.table[i,2]))
   # subset appropriately
   RedData <- RedData[ 
     RedData$FlyBaseID %in% subset.sss,]
   
   # subset appropriately
-  NRData <- get(paste0(Phi.test.table[i, 3]))
+  NRData <- get(paste0(M.v.F.test.table[i, 3]))
   NRData <- NRData[
     NRData$FlyBaseID %in% subset.sss,]
   
-  Phi.test.table$N <- length(!is.na(RedData$phi))
-  Phi.test.table$avg.Red[i] <- mean(RedData$phi, na.rm = T)
+  M.v.F.test.table$N <- length(!is.na(RedData$M.dis.F))
+  M.v.F.test.table$avg.Red[i] <- mean(RedData$M.dis.F, na.rm = T)
   
-  Phi.test.table$avg.NR[i] <- mean(NRData$phi, na.rm = T)
+  M.v.F.test.table$avg.NR[i] <- mean(NRData$M.dis.F, na.rm = T)
   
   test <- merge(RedData, NRData, by = "FlyBaseID")
-  Phi.test.table$pval[i] <- t.test(test$phi.x, 
-                                     test$phi.y, paired = T)$p.value
-  Phi.test.table$diff[i] <- t.test(test$phi.x, 
-                                     test$phi.y, paired = T)$estimate
-  
+  M.v.F.test.table$pval[i] <- t.test(test$M.dis.F.x, 
+                                     test$M.dis.F.y, paired = T)$p.value
+  M.v.F.test.table$diff[i] <- t.test(test$M.dis.F.x, 
+                                     test$M.dis.F.y, paired = T)$estimate
+    
   rm(test)
+  
+  tmp.plot <- splicing.MF.diff.dot.plot(RedData = RedData, 
+                                        NRData = NRData, plotCol = "M.dis.F", color = "grey")
+  
+  assign(paste0(M.v.F.test.table[i,1],".compare.plot"), tmp.plot)
 }
 
-Phi.test.table
+A.m.compare.plot 
+A.f.compare.plot 
+C.m.compare.plot
 
-# write.table(Phi.test.table, file = "Results/tmp.csv", sep = ",", quote = FALSE, row.names = F)
+M.v.F.test.table
 
+write.table(M.v.F.test.table, file = "Results/tmp.csv", sep = ",", quote = FALSE, row.names = F)
+
+
+A.m.sig.sss.ase
+A.m.nonsig.sss.ase
 
 #######
 
 
-# Plotting Fig.5
+# final plots for manuscript
 ########
-Fig5A.A.m <- splicing.MF.diff.dot.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+A.m.compare.plot.Fig <- splicing.MF.diff.dot.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
                                                   A.m.NR.compare_ase[A.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
-                                                  plotCol = "phi", color = "#0072B2") +
+                                                  plotCol = "M.dis.F", color = "#0072B2") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
-Fig5A.C.m <- splicing.MF.diff.dot.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss_ASE$FlyBaseID[subset.sss_ASE$SBGE_comp=="c.ubg"],],
+C.m.compare.plot.Fig <- splicing.MF.diff.dot.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss_ASE$FlyBaseID[subset.sss_ASE$SBGE_comp=="c.ubg"],],
                                                   C.m.NR.compare_ase[C.m.NR.compare_ase$FlyBaseID %in% subset.sss_ASE$FlyBaseID[subset.sss_ASE$SBGE_comp=="c.ubg"],], 
-                                                  plotCol = "phi", color = "#666666") +
+                                                  plotCol = "M.dis.F", color = "#666666") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
-Fig5A.A.f <- splicing.MF.diff.dot.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
+A.f.compare.plot.Fig <- splicing.MF.diff.dot.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
                                                   A.f.NR.compare_ase[A.f.NR.compare_ase$FlyBaseID %in% subset.sss,], 
-                                                  plotCol = "phi", color = "#D55E00") +
+                                                  plotCol = "M.dis.F", color = "#D55E00") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
 
 
-Fig_5A <- ggarrange(NA,
-                    Fig5A.A.f + ggtitle(expression(bold("Exp. Females"))) +
+Fig5_main <- ggarrange(NA,
+                       A.f.compare.plot.Fig + ggtitle(expression(bold("Exp. Females"))) +
                          theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                                               axis.title.y = element_blank(),
+                                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
                                panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
                        NA,  
-                    Fig5A.A.m + ggtitle(expression(bold("Exp. Males"))) +
+                       A.m.compare.plot.Fig + ggtitle(expression(bold("Exp. Males"))) +
                          theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
+                                                axis.title.y = element_blank(),
                                plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
                                panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
                        NA, 
-                    Fig5A.C.m + ggtitle(expression(bold("Ctrl. Males"))) +
+                       C.m.compare.plot.Fig + ggtitle(expression(bold("Ctrl. Males"))) +
                          theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
+                                                axis.title.y = element_blank(),
                                plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
                                panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
-                       widths = c(0.025, 1, 0.05, 1, 0.05, 1),
-                       ncol = 6)
+          widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+          ncol = 6)
 
 
-Fig_5A <- annotate_figure(Fig_5A, left = text_grob(expression(bold(italic(phi)["NonRed"])), 
+fig_5A <- annotate_figure(Fig5_main, left = text_grob(expression(bold(italic(phi)["NonRed"])), 
                                                       rot = 90, size = 40),
                           bottom = text_grob(expression(bold(italic(phi)["Red"])), 
                                              size = 40))
 
 
-Fig5B.A.m <- splicing.MFdiff.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+A.m.diff.plot.Fig <- splicing.MFdiff.plot(A.m.Red.compare_ase[A.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
                                           A.m.NR.compare_ase[A.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#0072B2") +
+                                          plotCol = "M.dis.F", color = "#0072B2") +
   annotate("label", label = expression(atop(bar(x)*" = 0.049", italic("P")*" < 10"^-5*"***")), 
            x =  1.05, y = 315, size = 8.5, label.padding=unit(1, "lines"))
 
-Fig5B.A.f <- splicing.MFdiff.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
+A.f.diff.plot.Fig <- splicing.MFdiff.plot(A.f.Red.compare_ase[A.f.Red.compare_ase$FlyBaseID %in% subset.sss,],
                                           A.f.NR.compare_ase[A.f.NR.compare_ase$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#D55E00") +
+                                          plotCol = "M.dis.F", color = "#D55E00") +
   annotate("label", label = expression(atop(bar(x)*" = -0.008", italic("P")*" = 0.014"*"*")),
            x =  -1.05, y = 625, size = 8.5,  label.padding=unit(1, "lines"))
 
-Fig5B.C.m <- splicing.MFdiff.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
+C.m.diff.plot.Fig <- splicing.MFdiff.plot(C.m.Red.compare_ase[C.m.Red.compare_ase$FlyBaseID %in% subset.sss,],
                                           C.m.NR.compare_ase[C.m.NR.compare_ase$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#666666")+
+                                          plotCol = "M.dis.F", color = "#666666")+
   annotate("label", label = expression(atop(bar(x)*" = -0.015", italic("P")*" < 10"^-5*"***")), 
            x =  -1.05, y = 405, size = 8.5,  label.padding=unit(1, "lines"))
 
 
-Fig_5B <- ggarrange(NA,
-                       Fig5B.A.f + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
-                               panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
-                       NA,  
-                       Fig5B.A.m  + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
-                               panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
-                       NA, 
-                       Fig5B.C.m  + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
-                               panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
-                       widths = c(0.025, 1, 0.05, 1, 0.05, 1),
-                       ncol = 6)
+Fig5_main <- ggarrange(NA,
+                    A.f.diff.plot.Fig + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                            panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
+                    NA,  
+                    A.m.diff.plot.Fig  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
+                            panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
+                    NA, 
+                    C.m.diff.plot.Fig  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
+                            panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
+                    widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+                    ncol = 6)
 
-Fig_5B <- annotate_figure(Fig_5B, left = text_grob("Count", 
-                                                      rot = 90, size = 40),
-                          bottom = text_grob(expression(bold(italic(phi)["Red"]*" - "*italic(phi)["NonRed"])), 
-                                             size = 40))
+fig_5B <- annotate_figure(Fig5_main, left = text_grob("Count", 
+                                            rot = 90, size = 40),
+                bottom = text_grob(expression(bold(italic(phi)["Red"]*" - "*italic(phi)["NonRed"])), 
+                                   size = 40))
 
 
 
@@ -959,21 +1322,95 @@ pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig5_main.pdf",   # The direct
 
 # A.m.compare.plot
 
-ggarrange(Fig_5A, 
+ggarrange(fig_5A, 
           NA, 
-          Fig_5B, 
+          fig_5B, 
           nrow = 3, heights = c(1, 0.07, 1),
           labels = c("A)", NA, "B)"),
           font.label = list(size = 40))
+
+# ggarrange(C.m.splice_ase.sss.cor.plot.dist ,
+#           NA,
+#           C.m.splice_ase.not.sss.cor.plot.dist,
+#           heights = c(1, 0.05, 1),
+#           nrow = 3, labels = c("A)", NA, "B)"),
+#           font.label = list(size = 30))
+
+# ggarrange(C.m.splice_sdiu.q25, #+ coord_cartesian(xlim = c(-1,1)),
+#           NA,
+#           C.m.splice_sdiu.q50,# + coord_cartesian(xlim = c(-1,1)),
+#           NA, NA, NA,
+#           C.m.splice_sdiu.q75,# + coord_cartesian(xlim = c(-1,1)),
+#           NA,
+#           C.m.splice_sdiu.q100,# + coord_cartesian(xlim = c(-1,1)),
+#           heights = c(1, 0.05, 1),
+#           widths = c(1, 0.05, 1),
+#           nrow = 3, ncol = 3,
+#           labels = c("A)", NA, "B)",
+#                       NA, NA, NA,
+#                       "C)", NA, "D)"),
+#           font.label = list(size = 30))
+
+# plot(test[test$FlyBaseID %in% test.filter.25,]$percent.sim.x, 
+#      test[test$FlyBaseID %in% test.filter.25,]$percent.sim.y, xlab = "SSAV", ylab ="Osada")
+
 
 dev.off()
 
 ########
 
 
-# Plotting Fig.6B
+# delta phi Red vs NR
 ########
+deltaPhi.A.m <- merge(A.m.Red.compare_ase[,c("FlyBaseID", "M.dis.F")], 
+                      A.m.NR.compare_ase[,c("FlyBaseID", "M.dis.F")], by = "FlyBaseID")
+deltaPhi.A.m <- deltaPhi.A.m %>%
+  summarise(FlyBaseID, 
+            delta.A.m = M.dis.F.x - M.dis.F.y)
+head(deltaPhi.A.m)
+
+deltaPhi.A.f <- merge(A.f.Red.compare_ase[,c("FlyBaseID", "M.dis.F")], 
+                      A.f.NR.compare_ase[,c("FlyBaseID", "M.dis.F")], by = "FlyBaseID")
+deltaPhi.A.f <- deltaPhi.A.f %>%
+  summarise(FlyBaseID,
+            delta.A.f = M.dis.F.x - M.dis.F.y)
+
+deltaPhi.C.m <- merge(C.m.Red.compare_ase[,c("FlyBaseID", "M.dis.F")], 
+                      C.m.NR.compare_ase[,c("FlyBaseID", "M.dis.F")], by = "FlyBaseID")
+deltaPhi.C.m <- deltaPhi.C.m %>%
+  summarise(FlyBaseID,
+            delta.C.m = M.dis.F.x - M.dis.F.y)
+
+test <- merge(deltaPhi.A.f, deltaPhi.C.m, by = "FlyBaseID")
+plot(test$delta.A.f, test$delta.C.m, xlab = "deltaPhi Exp.Fem", ylab = "deltaPhi Ctrl.Male")
+plot_corr(dat = test, x = "delta.A.f", y = "delta.C.m", 
+          xlab = "deltaPhi Exp.Fem", ylab = "deltaPhi Ctrl.Male", 
+          colNonCon = "grey20", colx = "black", coly = "black", lim = 2, title = ""
+)
+
+test <- merge(deltaPhi.A.m, deltaPhi.C.m, by = "FlyBaseID")
+plot(test$delta.A.m, test$delta.C.m, xlab = "deltaPhi Exp.Male", ylab = "deltaPhi Ctrl.Male")
+plot_corr(dat = test, x = "delta.A.m", y = "delta.C.m", 
+          xlab = "deltaPhi Exp.Male", ylab = "deltaPhi Ctrl.Male", 
+          colNonCon = "grey20", colx = "black", coly = "black", lim = 2, title = ""
+)
+
+
+test <- merge(deltaPhi.A.m, deltaPhi.A.f, by = "FlyBaseID")
+plot_corr(dat = test, x = "delta.A.m", y = "delta.A.f", 
+          xlab = "deltaPhi Exp.Male", ylab = "deltaPhi Exp.Fem", 
+          colNonCon = "grey20", colx = "black", coly = "black", lim = 2, title = ""
+          )
+
+# things that are different between Red and NR females are largely NOT 
+# the things that are different between Red and NonRed males
+
+########
+
+
 # compare SSAV vs Controls
+# (Figure 6B)
+######
 A.m.C.m.Red <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
 A.m.C.m.NR <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
 test <- merge(A.m.C.m.Red, A.m.C.m.NR, by = "FlyBaseID")
@@ -995,20 +1432,138 @@ Figure_6B
 
 
 # Permute phi for A.m(Red-NR) vs C.m(Red-NR)
-A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.Phi$FlyBaseID,
-                            Phi.Red = A.m.Red.Phi$phi,
-                            Phi.NR = A.m.NR.Phi$phi)
-A.m.Red.vs.NR$diff.Am <- A.m.Red.vs.NR$Phi.Red - A.m.Red.vs.NR$Phi.NR
+A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.compare_ase$FlyBaseID,
+                                 M.dis.F.Red = A.m.Red.compare_ase$M.dis.F,
+                                 M.dis.F.NR = A.m.NR.compare_ase$M.dis.F)
+A.m.Red.vs.NR$diff.Am <- A.m.Red.vs.NR$M.dis.F.Red - A.m.Red.vs.NR$M.dis.F.NR
 head(A.m.Red.vs.NR)
 
-C.m.Red.vs.NR <- data.frame(FlyBaseID = C.m.Red.Phi$FlyBaseID,
-                            Phi.Red = C.m.Red.Phi$phi,
-                            Phi.NR = C.m.NR.Phi$phi)
-C.m.Red.vs.NR$diff.Cm <- C.m.Red.vs.NR$Phi.Red - C.m.Red.vs.NR$Phi.NR
+C.m.Red.vs.NR <- data.frame(FlyBaseID = C.m.Red.compare_ase$FlyBaseID,
+                            M.dis.F.Red = C.m.Red.compare_ase$M.dis.F,
+                            M.dis.F.NR = C.m.NR.compare_ase$M.dis.F)
+C.m.Red.vs.NR$diff.Cm <- C.m.Red.vs.NR$M.dis.F.Red - C.m.Red.vs.NR$M.dis.F.NR
 head(C.m.Red.vs.NR)
 
 test <- merge(A.m.Red.vs.NR, C.m.Red.vs.NR, by = "FlyBaseID")
 test <- na.omit(test)
 test <- test[test$FlyBaseID %in% subset.sss,]
 PairedTwoPerm(test, "diff.Am", "diff.Cm")
-########
+
+#######
+
+
+# blank figure 5 for presentation
+#######
+test <- data.frame(x = seq(-1,1, by= 0.2), y = seq(-1,1, by= 0.2))
+ggplot(test, aes(x,y)) + coord_cartesian(xlim = c(-1,1), ylim = c(-1,1)) +
+  # add lines to separate quadrants
+  geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+  geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
+  labs(x = expression(bold(italic(phi)*", Red")), y = expression(bold(italic(phi)*", NonRed"))) +
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  guides(color = guide_legend(override.aes = list(shape = c(NA, NA), # c(16, 16)
+                                                  size = c(4, 4),
+                                                  alpha = 1))) +
+  
+  # some theme settings...
+  theme_classic() +
+  theme(legend.title = element_blank(),
+        legend.position = c("None"),
+        legend.box.background = element_rect(),
+        legend.text = element_text(size = 20, color = "black"),
+        plot.tag = element_text(size = 20, color = "black"),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_text(size=30, margin = margin(10,0,0,0), color = "black"),
+        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6),
+        panel.border = element_rect(colour = "black", fill=NA, size=3),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank()
+  )
+#######
+
+
+
+
+# Looking at SSS vs SBGE
+#########
+# More SSS exons are female-biased?
+# seems to not be true here...
+MF.expressed <- jseq.ASE[!is.na(jseq.ASE$expr_M) & !is.na(jseq.ASE$expr_F) &
+                           jseq.ASE$FlyBaseID %in% filter.low.exp.genes.q25,]
+dim(MF.expressed)
+hist(MF.expressed[MF.expressed$SSS,]$log2FCvst.M.F., breaks = 100)
+length(MF.expressed[MF.expressed$SSS,]$FlyBaseID[MF.expressed$log2FCvst.M.F. < -0.5])
+length(MF.expressed[MF.expressed$SSS,]$FlyBaseID[MF.expressed$log2FCvst.M.F. > 0.5])
+
+
+test <- merge(male.exp_ASE[,c("FlyBaseID", "countBin", "glob.exp", "frac.exp.per.gene")], 
+              fem.exp_ASE[,c("FlyBaseID", "countBin", "glob.exp", "frac.exp.per.gene")], 
+              by = c("FlyBaseID", "countBin"))
+colnames(test)[3:6] <- c("glob.exp.M", "frac.exp.M", "glob.exp.F", "frac.exp.F")
+t.test(test$glob.exp.M, test$glob.exp.F, paired = T)
+sum(test$frac.exp.M < test$frac.exp.F, na.rm = T)
+sum(test$frac.exp.M > test$frac.exp.F, na.rm = T)
+
+test <- merge(male.exp_SinghAgrw[,c("FlyBaseID", "countBin", "glob.exp", "frac.exp.per.gene")], 
+              fem.exp_SinghAgrw[,c("FlyBaseID", "countBin", "glob.exp", "frac.exp.per.gene")], 
+              by = c("FlyBaseID", "countBin"))
+colnames(test)[3:6] <- c("glob.exp.M", "frac.exp.M", "glob.exp.F", "frac.exp.F")
+t.test(test[test$FlyBaseID %in% subset.sss,]$frac.exp.M, test[test$FlyBaseID %in% subset.sss,]$frac.exp.F, paired = T)
+sum(test[test$FlyBaseID %in% subset.sss,]$frac.exp.M < test[test$FlyBaseID %in% subset.sss,]$frac.exp.F, na.rm = T)
+sum(test[test$FlyBaseID %in% subset.sss,]$frac.exp.M > test[test$FlyBaseID %in% subset.sss,]$frac.exp.F , na.rm = T)
+hist(test$frac.exp.M - test$frac.exp.F, breaks = 100)
+
+ReadCountFilesCalcNumExons <- function(data.files, decoder.file){
+  count.file <- NULL
+  for(i in data.files){
+    tmp <- read.delim(i, header=F, sep = "\t")
+    count.file <- cbind(count.file, tmp[,2])
+  }
+  
+  countBins <- tmp %>% separate(V1, into = c("FlyBaseID", "countBin"), sep = ":")
+  count.file <- cbind(countBins[,1:2], count.file)
+  colnames(count.file) <- c("FlyBaseID", "countBin", decoder.file$unique.ID)
+  print(dim(count.file)) # check number of splice sites
+  
+  # exclude novel splice sites
+  count.file <- count.file %>% filter(!str_detect(countBin, "N") & !str_detect(countBin, "A"))
+  print(dim(count.file)) # check number of remaining splice sites
+  
+  count.file <- count.file %>% group_by(FlyBaseID) %>%
+    mutate(numExons = n())
+  
+  return(count.file)
+}
+
+numExons <- jseq.A.f.geno[,c(2,3)] %>% group_by(FlyBaseID) %>%
+  summarise(numExon = n())
+
+test <- merge(jseq.A.m.geno, numExons, by = c("FlyBaseID"))
+summary(glm(sig.hit ~ numExon, data= test, family = "binomial"))
+ggplot(test %>% mutate(prob=ifelse(sig.hit, 1, 0)), aes(numExon, prob)) + 
+  stat_smooth(formula = y ~ x, method = "glm", 
+              method.args = list(family = "binomial"))
+
+test <- merge(A.m.NR.compare_ase, numExons, by = c("FlyBaseID"))
+summary(glm(M.dis.F ~ numExon, data= test))
+ggplot(test, aes(numExon, M.sub.F)) + 
+  stat_smooth(formula = y ~ x, method = "glm", 
+              method.args = list(family = "gaussian"))
+
+
+# genes that are significant in A females tend to be also consistently dimorphic
+# genes that are significant in A males not associated with the subset of consistently dimorphic genes
+test <- numExons %>% 
+  dplyr::mutate(subset = ifelse(FlyBaseID %in% subset.sss, TRUE, FALSE),
+                sig.AS= ifelse(FlyBaseID %in% unique(c(A.m.sig.AS, A.f.sig.AS)), TRUE, FALSE))
+fisher.test(test$sig.AS, test$subset)
+# genes that are longer are more likely to be called significant, but they are also more likely to be
+# consistently dimorphic between different lab populations.
+summary(glm(subset.sss ~ numExon, data = test, family = "binomial"))
+##########

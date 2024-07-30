@@ -2,10 +2,13 @@
 #
 #                             Grieshop et al. 2023
 #             DsRed experimental evolution - transcriptomics analysis
-#            Correlation of Red/NR changes in SSAV vs Control samples
+#     Correlation of Red/NR changes in Experimental samples vs Control samples
 # 
 # 
 ###################################
+
+rm(list=ls())
+setwd("~/Desktop/UofT/SSAV_RNA/")
 
 # load packages
 #########
@@ -16,7 +19,6 @@ library(ggplot2)
 library(ggblend)
 library(ggpubr)
 #########
-
 
 
 # the two functions below are used in the corr plot function below
@@ -169,12 +171,11 @@ colnames(tmp.C.males) <- c("C.m.exp_geno", "C.m.se_geno", "C.m.padj", "FlyBaseID
 ########
 
 
-# plotting female candidate SA genes
+# plotting only female candidate SA genes
 ########
 
 # SSAV females vs Control males
 corr.plot <- merge(tmp.females, tmp.C.males, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ],
                    x = "f.exp_geno", y = "C.m.exp_geno", 
                    "black", "black", "grey65",
@@ -185,7 +186,6 @@ CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
 
 # SSAV females vs SSAV males
 corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID, ], 
                    "f.exp_geno", "m.exp_geno", 
                    "black", "black", "grey65",
@@ -197,12 +197,11 @@ AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
 ########
 
 
-# plotting male candidate (200 lowest p-val) SA genes
+# plotting only male candidate SA genes
 ########
 
 # SSAV males vs Control males
 corr.plot <- merge(tmp.males, tmp.C.males, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "C.m.exp_geno",  
                             "black", "black", "grey65",
@@ -213,7 +212,6 @@ CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
 
 # SSAV males vs SSAV females
 corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
-corr.plot <- merge(corr.plot, ASE, by = "FlyBaseID", all = T)
 AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID, ], 
                             "m.exp_geno", "f.exp_geno", 
                             "black", "black", "grey65",
