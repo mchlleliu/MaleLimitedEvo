@@ -98,41 +98,29 @@ SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
 
 # include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
-A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
-A.m.geno_ASE <- A.m.geno_ASE[!is.na(A.m.geno_ASE$Sig) & !is.na(A.m.geno_ASE$exp_SBGE_ase),]
-A.m.geno_ASE$SBGE_comp <- as.factor(A.m.geno_ASE$SBGE_comp)
-A.m.geno_ASE$SBGE_simp <- as.factor(A.m.geno_ASE$SBGE_simp)
-str(A.m.geno_ASE)
+A.m.geno <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno <- A.m.geno[!is.na(A.m.geno$Sig) & !is.na(A.m.geno$exp_SBGE_ase),]
+A.m.geno$SBGE_comp <- as.factor(A.m.geno$SBGE_comp)
+A.m.geno$SBGE_simp <- as.factor(A.m.geno$SBGE_simp)
+str(A.m.geno)
 
-A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
-A.f.geno_ASE <- A.f.geno_ASE[!is.na(A.f.geno_ASE$Sig) & !is.na(A.f.geno_ASE$exp_SBGE_ase),]
-A.f.geno_ASE$SBGE_comp <- as.factor(A.f.geno_ASE$SBGE_comp)
-A.f.geno_ASE$SBGE_simp <- as.factor(A.f.geno_ASE$SBGE_simp)
-str(A.f.geno_ASE)
+A.f.geno <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno <- A.f.geno[!is.na(A.f.geno$Sig) & !is.na(A.f.geno$exp_SBGE_ase),]
+A.f.geno$SBGE_comp <- as.factor(A.f.geno$SBGE_comp)
+A.f.geno$SBGE_simp <- as.factor(A.f.geno$SBGE_simp)
+str(A.f.geno)
 
 # Genes present in both SSAV males and SSAV females data
-SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
-SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
-SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
-SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
-str(SSAV.geno_ASE)
+SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$exp_SBGE_ase),]
+SSAV.geno$SBGE_comp <- as.factor(SSAV.geno$SBGE_comp)
+SSAV.geno$SBGE_simp <- as.factor(SSAV.geno$SBGE_simp)
+str(SSAV.geno)
 
-
-SSAV.geno_ASE_exp <- merge(SSAV.geno_ASE, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")])
-SSAV.geno_ASE_exp <- SSAV.geno_ASE_exp[!is.na(SSAV.geno_ASE_exp$log.avgExp.AdultLarva) &
-                                   !is.na(SSAV.geno_ASE_exp$Sig) & 
-                                    !is.na(SSAV.geno_ASE_exp$exp_SBGE_ase),]
-
-q <- quantile(SSAV.geno_ASE_exp$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
-SSAV.geno_ASE_exp_LOW <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva <= q[2],]
-SSAV.geno_ASE_exp_MED <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva > q[2] &
-                                             SSAV.geno_ASE_exp$log.avgExp.AdultLarva <= q[3],]
-SSAV.geno_ASE_exp_HI <- SSAV.geno_ASE_exp[SSAV.geno_ASE_exp$log.avgExp.AdultLarva > q[3],]
-dim(SSAV.geno_ASE_exp_MED)
 #########
 
 
-
+# Old code. Not used in any part of the manuscript.
 # Density plot functions
 ##########
 # TwoBootDens:
@@ -243,7 +231,6 @@ plotDens <- function(dat, bs_dat, diff_dat, x_col, groupBy, x_lab){
 
 ##########
 
-
 # Density plots
 ##########
 # Candidates vs non-candidate genes in SSAV males
@@ -294,8 +281,9 @@ fem_All <- plotDens(A.f.geno_ASE[!is.na(A.f.geno_ASE$exp_SBGE_ase) &
 ##########
 
 
+# Figure 2 plotting
 # Dot & whisker plot for proportion of candidates vs non-candidates per SBGE bin
-##########
+########
 
 propSBGE <- function(dat, SBGE_cat){
   total_All <- dim(dat)[1]
@@ -371,69 +359,87 @@ plotSBGEprop <- function(dat, SBGE_cat, xlab){
 
 
 
-propSBGE(SSAV.geno_ASE_exp_HI, "SBGE_comp")
-propSBGE(A.f.geno_ASE, "SBGE_comp")
-propSBGE(A.m.geno_ASE, "SBGE_comp")
+propSBGE(SSAV.geno, "SBGE_comp")
+propSBGE(A.f.geno, "SBGE_comp")
+propSBGE(A.m.geno, "SBGE_comp")
 
-bin_All <- plotSBGEprop(SSAV.geno_ASE, "SBGE_comp", "SBGE (ASE)")
-bin_All_LOW <- plotSBGEprop(SSAV.geno_ASE_exp_LOW, "SBGE_comp", "SBGE (ASE)")
-bin_All_MED <- plotSBGEprop(SSAV.geno_ASE_exp_MED, "SBGE_comp", "SBGE (ASE)") +   
+bin_All <- plotSBGEprop(SSAV.geno, "SBGE_comp", "SBGE (ASE)")
+
+bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (ASE)")
+bin_A.m <- plotSBGEprop(A.m.geno, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
+
+
+
+# comment in to save plots
+# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig2_main_filtered.pdf",   # The directory you want to save the file in
+#     width = 14, # 14 24 The width of the plot in inches
+#     height = 10) # 10 20 The height of the plot in inches
+# # ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
+# #           labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
+# #           widths = c(1, 0.05, 1),
+# #           heights = c(1, 0.05, 1),
+# #           ncol = 3, nrow = 3,
+# #           font.label = list(size = 30), hjust = -0.01)
+# 
+# bin_All + coord_cartesian(ylim = c(0,0.15))
+# # 
+# # ggarrange(bin_A.m, NA, bin_A.f,
+# #           labels = c("A)", NA, "B)"),
+# #           widths = c(1, 0.05, 1),
+# #           ncol = 3,
+# #           font.label = list(size = 30), hjust = -0.01)
+# dev.off()
+
+########
+
+
+
+# Analysis split based on expression levels
+########
+# load expression levels calculated in Singh & Agrawal (using SEBIDA data)
+SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SDIU)[2] <- "FlyBaseID"
+SSAV.geno <- merge(SSAV.geno, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")])
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$log.avgExp.AdultLarva) &
+                        !is.na(SSAV.geno$Sig) & 
+                         !is.na(SSAV.geno$exp_SBGE_ase),]
+
+q <- quantile(SSAV.geno$log.avgExp.AdultLarva, na.rm = T, probs = c(0, 1/3, 2/3, 1))
+SSAV.geno_exp_LOW <- SSAV.geno[SSAV.geno$log.avgExp.AdultLarva <= q[2],]
+SSAV.geno_exp_MED <- SSAV.geno[SSAV.geno$log.avgExp.AdultLarva > q[2] &
+                                     SSAV.geno$log.avgExp.AdultLarva <= q[3],]
+SSAV.geno_exp_HI <- SSAV.geno[SSAV.geno$log.avgExp.AdultLarva > q[3],]
+dim(SSAV.geno_exp_MED)
+
+rm(SDIU) # remove these from global environment
+
+bin_All_LOW <- plotSBGEprop(SSAV.geno_exp_LOW, "SBGE_comp", "SBGE (ASE)")
+bin_All_MED <- plotSBGEprop(SSAV.geno_exp_MED, "SBGE_comp", "SBGE (ASE)") +   
   scale_x_discrete(labels = c("FB", "UB", "MB", "H.MB"))
-bin_All_HI <- plotSBGEprop(SSAV.geno_ASE_exp_HI, "SBGE_comp", "SBGE (ASE)") + 
+bin_All_HI <- plotSBGEprop(SSAV.geno_exp_HI, "SBGE_comp", "SBGE (ASE)") + 
   coord_cartesian(ylim = c(0, 0.4))
 
 
 exp_levels_SBGE <- ggarrange(bin_All + theme(axis.title.x = element_blank(),
-                                            axis.title.y = element_blank()),
-                            ggarrange(bin_All_LOW + theme(axis.title.x = element_blank(),
+                                             axis.title.y = element_blank()),
+                             ggarrange(bin_All_LOW + theme(axis.title.x = element_blank(),
+                                                           axis.title.y = element_blank()), 
+                                       bin_All_MED + theme(axis.title.x = element_blank(),
+                                                           axis.title.y = element_blank()), 
+                                       bin_All_HI + theme(axis.title.x = element_blank(),
                                                           axis.title.y = element_blank()), 
-                                      bin_All_MED + theme(axis.title.x = element_blank(),
-                                                          axis.title.y = element_blank()), 
-                                      bin_All_HI + theme(axis.title.x = element_blank(),
-                                                         axis.title.y = element_blank()), 
-                                      ncol = 3),
-                            nrow = 2, heights = c(2, 1))
+                                       ncol = 3),
+                             nrow = 2, heights = c(2, 1))
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_SBGE_exp.pdf",   # The directory you want to save the file in
-    width = 14, # 12, 24, 20 The width of the plot in inches
-    height = 14) # 10, 20, 13 The height of the plot in inches
-
-annotate_figure(exp_levels_SBGE + theme(plot.margin = margin(10,10,10,0)), 
-                left = text_grob("freq",rot = 90, size = 40),
-                bottom = text_grob("Sex-biased gene expression", size = 40))
-dev.off()
-
-
-bin_A.f <- plotSBGEprop(A.f.geno_ASE, "SBGE_comp", "SBGE (ASE)")
-bin_A.m <- plotSBGEprop(A.m.geno_ASE, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
-
-##########
-
-
-
-
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig2_main_filtered.pdf",   # The directory you want to save the file in
-    width = 14, # 14 24 The width of the plot in inches
-    height = 10) # 10 20 The height of the plot in inches
-# ggarrange(bin_A.f, NA, bin_A.m, NA, NA, NA, fem_All, NA, male_All,
-#           labels = c("A)", NA, "B)", NA, NA, NA, "C)", NA, "D)"),
-#           widths = c(1, 0.05, 1),
-#           heights = c(1, 0.05, 1),
-#           ncol = 3, nrow = 3,
-#           font.label = list(size = 30), hjust = -0.01)
-
-bin_All + coord_cartesian(ylim = c(0,0.15))
+# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/test_SBGE_exp.pdf",   # The directory you want to save the file in
+#     width = 14, # 12, 24, 20 The width of the plot in inches
+#     height = 14) # 10, 20, 13 The height of the plot in inches
 # 
-# ggarrange(bin_A.m, NA, bin_A.f,
-#           labels = c("A)", NA, "B)"),
-#           widths = c(1, 0.05, 1),
-#           ncol = 3,
-#           font.label = list(size = 30), hjust = -0.01)
-dev.off()
+# annotate_figure(exp_levels_SBGE + theme(plot.margin = margin(10,10,10,0)), 
+#                 left = text_grob("freq",rot = 90, size = 40),
+#                 bottom = text_grob("Sex-biased gene expression", size = 40))
+# dev.off()
 
-##########
+#######
 
-
-# calculate average log2FC male female in our data and all 
-# figure 6 "Experimental vs. Control Difference: Red Males"

@@ -1,9 +1,10 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2024
 #                             Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
-#        Distribution of SA candidates by sex-bias - Cheng & Kirkpatrick model
+#                  Distribution of SA candidates by sex-bias
+#                         Figure 2, Figure S3, Figure S4
 # 
 # 
 ###################################
@@ -12,7 +13,6 @@
 # Or can be used with any data which have log2FC value of SBGE
 # Bins for SBGE categories should be defined first. 
 #     -> See External_data.R under "Get Mishra et al.'s data" for how to prepare the external dataset.
-
 rm(list=ls()) # Clears the environment
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
@@ -23,9 +23,6 @@ library(plyr)
 library(dplyr)
 library(broom)
 library(ggplot2)
-library(lmtest)
-library(splines)
-library(mgcv)
 ########
 
 # Get Mishra et al.'s data 
@@ -47,7 +44,7 @@ str(ASE)
 x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
 x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
 y0 = 1 # tolerance of middle bins ### I DONT GET THIS
-# xmid1 = (x1 + x2)/2
+# # xmid1 = (x1 + x2)/2
 
 # Simple (3 levels)
 # one level of female-biased gene expression
@@ -89,67 +86,174 @@ more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
 # 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
 ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
 str(ASE)
-rm(more.fbg, fbg, ubg, mbg, more.mbg)
-##########
 
+##########
 
 # Prepare plotting dataset 
 # (Run this first before anything else!!, make sure you have the correct files/path to them)
-########
+#########
 # load results if not loaded in env.
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
-# include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
-A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
-A.m.geno_ASE <- A.m.geno_ASE[!is.na(A.m.geno_ASE$Sig) & !is.na(A.m.geno_ASE$exp_SBGE_ase),]
-A.m.geno_ASE$SBGE_comp <- as.factor(A.m.geno_ASE$SBGE_comp)
-A.m.geno_ASE$SBGE_simp <- as.factor(A.m.geno_ASE$SBGE_simp)
-str(A.m.geno_ASE)
 
-A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
-A.f.geno_ASE <- A.f.geno_ASE[!is.na(A.f.geno_ASE$Sig) & !is.na(A.f.geno_ASE$exp_SBGE_ase),]
-A.f.geno_ASE$SBGE_comp <- as.factor(A.f.geno_ASE$SBGE_comp)
-A.f.geno_ASE$SBGE_simp <- as.factor(A.f.geno_ASE$SBGE_simp)
-str(A.f.geno_ASE)
+# include SBGE categories (using Mishra et al. dataset. Look at External_data.R)
+A.m.geno <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno <- A.m.geno[!is.na(A.m.geno$Sig) & !is.na(A.m.geno$exp_SBGE_ase),]
+A.m.geno$SBGE_comp <- as.factor(A.m.geno$SBGE_comp)
+A.m.geno$SBGE_simp <- as.factor(A.m.geno$SBGE_simp)
+str(A.m.geno)
+
+A.f.geno <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno <- A.f.geno[!is.na(A.f.geno$Sig) & !is.na(A.f.geno$exp_SBGE_ase),]
+A.f.geno$SBGE_comp <- as.factor(A.f.geno$SBGE_comp)
+A.f.geno$SBGE_simp <- as.factor(A.f.geno$SBGE_simp)
+str(A.f.geno)
 
 # Genes present in both SSAV males and SSAV females data
-SSAV.geno_ASE <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
-SSAV.geno_ASE <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$Sig) & !is.na(SSAV.geno_ASE$exp_SBGE_ase),]
-SSAV.geno_ASE$SBGE_comp <- as.factor(SSAV.geno_ASE$SBGE_comp)
-SSAV.geno_ASE$SBGE_simp <- as.factor(SSAV.geno_ASE$SBGE_simp)
-str(SSAV.geno_ASE)
+SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
+SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$exp_SBGE_ase),]
+SSAV.geno$SBGE_comp <- as.factor(SSAV.geno$SBGE_comp)
+SSAV.geno$SBGE_simp <- as.factor(SSAV.geno$SBGE_simp)
+str(SSAV.geno)
+
+#########
+
+
+
+# Figure 2 plotting
+# Dot & whisker plot for proportion of candidates vs non-candidates per SBGE bin
+########
+# function to count the number of DE genes each SBGE category
+propSBGE <- function(dat, SBGE_cat){
+  total_All <- dim(dat)[1]
+  total_Sig <- dim(dat[dat$Sig,])[1]
+  total_NS <- total_All - total_Sig
+  
+  total_SBGE <- dat %>% 
+    dplyr::group_by(.[[SBGE_cat]]) %>%
+    dplyr::summarise(SBGE_count = n()) %>%
+    dplyr::rename({{SBGE_cat}} := 1)
+  
+  fract <- dat %>% 
+    dplyr::group_by(.[[SBGE_cat]], Sig) %>%
+    dplyr::summarise(count = n()) %>%
+    dplyr::mutate(frac_Sig = ifelse(Sig, count/total_Sig, count/total_NS)) %>%
+    dplyr::rename({{SBGE_cat}} := 1) 
+  
+  fract <- merge(fract, total_SBGE, by = SBGE_cat)
+  prop_SIG <- sum(fract[fract$Sig,]$count)/sum(fract[fract$Sig,]$SBGE_count)
+  prop_NS <- sum(fract[!fract$Sig,]$count)/sum(fract[!fract$Sig,]$SBGE_count)
+  
+  fract <- fract %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(frac_by_SBGE_bin = count/SBGE_count,
+                  lower = list(binom.test(x=count, n=SBGE_count, p=ifelse(Sig, prop_SIG, prop_NS))), 
+                  upper = lower$conf.int[2], 
+                  lower = lower$conf.int[1])
+  
+  return(fract)
+}
+
+# plotting function
+plotSBGEprop <- function(dat, SBGE_cat, xlab){
+  
+  # calculate the proportion of genes for each SBGE category
+  plot_dat <- propSBGE(dat, SBGE_cat)
+  
+  # initialize new data frame to store confidence interval
+  prop_all <- data.frame(dim(dat[dat$Sig,])[1]/dim(dat)[1])
+  # calculate 95% confidence interval
+  prop_all$lower <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[1]
+  prop_all$upper <- binom.test(dim(dat[dat$Sig,])[1], dim(dat)[1])$conf.int[2]
+  
+  
+  plot_vec <- ggplot(plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "frac_by_SBGE_bin")) + 
+    geom_hline(yintercept = prop_all[,1],
+               linetype = "dashed", show.legend = TRUE, size = 0.75) +
+    annotate('ribbon', x = c(-Inf, Inf), ymin = prop_all$lower, ymax = prop_all$upper, 
+             alpha = 0.20, fill = 'grey30') +
+    geom_errorbar(ymin = plot_dat[plot_dat$Sig,]$lower, ymax = plot_dat[plot_dat$Sig,]$upper,
+                  width = 0.5, size = 1, color = "#009E73") +
+    geom_point(fill = "#009E73", color = "#009E73", size = 7) + 
+    labs(x = "Sex-biased Gene Expression", 
+         y = "Proportion of DE Genes") +
+    scale_x_discrete(labels = c("H.FB", "FB", "UB", "MB", "H.MB")) +
+    scale_y_continuous(limits = c(0, 0.20)) +
+    geom_text(data = plot_dat[plot_dat$Sig,], aes_string(x = SBGE_cat, y = "upper" , label = "count" ), 
+              size = 7.5, vjust = -0.7) +
+    theme_classic() +
+    theme(plot.title.position = c("panel"),
+          legend.title = element_blank(),
+          legend.position = c("bottom"),
+          legend.box.background = element_rect(),
+          legend.text = element_text(size = 20, color = "black"),
+          axis.text.x = element_text(size=20, margin = margin(5,0,5,0), color = "black"),
+          axis.text.y = element_text(size=20, margin = margin(0,5,0,0), color = "black"),
+          axis.title.x = element_text(size=30, margin = margin(10,0,10,0), color = "black"),
+          axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+          plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+          plot.margin = margin(6,6,6,6))
+  return(plot_vec)
+}
+
+
+# Print tables for the proportion DE genes in each SBGE category
+propSBGE(SSAV.geno, "SBGE_comp")
+propSBGE(A.m.geno, "SBGE_comp")
+propSBGE(A.f.geno, "SBGE_comp")
+
+# Fig 2
+bin_All <- plotSBGEprop(SSAV.geno, "SBGE_comp", "SBGE (ASE)")
+
+# Fig S3.A
+bin_A.m <- plotSBGEprop(A.m.geno, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
+
+# Fig S3.B
+bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (ASE)")
+
 
 ########
 
 
+# comment in to save plots
+pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig2_main_filtered.pdf",   # The directory you want to save the file in
+    width = 14, # 14 24 The width of the plot in inches
+    height = 10) # 10 20 The height of the plot in inches
 
-# Cheng & Kirkpatrick 2016 logistic regression & Twin Peaks model
+# main Figure 2
+bin_All + coord_cartesian(ylim = c(0,0.15))
+#
+# Figure S. 3
+# ggarrange(bin_A.m, NA, bin_A.f,
+#           labels = c("A)", NA, "B)"),
+#           widths = c(1, 0.05, 1),
+#           ncol = 3,
+#           font.label = list(size = 30), hjust = -0.01)
+dev.off()
+
+
+# Repeat analysis, but using Cheng & Kirkpatrick 2016 logistic regression & Twin Peaks model
 # convert Log2FC(M/F) to delta
 convert.Log2Sex.To.CKdelta <- function(x) (1-2^(-x))/(1+2^(-x))
-
-# plot distribution of SBGE values (log2FC) in SSAV population
-hist(A.f.geno_ASE$exp_SBGE_ase, breaks = 100)
-hist(A.m.geno_ASE$exp_SBGE_ase, breaks = 100)
-
 
 # fit cubic splines with GAM
 plotSplinesDelta <- function(df){
   gam_mod <- gam(I(Sig) ~ s(sapply(exp_SBGE_ase, FUN = convert.Log2Sex.To.CKdelta), k = 5, bs = "cs"),
-               data = df, method = "REML", family = "binomial")
+                 data = df, method = "REML", family = "binomial")
   print(summary(gam_mod))
   print(AIC(gam_mod))
   print(gam.check(gam_mod))
-
+  
   gam.plot <- plot(gam_mod, residuals = TRUE)
   gam.plot <- gam.plot[[1]] # just one smooth so select the first component
   sm_df <- as.data.frame(gam.plot[c("x", "se", "fit")])
-
+  
   ## plot
   return.plot <- ggplot(sm_df, aes(x = x, y = fit)) +
     geom_ribbon(aes(ymin = fit - se, ymax = fit + se, y = NULL),
-              alpha = 0.3) +
+                alpha = 0.3) +
     geom_line()  +
     labs(y = "Likelihood of Antagonism", x = "") +
     theme_classic() +
@@ -158,17 +262,17 @@ plotSplinesDelta <- function(df){
           axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
           axis.title.x = element_blank(),
           axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
-
-return(return.plot)
+  
+  return(return.plot)
 }
 
 # bootstrap fourth degree polynomial regression
 boot_CK_polynomial <- function(dat, boot_N, degree){
-
+  
   # convert to Cheng and Kirpatrick delta SBGE estimate
   dat <- dat %>%
     dplyr::mutate(delta = convert.Log2Sex.To.CKdelta(exp_SBGE_ase))
-
+  
   boot_pred <- NULL
   
   
@@ -183,7 +287,7 @@ boot_CK_polynomial <- function(dat, boot_N, degree){
     
     # predict using current model
     boot_pred <- rbind(boot_pred, 
-                      cbind(i, dat$delta, predict(mod_boot, newdata = dat, type = "response")))
+                       cbind(i, dat$delta, predict(mod_boot, newdata = dat, type = "response")))
   }
   
   colnames(boot_pred) <- c("bs", "delta", "Prob")
@@ -192,30 +296,30 @@ boot_CK_polynomial <- function(dat, boot_N, degree){
     dplyr::ungroup() %>%
     dplyr::group_by(delta) %>%
     dplyr::summarise(q05 = quantile(Prob, 0.025, na.rm = T),
-              q50 = quantile(Prob, 0.5, na.rm = T),
-              q95 = quantile(Prob, 0.975, na.rm =T))
+                     q50 = quantile(Prob, 0.5, na.rm = T),
+                     q95 = quantile(Prob, 0.975, na.rm =T))
   
   return(out_boot)
 }
 
 
-# plotting female CK plot with delta
+# only with data from Exp. female comparison
 ######
 # bootstrapped 4th degree polynomial version
-A.f.geno.reg_delta <- boot_CK_polynomial(A.f.geno_ASE, 1000, 4)
-SA_dist <- ggplot(A.f.geno.reg_delta) +
-  geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
-              size = 0.25, alpha = 0.7, fill = "grey")  +
-  geom_line(aes(x=delta, y=q50), size = 1) +
-  labs(y="P(Sexually Antagonistic)") +
-  theme_classic() +
-  theme(plot.title.position = c("panel"),
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black"))
+# A.f.geno.reg_delta <- boot_CK_polynomial(A.f.geno_ASE, 1000, 4)
+# SA_dist <- ggplot(A.f.geno.reg_delta) +
+#   geom_ribbon(aes(x= delta, ymin=q05, ymax=q95),
+#               size = 0.25, alpha = 0.7, fill = "grey")  +
+#   geom_line(aes(x=delta, y=q50), size = 1) +
+#   labs(y="P(Sexually Antagonistic)") +
+#   theme_classic() +
+#   theme(plot.title.position = c("panel"),
+#         axis.text.x = element_blank(),
+#         axis.text.y = element_text(size=18, margin = margin(0,5,0,0), color = "black"),
+#         axis.title.x = element_blank(),
+#         axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black"))
 
-# cubic spline version
+# cubic spline version (final version displayed in manuscript)
 SA_dist <- plotSplinesDelta(A.f.geno_ASE) 
 
 SBGE_dist <- ggplot(A.f.geno_ASE) + 
@@ -235,8 +339,8 @@ x4 <- max(which(datSBGE$data[[1]]$x <= .75))
 
 SBGE_dist <- SBGE_dist +  
   geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x1:x2],
-                                                    y=datSBGE$data[[1]]$y[x1:x2]),
-                                    aes(x=x, y=y), fill="grey36") +
+                            y=datSBGE$data[[1]]$y[x1:x2]),
+            aes(x=x, y=y), fill="grey36") +
   geom_area(data=data.frame(x=datSBGE$data[[1]]$x[x3:x4],
                             y=datSBGE$data[[1]]$y[x3:x4]),
             aes(x=x, y=y), fill="grey36")
@@ -249,7 +353,7 @@ Fig2_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.
 ######
 
 
-# plotting male CK plot delta
+# only with data from Exp. male comparison
 ######
 # bootstrapped 4th degree polynomial version
 # A.m.geno.reg_delta <- boot_reg_delta(A.m.geno_ASE, 1000, 4)
@@ -293,13 +397,13 @@ SBGE_dist <- SBGE_dist +
 
 
 Fig2_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
-                              SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
-                              nrow = 2, heights = c(1, 0.30),
-                              ncol = 2, widths = c(1, 0.01)) 
+                               SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
+                               nrow = 2, heights = c(1, 0.30),
+                               ncol = 2, widths = c(1, 0.01)) 
 ######
 
 
-# plotting all CK plot delta
+# combine genes from both assays
 ######
 # bootstrapped 4th degree polynomal version
 # SSAV.geno.reg_delta <- boot_reg_delta(SSAV.geno_ASE, 1000, 4)
@@ -343,18 +447,19 @@ SBGE_dist <- SBGE_dist +
 
 
 Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
-                              NA, NA,
+                               NA, NA,
                                SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)) +
-                                coord_cartesian(xlim=c(-1,1)),
+                                 coord_cartesian(xlim=c(-1,1)),
                                nrow = 3, heights = c(1, 0.005, 0.30), ncol = 2, widths = c(1, 0.05)) 
 
 ######
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.pdf",   # The directory you want to save the file in
-    width = 24, # 14 18 24 The width of the plot in inches
-    height = 20) # 10 20 20 The height of the plot in inches
-
+# Comment in to save plot (Fig. S4)
+# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.pdf",   # The directory you want to save the file in
+#     width = 24, # 14 18 24 The width of the plot in inches
+#     height = 20) # 10 20 20 The height of the plot in inches
+# 
 ggarrange(NA, Fig2_CKsuppl_all, NA,
           NA, NA, NA,
           NA, ggarrange(Fig2_CKsuppl_male, NA, Fig2_CKsuppl_fem,
@@ -365,60 +470,16 @@ ggarrange(NA, Fig2_CKsuppl_all, NA,
           nrow = 3, ncol = 3,
           heights = c(1.5, 0.05, 1), widths = c(0.05, 1, 0.05),
           font.label = list(size = 30), hjust = -0.01)
-
-# ggarrange(Fig2_CKsuppl_all, Fig2_CKsuppl_all.noSL,
-#           labels = c("A)", "B)"),
-#           nrow =2, heights = c(1, 1),
-#           font.label = list(size = 30), hjust = -0.01)
+# 
+# dev.off()
 
 
-dev.off()
 
-
-# polynomial models
-#####
-# Fit fourth-order polynomial logistic regression
-# only keep the genes that could be assayed in both males and females
-test <- SSAV.geno_ASE[!is.na(SSAV.geno_ASE$A.m.exp_geno) &
-                      !is.na(SSAV.geno_ASE$A.f.exp_geno),]
-
-model6 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 6, raw = TRUE), data = test, family = "binomial")
-model5 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 5, raw = TRUE), data = test, family = "binomial")
-model4 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 4, raw = TRUE), data = test, family = "binomial")
-model3 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 3, raw = TRUE), data = test, family = "binomial")
-model2 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 2, raw = TRUE), data = test, family = "binomial")
-model1 <- glm(Sig ~ poly(exp_SBGE_ase, degree = 1, raw = TRUE), data = test, family = "binomial")
-model0 <- glm(Sig ~ 1, data = test, family = "binomial") # null model
-
-lrtest(model2, model4) # compare quadratic (one peak) vs quartic (two peaks) model
-AIC.vec = AIC(model0, model1, model2, model3, model4, model5, model6)
-plot(x=seq(0,6,by=1), y=AIC.vec$AIC) # 4th seems to be the best fit
-
-# requirement "0" for Twin Peaks
-# Does model 4 have the best AIC?
-TP.requirement0 = AIC.vec[5,2] == min(AIC.vec$AIC)
-
-# using log2FC SBGE. There is a twin peaks pattern, 
-# but NOT at moderate FB, more like quite strong FB...
-ggplot(test %>% mutate(prob=ifelse(Sig, 1, 0))) + 
-  stat_smooth(aes(exp_SBGE_ase, prob), formula = y ~ poly(x, degree = 4, raw = TRUE), 
-              method = "glm", method.args = list(family = "binomial")) 
-
-# using Cheng & Kirkpatrick's measure of SBGE (delta),
-# no Twin Peaks pattern. 
-# There seems to be an aggregation of genes with higher SBGE values at both ends,
-# thus causing the peaks at -1 and 1
-ggplot(test %>% mutate(prob=ifelse(Sig, 1, 0))) + 
-  stat_smooth(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta), prob), 
-              formula = y ~ poly(x, degree = 4, raw = TRUE), 
-              method = "glm", method.args = list(family = "binomial"), se = T )
-
-
-######
-
-
-# permute SBGE to test for twinPeaks pattern
-# function to test for twinPeaks
+# Function to test for twinPeaks requirements as stated in Cheng and Kirkpatrick (2016)
+# (0. Fit with 4th degree polynomial should be better than with a quadratic model)
+# 1. The quartic model fits the data better than the null model
+# 2. Is the coefficient negative for the 4th order negative?
+# 3. Check if maxima and minima are real and within bounds
 twinPeaks <- function(dat){
   dat <- dat %>%
     dplyr::mutate(delta = convert.Log2Sex.To.CKdelta(exp_SBGE_ase))
@@ -472,13 +533,13 @@ twinPeaks <- function(dat){
   return(AllRequirementsMet)
 }
 
-# permute the twinPeaks test n times
+# permute the data and test for twinPeaks pattern n number of times
 PermuteTP <- function(dat, perm_N){
   
   print(twinPeaks(dat))
   
   fracTP <- NULL # initialize data frame to store results
-    
+  
   n1 <- dim(dat[dat$Sig,])[1] # number of significant/candidate genes
   n2 <- dim(dat[!dat$Sig,])[1] # number of non-significant/non-candidate genes
   
@@ -495,6 +556,7 @@ PermuteTP <- function(dat, perm_N){
   
   return((sum(fracTP))/(perm_N))
 }
+
 
 perm_A.f <- PermuteTP(A.f.geno_ASE, 10)
 perm_A.m <- PermuteTP(A.m.geno_ASE, 10)

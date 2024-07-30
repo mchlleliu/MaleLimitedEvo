@@ -8,6 +8,8 @@
 # 
 ###################################
 
+# this code file is not important and is not part of the final analysis
+
 require(VennDiagram)
 require(grDevices)
 require(dplyr)
@@ -30,7 +32,7 @@ jseq.ASE = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.t
 
 ### prep data
 ########
-# Assign SDIU and non-SDIU genes
+# Assign DS and non-DS genes
 jseq.C.m.geno <- jseq.C.m.geno %>% 
   dplyr::mutate(sig.hit = ifelse(geneWisePadj <= FDRThreshold, TRUE, FALSE))
 

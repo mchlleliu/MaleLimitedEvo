@@ -10,11 +10,13 @@
 library(clipr)
 library(dplyr)
 library(readxl)
+library(gprofiler2)
 
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
-# Use gProfiler
-# Or use GOrilla to set background genes
+# use GOrilla: https://cbl-gorilla.cs.technion.ac.il/ 
+# or gprofiler2
+
 # Load results
 ######
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
@@ -25,18 +27,26 @@ A.f.geno <- merge(A.f.geno, Chrs, by = "FlyBaseID")
 A.m.geno <- merge(A.m.geno, Chrs, by = "FlyBaseID")
 SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID")
 
-# only keep concordant changes
+
+# jseq.A.f.geno <- read.delim("Results/jseq.All.geno.txt")
+
+# only keep changes concordant in males and in females.
 SSAV.geno.con <- SSAV.geno[(SSAV.geno$A.f.exp_geno > 0 & SSAV.geno$A.m.exp_geno > 0) |
                             (SSAV.geno$A.f.exp_geno < 0 & SSAV.geno$A.m.exp_geno < 0) |
                              (is.na(SSAV.geno$A.f.exp_geno) | is.na(SSAV.geno$A.m.exp_geno)) &
                              !(is.na(SSAV.geno$A.f.exp_geno) & is.na(SSAV.geno$A.m.exp_geno)),]
+######
 
 
-# AS genes
+# Differentially spliced genes
+######
+# get list of all candidate DS genes
 target <- unique(c(jseq.A.f.geno$FlyBaseID[!is.na(jseq.A.f.geno$sig.hit) & jseq.A.f.geno$sig.hit]),
                  jseq.A.m.geno$FlyBaseID[!is.na(jseq.A.m.geno$sig.hit) & jseq.A.m.geno$sig.hit])
+# get list of all other genes 
 background <- unique(c(jseq.A.f.geno$FlyBaseID, jseq.A.m.geno$FlyBaseID))
 background <- background[!background %in% target]
+# copy and use for g
 write_clip(target)
 length(target)
 write_clip(background)
@@ -72,8 +82,9 @@ target <- na.omit(SSAV.geno.con[SSAV.geno.con$Sig &
                                   (SSAV.geno.con$A.m.exp_geno < 0 & SSAV.geno.con$A.f.exp_geno < 0),]$FlyBaseID)
 write_clip(target)
 length(target)
+
 background <- na.omit(SSAV.geno$FlyBaseID[!SSAV.geno$FlyBaseID %in% target])
-write_clip(background)
+write_clip(SSAV.geno$FlyBaseID)
 length(background)
 
 

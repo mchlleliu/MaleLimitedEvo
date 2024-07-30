@@ -7,6 +7,9 @@
 # 
 ###################################
 
+rm(list=ls()) # Clears the environment
+setwd("~/Desktop/UofT/SSAV_RNA/")
+
 # Packages
 #########
 library(readxl)
@@ -19,8 +22,50 @@ library(ggpubr)
 library(ggstatsplot)
 #########
 
+# Get chromosome locations  
+##########
+
+all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
+colnames(all.genes) = c("FlyBaseID")
+
+Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Xchr) = c("FlyBaseID")
+Xchr$Chr <- rep("X", dim(Xchr)[1])
+
+Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Ychr) = c("FlyBaseID")
+Ychr$Chr <- rep("Y", dim(Ychr)[1])
+
+
+chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2L) = c("FlyBaseID")
+chr2L$Chr <- rep("2L", dim(chr2L)[1])
+chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2R) = c("FlyBaseID")
+chr2R$Chr <- rep("2R", dim(chr2R)[1])
+# 
+chr2 <- rbind(chr2L, chr2R)
+chr2$Chr <- rep("2", dim(chr2)[1])
+
+chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3L) = c("FlyBaseID")
+chr3L$Chr <- rep("3L", dim(chr3L)[1])
+chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3R) = c("FlyBaseID")
+chr3R$Chr <- rep("3R", dim(chr3R)[1])
+#
+chr3 <- rbind(chr3L, chr3R)
+chr3$Chr <- rep("3", dim(chr3)[1])
+
+Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
+Chrs$Chr <- as.factor(Chrs$Chr)
+
+Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
+Chrs_All$Chr <- as.factor(Chrs_All$Chr)
+##########
+
 # Prepare dataset
-#########
+########
 # load results if not loaded in env.
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv", header = T, sep = "\t")
 
@@ -30,26 +75,74 @@ SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]
 dim(SSAV.geno[!is.na(SSAV.geno$Sig),])
 
 # AS candidates
-AS.candidates <- unique(c(jseq.A.f.geno$FlyBaseID[jseq.A.f.geno$sig.hit], 
-                          jseq.A.m.geno$FlyBaseID[jseq.A.m.geno$sig.hit]))
-AS.background <- unique(c(jseq.A.f.geno$FlyBaseID, 
-                          jseq.A.m.geno$FlyBaseID))
-dim(jseq.All.geno)
-jseq.All.geno_Chr <- merge(jseq.All.geno, Chrs, by = "FlyBaseID") %>% 
-  dplyr::mutate(Sig = ifelse(FlyBaseID %in% AS.candidates, TRUE, FALSE))
+jseq.All.geno <- read.delim(file="Results/jseq.All.geno.txt", sep = "\t", header = T)
+jseq.All.geno <- merge(jseq.All.geno, Chrs, by = "FlyBaseID") 
 
-test_df <- merge(jseq.All.geno_Chr, SSAV.geno, by ="FlyBaseID", all = T)
+
+# combined all candidates
+test_df <- merge(jseq.All.geno[,c("FlyBaseID", "Sig")], 
+                 SSAV.geno[,c("FlyBaseID", "Sig")], 
+                 by ="FlyBaseID", all = T)
 str(test_df)
 test_df <- test_df[!(is.na(test_df$Sig.x) & is.na(test_df$Sig.y)),]
-test_df <- test_df %>% 
-  dplyr::mutate(Sig = ifelse((!is.na(Sig.x) & Sig.x), TRUE, 
+test_df <- test_df %>%
+  dplyr::mutate(Sig = ifelse((!is.na(Sig.x) & Sig.x), TRUE,
                              ifelse(!is.na(Sig.y) & Sig.y, TRUE, FALSE)))
-dim(test_df[is.na(test_df$Sig),])
-dim(test_df)
-
-
-SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
+colnames(test_df) <- c("FlyBaseID", "Sig.DS", "Sig.DE", "Sig")
+str(test_df)
 #########
+
+
+TestEnrichment <- function(data, df1 = "Sig", df2, xlab = "DE", ylab){
+  test <- fisher.test(x = data[[df1]], y = data[[df2]])
+  print(test)
+  
+  # kinda impractical but can't figure out how to 
+  #     get ggbarstats to work with strings... alas
+  colnames(data)[colnames(data) == paste0(df1)] = "df1"
+  colnames(data)[colnames(data) == paste0(df2)] = "df2"
+  
+  mos_plot <- ggbarstats(
+    data, df2, df1,
+    results.subtitle = FALSE, # include fisher's exact test results
+    subtitle = paste0(
+      "Fisher's exact test", ", p-value = ",
+      ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
+    ),
+    label = "both", # use both percentage and count as labels, 
+    perc.k = 2, # include 2 decimal points in perc
+    xlab = NULL
+  ) +
+    # some plot and theme settings
+    scale_fill_manual(labels = c(paste0(ylab), paste0("not ",ylab)),
+                      values = c("purple3", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
+    scale_x_discrete(labels = c(paste0("not",xlab), paste0(xlab))) +
+    theme(plot.title.position = c("panel"),
+          legend.title = element_blank(),
+          legend.position = c("bottom"),
+          legend.box.background = element_rect(),
+          legend.text = element_text(size = 20, color = "black"),
+          axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+          axis.text.y = element_text(size=10, margin = margin(0,5,0,0), color = "black"),
+          axis.title.x = element_blank(),
+          axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
+          plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+          plot.margin = margin(6,6,6,6)
+    )
+  
+  # get the contingency table
+  plot.data <- mos_plot$data[,1:4]
+  # rename columns appropriately
+  colnames(plot.data)[colnames(plot.data) == "df1"] = paste0(xlab)
+  colnames(plot.data)[colnames(plot.data) == "df2"] = paste0(df2)
+  
+  # assign new object in parent env
+  assign(paste0(xlab,".vs.",ylab,".data"), plot.data, envir = parent.frame())
+  
+  # return the plot
+  return(mos_plot)
+}
+
 
 
 # Innocenti and Morrow (2010)
@@ -58,54 +151,26 @@ SSAV.geno_Chr2 <- SSAV.geno[SSAV.geno$Chr == "2",]
 InnoMorrow_SBGE <- read.delim("Data/InnoMorrow.SBGE.tsv")
 str(InnoMorrow_SBGE)
 
+# combine InnoMorrow status with SSAV dataset
 SSAV.geno <- SSAV.geno %>%
   dplyr::mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
-
-jseq.All.geno_Chr <- jseq.All.geno_Chr %>% 
+jseq.All.geno <- jseq.All.geno %>% 
   dplyr::mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
-
-# combine InnoMorrow status with SSAV dataset
 test_df <- test_df %>% 
   mutate(IsInnoMorr = FlyBaseID %in% InnoMorrow_SBGE$FlyBaseID[InnoMorrow_SBGE$Sig])
+rm(InnoMorrow_SBGE)
 
-test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsInnoMorr)
-test
-test <- fisher.test(x = jseq.All.geno_Chr$Sig, y = jseq.All.geno_Chr$IsInnoMorr)
-test
-test <- fisher.test(x = tmp.JS.table$sig.hit, y = tmp.JS.table$DE.Sig)
-test
+# Only DE data
+DE.vs.InnoMorr <- TestEnrichment(SSAV.geno, df2 = "IsInnoMorr", xlab = "DE", ylab = "InnoMorr")
+DE.vs.InnoMorr.data
 
-# enrichment for all genes in SSAV males and females, vs Innocenti & Morrow all genes
-mos_plot_InnoMorr
+# Only DS data
+DS.vs.InnoMorr <- TestEnrichment(jseq.All.geno, df2 = "IsInnoMorr", xlab = "DS", ylab = "InnoMorr")
+DS.vs.InnoMorr.data
 
-ggbarstats(
-  tmp.JS.table, DE.Sig, sig.hit,
-  results.subtitle = FALSE, label = "both",
-  subtitle = paste0(
-    "Fisher's exact test", ", p-value = ",
-    ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
-  ), 
-  xlab = NULL
-) +
-  scale_fill_manual(labels = c("DE", "not DE"),
-                    values = c("purple3", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
-  scale_x_discrete(labels = c("Background", "DS")) +
-  theme(plot.title.position = c("panel"),
-        legend.title = element_blank(),
-        legend.position = c("bottom"),
-        #legend.justification = c("right", "bottom"),
-        #legend.box.just = "left",
-        #legend.box.background = element_rect(),
-        legend.box.background = element_rect(),
-        #legend.box.margin = margin(4, 6, 6, 6),
-        legend.text = element_text(size = 20, color = "black"),
-        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
-        axis.text.y = element_text(size=10, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
-        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)
-  )
+# all DE and DS results
+SA.vs.InnoMorr <- TestEnrichment(test_df, df2 = "IsInnoMorr", xlab = "SA", ylab = "InnoMorr")
+SA.vs.InnoMorr.data
 
 ##########
 
@@ -117,68 +182,32 @@ Ruzicka <- read_excel("~/Desktop/UofT/SSAV_RNA/Data/Ruzicka_SA_genes.xlsx")
 colnames(Ruzicka) <- c("FlyBaseID", "FlyBaseName", "Chr", "SA_miss", 
                        "SA_nonmiss", "NSA_miss", "NSA_nonmiss")
 
-
 SSAV.geno <- SSAV.geno %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
-jseq.All.geno_Chr <- jseq.All.geno_Chr %>% 
+jseq.All.geno <- jseq.All.geno %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
-
-
-
-# no difference if only looking at Chr2 either.
-SSAV.geno_Chr2 <- SSAV.geno_Chr2 %>% 
-  mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
-
 test_df <- test_df %>% 
   mutate(IsRuz = FlyBaseID %in% Ruzicka$FlyBaseID)
 
-test <- fisher.test(x = SSAV.geno$Sig, y = SSAV.geno$IsRuz)
-test
-test <- fisher.test(x = jseq.All.geno_Chr$Sig, y = jseq.All.geno_Chr$IsRuz)
-test
-test <- fisher.test(x = test_df$Sig, y = test_df$IsRuz)
-test
+rm(Ruzicka)
 
-# enrichment for Chr 2 genes in SSAV males and females, vs Ruzicka Chr 2 genes
-ggbarstats(
-  test_df, IsRuz, Sig,
-  results.subtitle = FALSE, label = "both",
-  subtitle = paste0(
-    "Fisher's exact test", ", p-value = ",
-    ifelse(test$p.value < 0.001, "< 0.001", round(test$p.value, 3))
-  ), 
-  xlab = NULL
-) +
-  scale_fill_manual(labels = c("in_Ruz", "not_in_Ruz"),
-                    values = c("darkorchid4", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
-  scale_x_discrete(labels = c("Background", "Candidates")) +
-  theme(plot.title.position = c("panel"),
-        legend.title = element_blank(),
-        legend.position = c("bottom"),
-        #legend.justification = c("right", "bottom"),
-        #legend.box.just = "left",
-        #legend.box.background = element_rect(),
-        legend.box.background = element_rect(),
-        #legend.box.margin = margin(4, 6, 6, 6),
-        legend.text = element_text(size = 20, color = "black"),
-        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
-        axis.text.y = element_text(size=10, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
-        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)
-  )
+# Only DE data
+DE.vs.Ruz <- TestEnrichment(SSAV.geno, df2 = "IsRuz", xlab = "DE", ylab = "Ruz")
+DE.vs.Ruz.data
 
+# Only DS data
+DS.vs.Ruz <- TestEnrichment(jseq.All.geno, df2 = "IsRuz", xlab = "DS", ylab = "Ruz")
+DS.vs.Ruz.data
 
-# enrichment for all genes in SSAV males and females, vs Ruzicka all genes
-mos_plot_Ruz
-mos_plot_Ruz_Chr2
-
+# all DE and DS results
+SA.vs.Ruz <- TestEnrichment(test_df, df2 = "IsRuz", xlab = "SA", ylab = "Ruz")
+SA.vs.Ruz.data
 ##########
 
 
 
 # Wong and Holman (2023)
+# MESSY. NOT CLEANED BCS NOT INCLUDED IN FINAL RESULT
 #########
 # Get Wong & Holman TWAS SA candidate genes
 Wong_Holman <- read.csv(file="Data/Wong_Holman_TWAS.csv", header = TRUE)
@@ -237,9 +266,10 @@ mos_plot_Wong <- ggbarstats(
 
 
 # Chloe's genomics candidates
+# MESSY. NOT CLEANED BCS NOT INCLUDED IN FINAL RESULT
 ##########
-# Get SSAV candidates from genomics data
-SSAV_chloe <- read.delim("Data/SSAV_genomics_candidates_list.txt", header = TRUE)
+# # Get SSAV candidates from genomics data
+# SSAV_chloe <- read.delim("Data/SSAV_genomics_candidates_list.txt", header = TRUE)
 
 # New candidates
 SSAV_chloe <- read.csv("Data/SSAV_cand_NEW.csv", header = TRUE)

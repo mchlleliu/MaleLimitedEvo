@@ -7,6 +7,8 @@
 # 
 ###################################
 
+rm(list=ls())
+setwd("~/Desktop/UofT/SSAV_RNA/")
 
 # load packages
 #########
@@ -20,15 +22,79 @@ library(ggrepel)
 library(ggblend)
 #########
 
+
+# Get Mishra et al.'s data for SBGE estimates
+##########
+
+ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
+# Grab the desired variables from there
+ASE <- data.frame(cbind(ASE$log2FoldChange,
+                        ASE$lfcSE,
+                        ASE$FlyBaseID))
+colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
+# fix formatting
+ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
+ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
+str(ASE)
+
+
+# Define three levels of SBGE categorization 
+x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
+x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
+y0 = 1 # tolerance of middle bins ### I DONT GET THIS
+# # xmid1 = (x1 + x2)/2
+
+# Simple (3 levels)
+# one level of female-biased gene expression
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
+# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
+ASE <- rbind(fbg, mbg, ubg)
+str(ASE)
+
+# Complex (5 levels)
+more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
+more.fbg <- ASE[more.fbg.keep,]
+more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
+#
+fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
+fbg <- ASE[fbg.keep,]
+fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
+# one unbiased category
+ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
+ubg <- ASE[ubg.keep,]
+ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
+# two levels of male-biased gene expression
+mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
+mbg <- ASE[mbg.keep,]
+mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
+#
+more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
+more.mbg <- ASE[more.mbg.keep,]
+more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
+# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
+ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
+str(ASE)
+
+##########
+
+
 # Load & set up plotting datasets
 ########
-# Load dataset if not yet in env
+# Load data sets if not yet in env
 tmp.Red <- read.delim("Results/Red.m.trt_raw.tsv")
-tmp.Red <- tmp.Red[!tmp.Red$FlyBaseID %in% DsRed_genes$V1,]
 colnames(tmp.Red) <- c("Red.exp_trt", "Red.se_trt", "Red.padj", "FlyBaseID")
 
 tmp.NR <- read.delim("Results/NR.m.trt_raw.tsv")
-tmp.NR <- tmp.NR[!tmp.NR$FlyBaseID %in% DsRed_genes$V1,]
 colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID")
 
 corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
@@ -115,10 +181,10 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   # count the percentages
   
-  # comment in if plotting figure 6
-  dat[[x]] = abs(dat[[x]])
-  dat[[y]] = abs(dat[[y]])
-  
+  # # comment in if plotting figure 6
+  # dat[[x]] = abs(dat[[x]])
+  # dat[[y]] = abs(dat[[y]])
+  # 
   quad_n <- quad_count(dat, x, y, lim)
   # manage the colour of points
   quad_col <- colour_quadrant(dat, x, y, colx, coly, colNonCon)
@@ -127,11 +193,11 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
     geom_point(size = 2, shape = 16, alpha = 0.5, color = quad_col$quadrant) +  
     
     # add lines to separate quadrants
-    # geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
-    # geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
-    # geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+    geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype="solid", color = "black") +
+    geom_hline(yintercept = 0,  size = 0.5, linetype="solid", color = "black") +
+    geom_vline(xintercept = 0,  size = 0.5, linetype="solid", color = "black") +
     geom_abline(intercept = 0, slope = 1,  size = 0.5, linetype="dashed", color = "black") +
-    # geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
+    geom_abline(intercept = 0, slope = -1,  size = 0.5, linetype="dashed", color = "black") +
     
     # add percentages
     geom_text(aes(label = paste(round(perc*100,digits=0),"%",sep="")), data = quad_n, size = 10) +
@@ -177,7 +243,9 @@ concordant <- corr.plot[!is.na(corr.plot$Red.exp_trt) & !is.na(corr.plot$NR.exp_
 hist(concordant$Red.exp_trt - concordant$NR.exp_trt)
 t.test(concordant$Red.exp_trt, concordant$NR.exp_trt, paired = T)
 t.test(abs(corr.plot$Red.exp_trt),abs(corr.plot$NR.exp_trt), paired = T)
-all_RedvNR <- plot_corr(concordant, 
+
+
+Figure_6A <- plot_corr(concordant, 
                         "Red.exp_trt", "NR.exp_trt", 
                         "red3", "grey9", "darkgrey",
                         "SSAV/Control in Red males", 
@@ -233,7 +301,7 @@ more_mbg <- plot_corr(corr.plot[corr.plot$SBGE_comp == "e.more.mbg",],
 ########
 
 Figure6 <- ggarrange(NA,NA,NA,NA,NA, 
-                     NA, all_RedvNR + ggtitle(expression(bold("Differential Expression"))) +
+                     NA, Figure_6A + ggtitle(expression(bold("Differential Expression"))) +
               theme(axis.title.x = element_blank(), 
                     axis.title.y = element_blank(),
                     plot.title = element_text(hjust = 0.5, size = 30, vjust = 3)),
@@ -308,7 +376,7 @@ ggplot(corr.plot %>% mutate(absDiff = ifelse(Diff < 0, "NonRed", "Red"))) +
 
 
 
-####### Binned dot-plot for SBGE (A/C)
+####### Binned dot-plot for SBGE (A/C) not used in final manuscript
 
 # Prepare dataset
 ##########
@@ -350,7 +418,7 @@ permDiff_RedNR <- TwoPerm_SBGE(perm_dat = tmp_RedNR,
 #########
 
 
-# Plotting codes
+# Additional plotting codes not used in final manuscript
 #########
 
 # For 2 groups dot plot with regression line

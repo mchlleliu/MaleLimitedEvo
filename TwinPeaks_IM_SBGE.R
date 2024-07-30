@@ -1,3 +1,6 @@
+
+# Twin peaks, using Innocenti and Morrow dataset
+
 library(GEOquery)
 library(affy)
 library(limma)

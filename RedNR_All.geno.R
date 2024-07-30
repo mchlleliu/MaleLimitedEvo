@@ -21,7 +21,7 @@ library(ggpubr)
 library(cowplot)
 #########
 
-# Get Mishra et al.'s data 
+# Get Mishra et al. 2022's data 
 ##########
 
 ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
@@ -85,37 +85,82 @@ str(ASE)
 
 ##########
 
+# Get chromosome locations  
+##########
+
+all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
+colnames(all.genes) = c("FlyBaseID")
+
+Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Xchr) = c("FlyBaseID")
+Xchr$Chr <- rep("X", dim(Xchr)[1])
+
+Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
+colnames(Ychr) = c("FlyBaseID")
+Ychr$Chr <- rep("Y", dim(Ychr)[1])
+
+
+chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2L) = c("FlyBaseID")
+chr2L$Chr <- rep("2L", dim(chr2L)[1])
+chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr2R) = c("FlyBaseID")
+chr2R$Chr <- rep("2R", dim(chr2R)[1])
+# 
+chr2 <- rbind(chr2L, chr2R)
+chr2$Chr <- rep("2", dim(chr2)[1])
+
+chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3L) = c("FlyBaseID")
+chr3L$Chr <- rep("3L", dim(chr3L)[1])
+chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
+colnames(chr3R) = c("FlyBaseID")
+chr3R$Chr <- rep("3R", dim(chr3R)[1])
+#
+chr3 <- rbind(chr3L, chr3R)
+chr3$Chr <- rep("3", dim(chr3)[1])
+
+Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
+Chrs$Chr <- as.factor(Chrs$Chr)
+
+Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
+Chrs_All$Chr <- as.factor(Chrs_All$Chr)
+##########
+
+
 # Prepare plotting dataset containing all samples
 #########
 # load datasets
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
-# merge dataset with out population log2FC estimates. 
-## Using Mishra et al.'s data. See "External_data.R" for code to bin SBGE categories
-A.m.geno_ASE <- merge(A.m.geno, ASE, by = "FlyBaseID", all = T)
-A.f.geno_ASE <- merge(A.f.geno, ASE, by = "FlyBaseID", all = T)
-C.m.geno_ASE <- merge(C.m.geno, ASE, by = "FlyBaseID", all = T)
-A.m.geno_ASE$trt2 = "Am"
-A.f.geno_ASE$trt2 = "Af"
-C.m.geno_ASE$trt2 = "Cm"
+# merge dataset with out population log2FC M/F estimates from Mishra et al. 2022
+A.m.geno <- merge(A.m.geno, ASE, by = "FlyBaseID", all = T)
+A.f.geno <- merge(A.f.geno, ASE, by = "FlyBaseID", all = T)
+C.m.geno <- merge(C.m.geno, ASE, by = "FlyBaseID", all = T)
+A.m.geno$trt2 = "Am"
+A.f.geno$trt2 = "Af"
+C.m.geno$trt2 = "Cm"
 
 # only keep genes with data available in both datasets
-A.m.geno_ASE <- A.m.geno_ASE[!is.na(A.m.geno_ASE$exp_geno) &
-                               !is.na(A.m.geno_ASE$exp_SBGE_ase),]
-A.f.geno_ASE <- A.f.geno_ASE[!is.na(A.f.geno_ASE$exp_geno) &
-                               !is.na(A.f.geno_ASE$exp_SBGE_ase),]
-C.m.geno_ASE <- C.m.geno_ASE[!is.na(C.m.geno_ASE$exp_geno) &
-                               !is.na(C.m.geno_ASE$exp_SBGE_ase),]
-dim(C.m.geno_ASE) # check how many cut off
+A.m.geno <- A.m.geno[!is.na(A.m.geno$exp_geno) &
+                      !is.na(A.m.geno$exp_SBGE_ase),]
+A.f.geno <- A.f.geno[!is.na(A.f.geno$exp_geno) &
+                      !is.na(A.f.geno$exp_SBGE_ase),]
+C.m.geno <- C.m.geno[!is.na(C.m.geno$exp_geno) &
+                      !is.na(C.m.geno$exp_SBGE_ase),]
+dim(C.m.geno) # check how many genes are cut off due to not having SBGE info in Mishra et al. 2022
 
 # merge all to one dataframe object
-All.geno <- rbind(A.m.geno_ASE[-5], A.f.geno_ASE, C.m.geno_ASE)
+All.geno <- rbind(A.m.geno[-5], A.f.geno, C.m.geno)
+
+# set as factors
 All.geno$SBGE_simp <- as.factor(All.geno$SBGE_simp)
 All.geno$SBGE_comp <- as.factor(All.geno$SBGE_comp)
 All.geno$trt2 <- as.factor(All.geno$trt2)
+
+# combine info for chromosome locations
 All.geno <- merge(All.geno, Chrs, by = "FlyBaseID")
 str(All.geno)
 #########
@@ -164,14 +209,15 @@ write.table(permed_All.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/permed_All.
 
 
 # all candidate genes
+all.candidates.list <- unique(c(A.m.geno$FlyBaseID[A.m.geno$Sig], A.f.geno$FlyBaseID[A.f.geno$Sig]))
 permed_A.f.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Af" &
-                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                                          All.geno$FlyBaseID %in% all.candidates.list,],
                                 x_col = "exp_geno", SBGE_cat = "SBGE_comp")
 permed_A.m.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Am" &
-                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                                          All.geno$FlyBaseID %in% all.candidates.list,],
                                 x_col = "exp_geno", SBGE_cat = "SBGE_comp")
 permed_C.m.geno_Sig <- OnePerm_SBGE(perm_dat = All.geno[All.geno$trt2 == "Cm" &
-                                                          All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,],
+                                                          All.geno$FlyBaseID %in% all.candidates.list,],
                                 x_col = "exp_geno", SBGE_cat = "SBGE_comp")
 permed_A.f.geno_Sig$trt2 <- "Af"
 permed_A.m.geno_Sig$trt2 <- "Am"
@@ -294,7 +340,7 @@ binPlot_RedNR <- function(dat, perm_dat){
   geom_abline(intercept = 0, slope = 0,  size = 0.5, linetype= "solid", color = "black") +
     geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), color = "grey") +
   scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) + # "Highly ant.", "Antagonistic", "Uncorrelated", "Concordant", "Highly con." .... "Strong pur.", "Purifying sel.", "Neutral", "Positive sel.", "Strong pos."
-  scale_y_continuous(limits = c(-1.6, 1.6), breaks = c(-1.5, -1.0, 0, 1.0, 1.5)) +
+  # scale_y_continuous(limits = c(-1.6, 1.6), breaks = c(-1.5, -1.0, 0, 1.0, 1.5)) +
   # default theme settings:
   theme_classic() +
   theme(plot.title.position = c("panel"),
@@ -342,19 +388,19 @@ A.m.sig.exp_geno <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_suppl.pdf",  # The directory you want to save the file in
-    width = 15, # 15 The width of the plot in inches
-    height = 20 ) # 8 20 The height of the plot in inches
-ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-NA,
-A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-NA, A.f.sig.exp_geno, NA,
-labels = c("A)", NA, "B)", NA, "C)", NA),
-heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
-font.label = list(size = 25),
-common.legend = TRUE, legend = "bottom")
-# All.exp_geno
-dev.off()
+# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_main.pdf",  # The directory you want to save the file in
+#     width = 15, # 15 The width of the plot in inches
+#     height = 8 ) # 8 20 The height of the plot in inches
+# # ggarrange(All.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+# # NA,
+# # A.m.sig.exp_geno + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+# # NA, A.f.sig.exp_geno, NA,
+# # labels = c("A)", NA, "B)", NA, "C)", NA),
+# # heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+# # font.label = list(size = 25),
+# # common.legend = TRUE, legend = "bottom")
+# # All.exp_geno
+# dev.off()
 ########
 
 

@@ -1,10 +1,10 @@
 ###################################
 #
 #                             Grieshop et al. 2023
-#             DsRed experimental evolution - Analysis into dimorphism
-#                     Michelle's code - dds.A.Red.m.NR.f.sex
-#                                     - dds.A.NR.m.Red.f.sex    
-# 
+#                        DsRed experimental evolution 
+#                 Define dimorphism in the Experimental populations
+#                   Compare and check with external pop dataset
+#  Dimorphism (log2FC expression) should generally be similar across populations
 # 
 ###################################
 
