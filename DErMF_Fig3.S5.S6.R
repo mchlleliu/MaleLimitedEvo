@@ -11,7 +11,8 @@
 rm(list=ls()) # Clears the environment
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
-# load bootstrap & permutation functions from "boot_permute.R" first!!
+# load bootstrap & permutation functions
+source("boot_permute.R")
 
 # packages 
 #########
@@ -28,76 +29,12 @@ library(RColorBrewer)
 
 
 # Get Mishra et al.'s data 
-##########
-
-ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
-# Grab the desired variables from there
-ASE <- data.frame(cbind(ASE$log2FoldChange,
-                        ASE$lfcSE,
-                        ASE$FlyBaseID))
-colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
-# fix formatting
-ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
-ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
-str(ASE)
-
-
-# Define three levels of SBGE categorization 
-x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
-x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
-y0 = 1 # tolerance of middle bins ### I DONT GET THIS
-# xmid1 = (x1 + x2)/2
-
-# Simple (3 levels)
-# one level of female-biased gene expression
-fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
-fbg <- ASE[fbg.keep,]
-fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
-# one unbiased category
-ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
-ubg <- ASE[ubg.keep,]
-ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
-# two levels of male-biased gene expression
-mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
-mbg <- ASE[mbg.keep,]
-mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
-# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
-ASE <- rbind(fbg, mbg, ubg)
-str(ASE)
-
-# Complex (5 levels)
-more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
-more.fbg <- ASE[more.fbg.keep,]
-more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
-#
-fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
-fbg <- ASE[fbg.keep,]
-fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
-# one unbiased category
-ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
-ubg <- ASE[ubg.keep,]
-ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
-# two levels of male-biased gene expression
-mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
-mbg <- ASE[mbg.keep,]
-mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
-#
-more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
-more.mbg <- ASE[more.mbg.keep,]
-more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
-# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
-ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
-str(ASE)
-
-##########
+source("Mishra_et.al_SBGE.R")
 
 
 ## prepare dataset
 ##########
-# load results if not loaded in env.
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+source("DE_Plotting_data.R")
 
 # load rMF calculations in Singh & Agrawal 2023
 # (estimated from the Huang et al. 2015 data set) 
@@ -108,12 +45,6 @@ rMF <- na.omit(rMF) # There's an N/A for rMF
 # combine rMF info with Exp. population dataset
 SSAV.geno_rMF <- merge(SSAV.geno, rMF, by = "FlyBaseID", all = TRUE)
 SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$Sig) & !is.na(SSAV.geno_rMF$rMF),]
-
-# add SBGE info based of Mishra et al. 2022 dataset
-SSAV.geno_rMF <- merge(SSAV.geno_rMF, ASE, by = "FlyBaseID", all = T)
-SSAV.geno_rMF <- SSAV.geno_rMF[!is.na(SSAV.geno_rMF$Sig) & 
-                                 !is.na(SSAV.geno_rMF$rMF) & 
-                                 !is.na(SSAV.geno_rMF$exp_SBGE_ase),]
 
 # how many genes in our dataset has an estimated rMF value? 
 sum(SSAV.geno$FlyBaseID[SSAV.geno$Sig] %in% rMF$FlyBaseID)
@@ -126,7 +57,7 @@ rm(rMF) # clear this object since it has already been incorporated elsewhere
 pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
   
   # set y-axis value above each error bar
-  if(!is.na(SBGE_cat)){
+  if(!is.na(SBGE_cat)){ # stratified by SBGE category
     perm_dat$pval <- as.numeric(perm_dat$pval)
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
       dplyr::group_by(.[[SBGE_cat]]) %>%
@@ -137,18 +68,25 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
       dplyr::group_by(.[[SBGE_cat]]) %>%
       dplyr::summarise(y_count_TRUE = q95 + 0.05) %>% # 0.05
       dplyr::rename({{SBGE_cat}} := 1)
+    
+    
+    # join y-axis coordinate with text data frames (comment in if plotting the stratified by exp plot)
+    perm_dat <- merge(perm_dat, y_count_FALSE, by = SBGE_cat)
+    perm_dat <- merge(perm_dat, y_count_TRUE, by = SBGE_cat)
+    
   }
-  else{
+  else{ # not stratified by SBGE category
     y_count_FALSE <- boot_dat[!boot_dat$Sig,] %>% 
       dplyr::summarise(y_count_FALSE = q95 + 0.05)
     y_count_TRUE <- boot_dat[boot_dat$Sig,] %>% 
       dplyr::summarise(y_count_TRUE = q95 + 0.05)
     perm_dat <- as.data.frame(t(perm_dat))
     colnames(perm_dat) <- c("obs_diff", "n_TRUE", "n_FALSE", "pval", "Sig")
+    
+    perm_dat <- merge(perm_dat, y_count_FALSE)
+    perm_dat <- merge(perm_dat, y_count_TRUE)
+    
   }
-  # join y-axis coordinate with text data frames
-  perm_dat <- merge(perm_dat, y_count_FALSE, by = "exp")
-  perm_dat <- merge(perm_dat, y_count_TRUE, by = "exp")
   
   perm_dat$y_star <- max(perm_dat$y_count_FALSE, perm_dat$y_count_TRUE) + 0.1
   perm_dat$y_star <- ifelse(perm_dat$y_star > 0.95, 0.85, perm_dat$y_star)
@@ -226,13 +164,14 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 
 # mean rMF candidates vs non-candidates
 ########
-# use the boot and permute functions in boot_permute.R
 # run permutation to test for significant difference between candidates vs non-candidates
 perm_rMF <- TwoPerm(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 # bootstrap 95% confidence interval
 boot_rMF <- TwoBoot(SSAV.geno_rMF, x_col = "rMF", groupBy = "Sig")
 # plot the CI and mean.
-rMF_all <- pointSEplot(boot_dat = boot_rMF, perm_dat = perm_rMF, x_col = "rMF") + coord_cartesian(ylim = c(0,1))
+rMF_all <- pointSEplot(boot_dat = boot_rMF, 
+                       perm_dat = perm_rMF, 
+                       x_col = "rMF") + coord_cartesian(ylim = c(0,1))
 
 
 # exclude highly sex-biased genes
@@ -398,16 +337,16 @@ Fig3_main + theme(axis.title.x = element_blank(), legend.text = element_text(siz
 # (Figure S6)
 # ------------- rMF by exp. magnitude ----------------
 # expression magnitude was calculated in Singh & Agrawal 2023, using data from SEBIDA
-SDIU <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
-colnames(SDIU)[2] <- "FlyBaseID"
+SinghAgrawal <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(SinghAgrawal)[2] <- "FlyBaseID"
 
 # save this in another object for now...
-SSAV.geno_rMF_exp <- merge(SSAV.geno_rMF, SDIU[,c("FlyBaseID", "log.avgExp.AdultLarva")], by = "FlyBaseID")
+SSAV.geno_rMF_exp <- merge(SSAV.geno_rMF, SinghAgrawal[,c("FlyBaseID", "log.avgExp.AdultLarva")], by = "FlyBaseID")
 SSAV.geno_rMF_exp <- SSAV.geno_rMF_exp[!is.na(SSAV.geno_rMF_exp$log.avgExp.AdultLarva) &
                                          !is.na(SSAV.geno_rMF_exp$Sig) & 
                                          !is.na(SSAV.geno_rMF_exp$rMF),]
 
-rm(SDIU) # remove this data set from env
+rm(SinghAgrawal) # remove this data set from env
 
 # 1.
 # Linear model testing whether SA candidate status is still a significant predictor of rMF,
