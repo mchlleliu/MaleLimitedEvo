@@ -1,6 +1,12 @@
-
-# Figure 6 plotting functions
-
+###################################
+#
+#                             Grieshop et al. 2024
+#                             Author: Michelle Liu
+#             DsRed experimental evolution - transcriptomics analysis
+#       Figure 6 (evolutionary changes Red vs NonRed) plotting functions
+# 
+# 
+###################################
 
 # the two functions below are used in the corr plot function below
 # quad_count: counts the number of point in each of the 8 quadrants
