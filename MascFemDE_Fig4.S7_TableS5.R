@@ -41,15 +41,6 @@ A.m.geno$trt2 = "Am"
 A.f.geno$trt2 = "Af"
 C.m.geno$trt2 = "Cm"
 
-# # only keep genes with data available in both datasets
-# A.m.geno <- A.m.geno[!is.na(A.m.geno$exp_geno) &
-#                        !is.na(A.m.geno$exp_SBGE_ase),]
-# A.f.geno <- A.f.geno[!is.na(A.f.geno$exp_geno) &
-#                        !is.na(A.f.geno$exp_SBGE_ase),]
-# C.m.geno <- C.m.geno[!is.na(C.m.geno$exp_geno) &
-#                        !is.na(C.m.geno$exp_SBGE_ase),]
-# dim(C.m.geno) # check how many genes are cut off due to not having SBGE info in Mishra et al. 2022
-
 # merge all to one dataframe object
 All.geno <- rbind(A.m.geno[-5], A.f.geno, C.m.geno)
 

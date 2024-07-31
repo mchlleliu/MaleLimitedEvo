@@ -235,9 +235,9 @@ boot_CK_polynomial <- function(dat, boot_N, degree){
 #         axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black"))
 
 # cubic spline version (final version displayed in manuscript)
-SA_dist <- plotSplinesDelta(A.f.geno_ASE) 
+SA_dist <- plotSplinesDelta(A.f.geno) 
 
-SBGE_dist <- ggplot(A.f.geno_ASE) + 
+SBGE_dist <- ggplot(A.f.geno) + 
   geom_density(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta)), fill = "grey", color = "grey") +
   labs(x=expression(Delta),y="Density") +
   theme_classic() +
@@ -285,9 +285,9 @@ Fig2_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.
 #         axis.title.y = element_text(size=24, margin = margin(0,10,0,0), color = "black")) 
 
 # cubic spline version
-SA_dist <- plotSplinesDelta(A.m.geno_ASE)
+SA_dist <- plotSplinesDelta(A.m.geno)
 
-SBGE_dist <- ggplot(A.m.geno_ASE) + 
+SBGE_dist <- ggplot(A.m.geno) + 
   geom_density(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta)), fill = "grey", color = "grey") +
   labs(x=expression(Delta),y="Density") +
   theme_classic() +
@@ -335,9 +335,9 @@ Fig2_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
 #         axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black")) 
 
 # cubic splines version
-SA_dist <- plotSplinesDelta(SSAV.geno_ASE)
+SA_dist <- plotSplinesDelta(SSAV.geno)
 
-SBGE_dist <- ggplot(SSAV.geno_ASE) + 
+SBGE_dist <- ggplot(SSAV.geno) + 
   geom_density(aes(sapply(exp_SBGE_ase, convert.Log2Sex.To.CKdelta)), fill = "grey", color = "grey") +
   labs(x=expression(Delta),y="Density") +
   theme_classic() +
@@ -473,7 +473,7 @@ PermuteTP <- function(dat, perm_N){
 }
 
 
-perm_A.f <- PermuteTP(A.f.geno_ASE, 10)
-perm_A.m <- PermuteTP(A.m.geno_ASE, 10)
-perm_All <- PermuteTP(SSAV.geno_ASE, 10)
+# perm_A.f <- PermuteTP(A.f.geno, 1000)
+# perm_A.m <- PermuteTP(A.m.geno, 1000)
+# perm_All <- PermuteTP(SSAV.geno, 1000)
 
