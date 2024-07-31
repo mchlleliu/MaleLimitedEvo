@@ -1,9 +1,9 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2024
 #                             Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
-#                Sex-specific splicing estimates for SSAV population
+#           Analysis of Red vs. NonRed Differentially Spliced (DS) genes
 # 
 # 
 ###################################

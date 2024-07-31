@@ -1,14 +1,16 @@
 ###################################
 #
 #                                   Grieshop et al. 2024
+#                                   Author: Michelle Liu
 #                  DsRed experimental evolution - transcriptomics analysis
-#                               Directionality of DS, cleaned
+#            Masculinization/feminization of splicing profiles in Red vs. NonRed
 # 
 # 
 ###################################
 
-# to run JunctionSeq, see: Amardeep Singh's JunctionSeq.Script.R,
-# or Michelle's modified version for these (SSAV) populations
+# run JunctionSeq to generate count data for exons, 
+# see: Amardeep Singh's JunctionSeq.Script.R,
+# or Michelle's modified version for these populations "JunctionSeqRun.R"
 
 rm(list=ls())
 setwd("~/Desktop/UofT/SSAV_RNA/")
@@ -73,8 +75,8 @@ Chrs_All$Chr <- as.factor(Chrs_All$Chr)
 ##########
 
 
-# set up external data
-#####
+# set up external data from Mishra et al. 2022
+########
 jseq.ASE = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
                       sep = "\t", header = TRUE)
 colnames(jseq.ASE)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
@@ -92,35 +94,7 @@ dim(jseq.ASE) # check how many novel splice sites were removed
 
 # assign genes with significant sex-specific splicing
 jseq.ASE <- jseq.ASE %>% mutate(SSS = ifelse(geneWisePadj < 0.01, TRUE, FALSE))
-
-# list of genes significant and non-significant
-ASE.sig.SSS <- unique(jseq.ASE$FlyBaseID[jseq.ASE$geneWisePadj < 0.01])
-ASE.nonsig.SSS <-  unique(jseq.ASE$FlyBaseID[jseq.ASE$geneWisePadj >= 0.01])
-length(ASE.sig.SSS)
-length(ASE.nonsig.SSS)
-# save list of SSS genes from ASE population
-write_delim(data.frame(ASE.sig.SSS), file = "JunctionSeq/SDIU_ase/JSresults/ASE.sig.SSS_genes.txt", delim = ",")
-
-
-# fisher's test for genes identified as SSS in Osada et al. and Mishra et al. 2022 population
-# they should overlap significantly.
-
-# get the Osada data analysed in Singh & Agrawal 2023
-Osada <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
-colnames(Osada)[2] <- "FlyBaseID"
-
-Osada.sig.sss <- Osada$FlyBaseID[!is.na(Osada$SDIU.body.sig) & Osada$SDIU.body.sig]
-Osada.nonsig.sss <- Osada$FlyBaseID[!is.na(Osada$SDIU.body.sig) & !Osada$SDIU.body.sig]
-length(Osada.sig.sss)
-length(Osada.nonsig.sss)
-
-# make a column for the ASE SSS status
-test <- Osada %>% mutate(ASE.SSS = ifelse(FlyBaseID %in% ASE.sig.SSS, TRUE, FALSE))
-fisher.test(test$SDIU.body.sig, test$ASE.SSS) # check results
-
-rm(test, Osada) # clear from ENV
-
-######
+########
 
 
 # set list of genes to filter out based on FPKM calculated from Mishra et al's data
@@ -898,7 +872,7 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
 
 
 # figures and t-tests comparing (M-F)/(M+F) metric (PHI)
-# generates Suppl. Table (S...)
+# generates Suppl. Table S6
 ######
 sampleTypes <- c("A.m", "A.f", "C.m")
 Phi.test.table <- data.frame(sampleType = sampleTypes) %>% 
