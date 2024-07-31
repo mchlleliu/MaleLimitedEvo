@@ -1,9 +1,9 @@
 ###################################
 #
 #                             Grieshop et al. 2024
-#                             Author: Michelle Liu
+#                       Author: Michelle Liu, Karl Grieshop
 #             DsRed experimental evolution - transcriptomics analysis
-#             Direction of Red/NR regulatory changes by SBGE catergory
+#      Masculinization/Feminiziation of Red/NonRed expression magnitude
 #                         Figure 4, Figure S7, Table S5
 # 
 # 
@@ -23,136 +23,32 @@ library(ggpubr)
 library(cowplot)
 #########
 
+# load bootstrap and permutation functions
+source("boot_permute.R")
+
 # Get Mishra et al. 2022's data 
-##########
-
-ASE <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/DifferentialGeneExpression.whole.bodies.tsv", sep="\t", header=TRUE)
-# Grab the desired variables from there
-ASE <- data.frame(cbind(ASE$log2FoldChange,
-                        ASE$lfcSE,
-                        ASE$FlyBaseID))
-colnames(ASE) <- c("exp_SBGE_ase", "se_SBGE_ase", "FlyBaseID")
-# fix formatting
-ASE$exp_SBGE_ase <- as.numeric(ASE$exp_SBGE_ase)
-ASE$se_SBGE_ase <- as.numeric(ASE$se_SBGE_ase)
-str(ASE)
-
-
-# Define three levels of SBGE categorization 
-x1 = 1 # first cut-off (FBG < -1, MBG > 1 , -1 < UBG < 1)
-x2 = 5 # second cut-off (extreme FBG < -5, extreme MBG > 5)
-y0 = 1 # tolerance of middle bins ### I DONT GET THIS
-# xmid1 = (x1 + x2)/2
-
-# Simple (3 levels)
-# one level of female-biased gene expression
-fbg.keep <- ASE$exp_SBGE_ase < -x1 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0
-fbg <- ASE[fbg.keep,]
-fbg$SBGE_simp <- rep(c("a.fbg"), dim(fbg)[1])
-# one unbiased category
-ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
-ubg <- ASE[ubg.keep,]
-ubg$SBGE_simp <- rep(c("b.ubg"), dim(ubg)[1])
-# two levels of male-biased gene expression
-mbg.keep <- ASE$exp_SBGE_ase > x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0
-mbg <- ASE[mbg.keep,]
-mbg$SBGE_simp <- rep(c("c.mbg"), dim(mbg)[1])
-# 1 gene is tossed out b/c the uncertainty in its estimate breaches a cutoff boundary 
-ASE <- rbind(fbg, mbg, ubg)
-str(ASE)
-
-# Complex (5 levels)
-more.fbg.keep <- ASE$exp_SBGE_ase < -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < -(x2-y0) # extreme FBG < -5
-more.fbg <- ASE[more.fbg.keep,]
-more.fbg$SBGE_comp <- rep(c("a.more.fbg"), dim(more.fbg)[1])
-#
-fbg.keep <- ASE$exp_SBGE_ase < -x1 & ASE$exp_SBGE_ase > -x2 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < 0 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x2+y0)
-fbg <- ASE[fbg.keep,]
-fbg$SBGE_comp <- rep(c("b.fbg"), dim(fbg)[1])
-# one unbiased category
-ubg.keep <- ASE$exp_SBGE_ase < x1 & ASE$exp_SBGE_ase > -x1 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > -(x1+y0) & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x1+y0)
-ubg <- ASE[ubg.keep,]
-ubg$SBGE_comp <- rep(c("c.ubg"), dim(ubg)[1])
-# two levels of male-biased gene expression
-mbg.keep <- ASE$exp_SBGE_ase > x1 & ASE$exp_SBGE_ase < x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > 0 & (ASE$exp_SBGE_ase + ASE$se_SBGE_ase) < (x2+y0)
-mbg <- ASE[mbg.keep,]
-mbg$SBGE_comp <- rep(c("d.mbg"), dim(mbg)[1])
-#
-more.mbg.keep <- ASE$exp_SBGE_ase > x2 & (ASE$exp_SBGE_ase - ASE$se_SBGE_ase) > (x2-y0)
-more.mbg <- ASE[more.mbg.keep,]
-more.mbg$SBGE_comp <- rep(c("e.more.mbg"), dim(more.mbg)[1])
-# 3 genes tossed out  b/c the uncertainty in their estimate breaches a cutoff boundary
-ASE <- rbind(more.fbg, fbg, ubg, mbg, more.mbg)
-str(ASE)
-
-##########
+source("Mishra_et.al_SBGE.R")
 
 # Get chromosome locations  
-##########
+source("Chromosome_df.R")
 
-all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
-colnames(all.genes) = c("FlyBaseID")
-
-Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
-colnames(Xchr) = c("FlyBaseID")
-Xchr$Chr <- rep("X", dim(Xchr)[1])
-
-Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
-colnames(Ychr) = c("FlyBaseID")
-Ychr$Chr <- rep("Y", dim(Ychr)[1])
-
-
-chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr2L) = c("FlyBaseID")
-chr2L$Chr <- rep("2L", dim(chr2L)[1])
-chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr2R) = c("FlyBaseID")
-chr2R$Chr <- rep("2R", dim(chr2R)[1])
-# 
-chr2 <- rbind(chr2L, chr2R)
-chr2$Chr <- rep("2", dim(chr2)[1])
-
-chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr3L) = c("FlyBaseID")
-chr3L$Chr <- rep("3L", dim(chr3L)[1])
-chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr3R) = c("FlyBaseID")
-chr3R$Chr <- rep("3R", dim(chr3R)[1])
-#
-chr3 <- rbind(chr3L, chr3R)
-chr3$Chr <- rep("3", dim(chr3)[1])
-
-Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
-Chrs$Chr <- as.factor(Chrs$Chr)
-
-Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
-Chrs_All$Chr <- as.factor(Chrs_All$Chr)
-##########
-
-
-# Prepare plotting dataset containing all samples
+# Prepare stacked plotting dataset containing all samples
 #########
 # load datasets
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+source("DE_Plotting_data.R")
 
-# merge dataset with out population log2FC M/F estimates from Mishra et al. 2022
-A.m.geno <- merge(A.m.geno, ASE, by = "FlyBaseID", all = T)
-A.f.geno <- merge(A.f.geno, ASE, by = "FlyBaseID", all = T)
-C.m.geno <- merge(C.m.geno, ASE, by = "FlyBaseID", all = T)
 A.m.geno$trt2 = "Am"
 A.f.geno$trt2 = "Af"
 C.m.geno$trt2 = "Cm"
 
-# only keep genes with data available in both datasets
-A.m.geno <- A.m.geno[!is.na(A.m.geno$exp_geno) &
-                       !is.na(A.m.geno$exp_SBGE_ase),]
-A.f.geno <- A.f.geno[!is.na(A.f.geno$exp_geno) &
-                       !is.na(A.f.geno$exp_SBGE_ase),]
-C.m.geno <- C.m.geno[!is.na(C.m.geno$exp_geno) &
-                       !is.na(C.m.geno$exp_SBGE_ase),]
-dim(C.m.geno) # check how many genes are cut off due to not having SBGE info in Mishra et al. 2022
+# # only keep genes with data available in both datasets
+# A.m.geno <- A.m.geno[!is.na(A.m.geno$exp_geno) &
+#                        !is.na(A.m.geno$exp_SBGE_ase),]
+# A.f.geno <- A.f.geno[!is.na(A.f.geno$exp_geno) &
+#                        !is.na(A.f.geno$exp_SBGE_ase),]
+# C.m.geno <- C.m.geno[!is.na(C.m.geno$exp_geno) &
+#                        !is.na(C.m.geno$exp_SBGE_ase),]
+# dim(C.m.geno) # check how many genes are cut off due to not having SBGE info in Mishra et al. 2022
 
 # merge all to one dataframe object
 All.geno <- rbind(A.m.geno[-5], A.f.geno, C.m.geno)
