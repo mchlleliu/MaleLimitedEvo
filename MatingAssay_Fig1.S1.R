@@ -1,7 +1,7 @@
 ###################################
 #
 #                             Grieshop et al. 2023
-#                             Author: Ryan S. Frost
+#                      Author: Ryan S. Frost, (Michelle Liu)
 #             DsRed experimental evolution - Transcriptomics analysis
 #                          Fitness Assay GLMM & Plots
 # 
@@ -372,6 +372,8 @@ female.main_eff_int <- c(female.confints[5], female.confints[10])
 
 female.main_result <- data.frame(mean.female.pop.fx, female.lower.CI.pop.fx, female.upper.CI.pop.fx, 1:6)
 ######
+
+
 
 
 
