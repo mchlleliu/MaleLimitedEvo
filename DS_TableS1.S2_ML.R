@@ -21,6 +21,8 @@ library(ggplot2)
 library(ggblend)
 library(ggpubr)
 library(ggstatsplot)
+library(stringr)
+library(DESeq2)
 #########
 
 # Get chromosome locations  
@@ -60,12 +62,61 @@ chr3$Chr <- rep("3", dim(chr3)[1])
 
 Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
 Chrs$Chr <- as.factor(Chrs$Chr)
-
-Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
-Chrs_All$Chr <- as.factor(Chrs_All$Chr)
 ##########
 
-# load JunctionSeq results
+# set up external data from Mishra et al. 2022
+########
+jseq.Mishra = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
+                      sep = "\t", header = TRUE)
+colnames(jseq.Mishra)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
+
+# ------ First for the ASE reference 
+# remove genes that were not assayed in males and females
+jseq.Mishra = jseq.Mishra[!is.na(jseq.Mishra$expr_F) & !is.na(jseq.Mishra$expr_M),]
+dim(jseq.Mishra)
+
+# remove novel counting bins
+#   for the purpose of comparing ASE with the SSAV populations, we want to make sure that the counting bins
+#   used are the same.
+jseq.Mishra = jseq.Mishra %>% filter(!str_detect(countbinID, "N"))
+dim(jseq.Mishra) # check how many novel splice sites were removed
+
+# assign genes with significant sex-specific splicing
+jseq.Mishra <- jseq.Mishra %>% mutate(SSS = ifelse(geneWisePadj < 0.01, TRUE, FALSE))
+
+# list of genes significant and non-significant
+Mishra.sig.SSS <- unique(jseq.Mishra$FlyBaseID[jseq.Mishra$geneWisePadj < 0.01])
+Mishra.nonsig.SSS <-  unique(jseq.Mishra$FlyBaseID[jseq.Mishra$geneWisePadj >= 0.01])
+length(Mishra.sig.SSS)
+length(Mishra.nonsig.SSS)
+
+# save list of SSS genes from ASE population
+# write_delim(data.frame(Mishra.sig.SSS), file = "JunctionSeq/SDIU_ase/JSresults/Mishra.sig.SSS_genes.txt", delim = ",")
+
+
+# Sanity check
+# fisher's test for genes identified as SSS in Osada et al. and Mishra et al. 2022 population
+# they should overlap significantly.
+
+# get the Osada data analysed in Singh & Agrawal 2023
+Osada <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
+colnames(Osada)[2] <- "FlyBaseID"
+
+Osada.sig.sss <- Osada$FlyBaseID[!is.na(Osada$SDIU.body.sig) & Osada$SDIU.body.sig]
+Osada.nonsig.sss <- Osada$FlyBaseID[!is.na(Osada$SDIU.body.sig) & !Osada$SDIU.body.sig]
+length(Osada.sig.sss)
+length(Osada.nonsig.sss)
+
+# make a column for the ASE SSS status
+test <- Osada %>% mutate(Mishra.SSS = ifelse(FlyBaseID %in% Mishra.sig.SSS, TRUE, FALSE))
+fisher.test(test$SDIU.body.sig, test$Mishra.SSS) # check results
+
+rm(test, Osada) # clear from ENV
+
+########
+
+
+# load JunctionSeq results from our samples
 #######
 # SSAV samples
 jseq.A.f.geno = read.table("JunctionSeq/A.f.geno/A.f.geno.splicingallGenes.results.txt", 
@@ -101,6 +152,8 @@ SSAV.sample.types <- data.frame(sampleType = c("A.m", "A.f", "C.m")) %>%
 
 # SSAV sample types data table:
 SSAV.sample.types # check the format
+
+
 
 
 # prepare data: filtering un-assayed genes, assign significance
@@ -152,15 +205,16 @@ jseq.All.geno <- jseq.All.geno[!duplicated(jseq.All.geno$FlyBaseID),] %>%
 
 jseq.All.geno <-  jseq.All.geno[,c("FlyBaseID", "geneWisePadj.x", "sig.hit.x", 
                                    "geneWisePadj.y", "sig.hit.y", "sig.hit")]
-jseq.All.geno <- unique(na.omit(jseq.All.geno))
+# jseq.All.geno <- unique(na.omit(jseq.All.geno))
 colnames(jseq.All.geno) = c("FlyBaseID", "geneWisePadj.M", "sig.hit.M", 
-                            "geneWisePadj.F", "sig.hit.F", "Sig")
-write.table(jseq.All.geno, file="Results/jseq.All.geno.txt", quote=F, sep = "\t")
+                            "geneWisePadj.F", "sig.hit.F", "sig.hit")
+# save table
+# write.table(jseq.All.geno, file="Results/jseq.All.geno.txt", quote=F, sep = "\t")
 
-# list of all candidate genes
-all.candidates <- unique(c(jseq.All.geno$FlyBaseID[jseq.All.geno$sig.hit], SSAV.geno$FlyBaseID[SSAV.geno$Sig]))
-# length(all.candidates)
-# write.table(all.candidates, file="Results/DE_AS_candidate.list.txt", quote=F, sep = "\t")
+# # list of all candidate genes
+# all.candidates <- unique(c(jseq.All.geno$FlyBaseID[jseq.All.geno$sig.hit], SSAV.geno$FlyBaseID[SSAV.geno$Sig]))
+# # length(all.candidates)
+# # write.table(all.candidates, file="Results/DE_AS_candidate.list.txt", quote=F, sep = "\t")
 
 # add all sample dataset to the list of sample types
 SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
@@ -168,36 +222,36 @@ SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
 #######
 
 
-# differential splicing analysis for SSAV samples
-#######
-# install.packages("ggVennDiagram")
-library(ggVennDiagram)
 
-# downstream checks for significantly spliced genes
+###### differential splicing analysis for SSAV samples
+# check how many genes were spliced differently between Red and NR, 
+# do some Fisher's exact tests for association with sex-specific splicing in SSS data or in ASE data:
 
-# load DE data to check for overlap in DE and DS genes
+# load DE data to check for overlap in DE and DS genes ######
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+
 # add chromosome position info
 A.f.geno <- merge(A.f.geno, Chrs, by = "FlyBaseID")
 A.m.geno <- merge(A.m.geno, Chrs, by = "FlyBaseID")
+C.m.geno <- merge(C.m.geno, Chrs, by = "FlyBaseID")
 SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID")
 
 SSAV.sample.types$DEdata <- c("A.m.geno", "A.f.geno", "C.m.geno", "SSAV.geno")
+#######
 
-# check how many genes were spliced differently between Red and NR, 
-# do some Fisher's exact tests for association with sex-specific splicing in SSS data or in ASE data:
-# load external Singh & Agrawal 2023 list of SSS genes (Osada, 2017 populations)
+# load external Singh & Agrawal 2023 list of SSS genes (Osada, 2017 populations) ######
 Osada <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
 colnames(Osada)[2] <- "FlyBaseID"
-# results from differential expression analysis
-All.geno.tmp <- read.delim("Results/All.geno_candidates.tsv", header = TRUE, sep = "\t")
+######
 
-# initialize dataframe object to store results (wow that variable name do be long)
+
+# generate data for Table S1 and Table S2
+# initialize data frame object to store results (wow that variable name do be long)
 fishers.test.RedNR.splice.results <- data.frame(sampleType = SSAV.sample.types$sampleType)
 
-# get data for Suppl. table
 for(i in 1:dim(SSAV.sample.types)[1]){
   tmp.JS.table <- get(paste0(SSAV.sample.types[i, 2])) # get junctionSeq table for the current sample type
   tmp.JS.table <- tmp.JS.table[!is.na(tmp.JS.table$sig.hit),] # only get genes which could be assayed
@@ -210,25 +264,18 @@ for(i in 1:dim(SSAV.sample.types)[1]){
     tmp.JS.table = tmp.JS.table[!duplicated(tmp.JS.table$FlyBaseID),]
   }
   
-  # get number of significant genes
+  # number of all genes assayed
   fishers.test.RedNR.splice.results$N.all[i] = length(tmp.JS.table$FlyBaseID)
+  # number of significantly DS genes
   fishers.test.RedNR.splice.results$N.sig[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) 
                                                                              & tmp.JS.table$sig.hit])
   
-  # assign overlap with SSS
+  # assign overlap with SSS genes as defined with the Mishra et al. 2022 data set
   tmp.JS.table = tmp.JS.table %>% 
-    dplyr::mutate(Osada.SSS = ifelse(FlyBaseID %in% Osada[!is.na(Osada$SDIU.body.sig) &
-                                                            Osada$SDIU.body.sig,]$FlyBaseID, 
-                                     TRUE, ifelse(is.na(Osada$SDIU.body.sig), NA, FALSE)))
-  tmp.JS.table = tmp.JS.table %>% 
-    dplyr::mutate(ASE.SSS = ifelse(FlyBaseID %in% jseq.ASE[!is.na(jseq.ASE$SSS) & 
-                                                             jseq.ASE$SSS,]$FlyBaseID, 
-                                   TRUE, ifelse(is.na(jseq.ASE$SSS), NA, FALSE)))
-  
-  
-  # tmp.JS.table = tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25 & 
-  #                               !(tmp.JS.table$FlyBaseID %in% DsRed_genes$V1),]
-  
+    dplyr::mutate(Mishra.SSS = ifelse(FlyBaseID %in% jseq.Mishra[!is.na(jseq.Mishra$SSS) & 
+                                                                jseq.Mishra$SSS,]$FlyBaseID, 
+                                   TRUE, ifelse(is.na(jseq.Mishra$SSS), NA, FALSE)))
+
   
   # any overlap with differentially expressed genes?
   tmp.JS.table = tmp.JS.table %>% 
@@ -236,113 +283,54 @@ for(i in 1:dim(SSAV.sample.types)[1]){
                                                          & DE_data$Sig,]$FlyBaseID, 
                                   TRUE, ifelse(is.na(DE_data$Sig), NA, FALSE)))
   
-  fishers.test.RedNR.splice.results$N.filter25[i] = length(tmp.JS.table$FlyBaseID)
-  fishers.test.RedNR.splice.results$N.sig.filter25[i] = length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$sig.hit) & 
-                                                                                        tmp.JS.table$sig.hit])
+  # number of genes assayed with sig SSS status defined from Mishra et al. 2022 datset
+  fishers.test.RedNR.splice.results$N.sig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
+                                                                                    tmp.JS.table$Mishra.SSS])
+  # number of genes assayed with non sig SSS status defined from Mishra et al. 2022 datset
+  fishers.test.RedNR.splice.results$N.nonsig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
+                                                                                       !tmp.JS.table$Mishra.SSS])
   
-  # fishers.test.RedNR.splice.results$N.sig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
-  #                                                                                  tmp.JS.table$Osada.SSS])
-  # fishers.test.RedNR.splice.results$N.AS.sig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
-  #                                                                                     tmp.JS.table$Osada.SSS &
-  #                                                                                     !is.na(tmp.JS.table$sig.hit) &
-  #                                                                                     tmp.JS.table$sig.hit ])
-  # 
-  # fishers.test.RedNR.splice.results$N.nonsig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
-  #                                                                                  !tmp.JS.table$Osada.SSS])
-  # fishers.test.RedNR.splice.results$N.AS.nonsig.Osada[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Osada.SSS) &
-  #                                                                                     !tmp.JS.table$Osada.SSS &
-  #                                                                                       !is.na(tmp.JS.table$sig.hit) &
-  #                                                                                       tmp.JS.table$sig.hit ])
-  # 
-  fishers.test.RedNR.splice.results$N.sig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
-                                                                                    tmp.JS.table$ASE.SSS])
-  fishers.test.RedNR.splice.results$N.AS.sig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
-                                                                                       tmp.JS.table$ASE.SSS &
-                                                                                       !is.na(tmp.JS.table$sig.hit) &
-                                                                                       tmp.JS.table$sig.hit ])
-  
-  fishers.test.RedNR.splice.results$N.nonsig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
-                                                                                       !tmp.JS.table$ASE.SSS])
-  fishers.test.RedNR.splice.results$N.AS.nonsig.ASE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$ASE.SSS) &
-                                                                                          !tmp.JS.table$ASE.SSS &
+  # number of genes assayed that also has sig SSS status defined from Mishra et al. 2022 datset
+  fishers.test.RedNR.splice.results$N.DS.nonsig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
+                                                                                          !tmp.JS.table$Mishra.SSS &
                                                                                           !is.na(tmp.JS.table$sig.hit) &
                                                                                           tmp.JS.table$sig.hit ])
+  # do fisher test for overlap between SSS and DS genes
+  if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$Mishra.SSS) > 0){
+      fishers.test.RedNR.splice.results$SSS.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$Mishra.SSS)$p.val
   
+  }
+  
+  
+  # number of genes assayed with significant DE status
   fishers.test.RedNR.splice.results$N.sig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
                                                                                    tmp.JS.table$DE.Sig])
-  fishers.test.RedNR.splice.results$N.AS.sig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+  # number of genes assayed with significant DE AND DS status
+  fishers.test.RedNR.splice.results$N.DS.sig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
                                                                                       tmp.JS.table$DE.Sig &
                                                                                       !is.na(tmp.JS.table$sig.hit) &
                                                                                       tmp.JS.table$sig.hit ])
-  
+  # number of genes assayed with non significant DE status
   fishers.test.RedNR.splice.results$N.nonsig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
                                                                                       !tmp.JS.table$DE.Sig])
-  fishers.test.RedNR.splice.results$N.AS.nonsig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
+  # number of genes assayed with non significant DE status but is significantly DS
+  fishers.test.RedNR.splice.results$N.DS.nonsig.DE[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$DE.Sig) &
                                                                                          !tmp.JS.table$DE.Sig &
                                                                                          !is.na(tmp.JS.table$sig.hit) &
                                                                                          tmp.JS.table$sig.hit ])
-  
-  # test for SSS overlap, 25% FPKM filter
-  # fishers.test.RedNR.splice.results$Osada.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-  #                                                                        tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$Osada.SSS)$p.value
-  fishers.test.RedNR.splice.results$ASE.SSS.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-                                                                       tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$ASE.SSS)$p.value
-  
-  # test for DE overlap, 25% FPKM filter
-  if(i != 3){
-    fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- fisher.test(tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$sig.hit, 
-                                                                             tmp.JS.table[tmp.JS.table$FlyBaseID %in% filter.low.exp.genes.q25,]$DE.Sig)$p.value
+  # do fisher test for overlap between DE and DS genes
+  if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$DE.Sig) > 0){
+      fishers.test.RedNR.splice.results$DE.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$DE.Sig)$p.val
   }
-  else  {  fishers.test.RedNR.splice.results$SSAV.DE.Sig.filter25[i] <- NA}
   
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
 }
 
 fishers.test.RedNR.splice.results # print table of results
-rm(tmp.JS.table, SinghAgrawalSDIU, All.geno.tmp) # clean environment
 
-# save table
-# write.table(fishers.test.RedNR.splice.results, file = "Results/splicing.Red.NR.fisher.tests_filtered.csv", sep = ",", quote = FALSE, row.names = F)
+# # save table
+# write.table(fishers.test.RedNR.splice.results,
+#             file = "Results/splicing.Red.NR.fisher.tests_filtered.csv", 
+#             sep = ",", quote = FALSE, row.names = F)
 
-#######
-
-
-# make mos plot
-#######
-test.fisher.results <- fisher.test(A.all.tmp.fisher$sig.hit, A.all.tmp.fisher$ASE.SSS)
-summary(test.fisher.results)
-
-SSS.sdiu <- ggbarstats(
-  data = A.all.tmp.fisher, x = ASE.SSS, y = sig.hit,
-  results.subtitle = FALSE,
-  subtitle = paste0(
-    "Fisher's exact test", ", p-value = ",
-    ifelse(test.fisher.results$p.value < 0.001, "< 0.001", round(test.fisher.results$p.value, 3))
-  ), 
-  xlab = NULL
-) +
-  scale_fill_manual(labels = c("SSS ASE", "not SSS ASE"),
-                    values = c("darkorchid4", "darkgrey")) + # "Chr-2", "Chr-3", "X-Chr"
-  scale_x_discrete(labels = c("not SSS OSADA","SSS OSADA")) +
-  theme(plot.title.position = c("panel"),
-        legend.title = element_blank(),
-        legend.position = c("bottom"),
-        legend.box.background = element_rect(),
-        legend.text = element_text(size = 20, color = "black"),
-        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
-        axis.text.y = element_text(size=10, margin = margin(0,5,0,0), color = "black"),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size=40, margin = margin(0,10,0,0), color = "black"),
-        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
-        plot.margin = margin(6,6,6,6)
-  )
-
-# save plot
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/splicing/ASE.SSS.v.RedNR.spliced.cut.pdf",  # The directory you want to save the file in
-    width = 10, # The width of the plot in inches
-    height = 7) # The height of the plot in inches
-SSS.ase 
-dev.off()
-
-#######
 
