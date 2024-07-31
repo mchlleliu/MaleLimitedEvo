@@ -1,9 +1,11 @@
 ###################################
 #
 #                             Grieshop et al. 2023
+#                              Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
 #     Correlation of Red/NR changes in Experimental samples vs Control samples
-# 
+#                                   Figure S2 
+#
 # 
 ###################################
 
