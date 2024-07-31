@@ -11,8 +11,7 @@
 
 # This uses Mishra et al.'s data, 
 # Or can be used with any data which have log2FC value of SBGE
-# Bins for SBGE categories should be defined first. 
-#     -> See External_data.R under "Get Mishra et al.'s data" for how to prepare the external dataset.
+
 rm(list=ls()) # Clears the environment
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
