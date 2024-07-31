@@ -1032,6 +1032,7 @@ test <- na.omit(test)
 # test <- test[test$FlyBaseID %in% subset.sss,]
 
 # use the file "Figure6.R" to set up plotting functions
+source("Fig6_effectFuns.R")
 
 Figure_6B <- plot_corr(test, x="percent.dissim.x", y="percent.dissim.y", 
                        colx = "red3", coly = "grey9", colNonCon = "grey",
@@ -1061,5 +1062,8 @@ head(C.m.Red.vs.NR)
 test <- merge(A.m.Red.vs.NR, C.m.Red.vs.NR, by = "FlyBaseID")
 test <- na.omit(test)
 test <- test[test$FlyBaseID %in% subset.sss,]
+
+# run the R script "boot_permute.R" for permutation functions
+source("boot_permute.R")
 PairedTwoPerm(test, "diff.Am", "diff.Cm")
 ########
