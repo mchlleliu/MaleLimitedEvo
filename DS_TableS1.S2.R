@@ -34,13 +34,13 @@ jseq.Mishra = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.result
                       sep = "\t", header = TRUE)
 colnames(jseq.Mishra)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
 
-# ------ First for the ASE reference 
+# ------ First for the Mishra reference 
 # remove genes that were not assayed in males and females
 jseq.Mishra = jseq.Mishra[!is.na(jseq.Mishra$expr_F) & !is.na(jseq.Mishra$expr_M),]
 dim(jseq.Mishra)
 
 # remove novel counting bins
-#   for the purpose of comparing ASE with the SSAV populations, we want to make sure that the counting bins
+#   for the purpose of comparing Mishra with our populations, we want to make sure that the counting bins
 #   used are the same.
 jseq.Mishra = jseq.Mishra %>% filter(!str_detect(countbinID, "N"))
 dim(jseq.Mishra) # check how many novel splice sites were removed
@@ -54,7 +54,7 @@ Mishra.nonsig.SSS <-  unique(jseq.Mishra$FlyBaseID[jseq.Mishra$geneWisePadj >= 0
 length(Mishra.sig.SSS)
 length(Mishra.nonsig.SSS)
 
-# save list of SSS genes from ASE population
+# save list of SSS genes from Mishra population
 # write_delim(data.frame(Mishra.sig.SSS), file = "JunctionSeq/SDIU_ase/JSresults/Mishra.sig.SSS_genes.txt", delim = ",")
 
 
@@ -71,7 +71,7 @@ Osada.nonsig.sss <- Osada$FlyBaseID[!is.na(Osada$SDIU.body.sig) & !Osada$SDIU.bo
 length(Osada.sig.sss)
 length(Osada.nonsig.sss)
 
-# make a column for the ASE SSS status
+# make a column for the Mishra SSS status
 test <- Osada %>% mutate(Mishra.SSS = ifelse(FlyBaseID %in% Mishra.sig.SSS, TRUE, FALSE))
 fisher.test(test$SDIU.body.sig, test$Mishra.SSS) # check results
 
@@ -190,7 +190,7 @@ SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
 
 ###### differential splicing analysis for SSAV samples
 # check how many genes were spliced differently between Red and NR, 
-# do some Fisher's exact tests for association with sex-specific splicing in SSS data or in ASE data:
+# do some Fisher's exact tests for association with sex-specific splicing in Mishra data:
 
 # load DE data to check for overlap in DE and DS genes ######
 A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")

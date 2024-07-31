@@ -30,20 +30,20 @@ SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
 
 
 # include SBGE categories (using Mishra et al. 2022 dataset)
-A.m.geno <- merge(A.m.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.m.geno <- merge(A.m.geno, Mishra, by = "FlyBaseID", all = TRUE)
 A.m.geno <- A.m.geno[!is.na(A.m.geno$Sig) & !is.na(A.m.geno$exp_SBGE_ase),]
 A.m.geno$SBGE_comp <- as.factor(A.m.geno$SBGE_comp)
 A.m.geno$SBGE_simp <- as.factor(A.m.geno$SBGE_simp)
 str(A.m.geno)
 
-A.f.geno <- merge(A.f.geno, ASE, by = "FlyBaseID", all = TRUE)
+A.f.geno <- merge(A.f.geno, Mishra, by = "FlyBaseID", all = TRUE)
 A.f.geno <- A.f.geno[!is.na(A.f.geno$Sig) & !is.na(A.f.geno$exp_SBGE_ase),]
 A.f.geno$SBGE_comp <- as.factor(A.f.geno$SBGE_comp)
 A.f.geno$SBGE_simp <- as.factor(A.f.geno$SBGE_simp)
 str(A.f.geno)
 
 
-C.m.geno <- merge(C.m.geno, ASE, by = "FlyBaseID", all = TRUE)
+C.m.geno <- merge(C.m.geno, Mishra, by = "FlyBaseID", all = TRUE)
 C.m.geno <- C.m.geno[!is.na(C.m.geno$Sig) & !is.na(C.m.geno$exp_SBGE_ase),]
 C.m.geno$SBGE_comp <- as.factor(C.m.geno$SBGE_comp)
 C.m.geno$SBGE_simp <- as.factor(C.m.geno$SBGE_simp)
@@ -51,7 +51,7 @@ str(C.m.geno)
 
 
 # Genes present in both SSAV males and SSAV females data
-SSAV.geno <- merge(SSAV.geno, ASE, by = "FlyBaseID", all = TRUE)
+SSAV.geno <- merge(SSAV.geno, Mishra, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$exp_SBGE_ase),]
 SSAV.geno$SBGE_comp <- as.factor(SSAV.geno$SBGE_comp)
 SSAV.geno$SBGE_simp <- as.factor(SSAV.geno$SBGE_simp)

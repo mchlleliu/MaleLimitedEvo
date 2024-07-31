@@ -33,80 +33,41 @@ library(ggblend)
 #######
 
 # Get chromosome locations  
-##########
-
-all.genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/all.genes.tsv", sep="\t", header=FALSE)
-colnames(all.genes) = c("FlyBaseID")
-
-Xchr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/X.chromosome.genes.tsv", sep="\t", header=TRUE)
-colnames(Xchr) = c("FlyBaseID")
-Xchr$Chr <- rep("X", dim(Xchr)[1])
-
-Ychr <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/Y.chromosome.genes.tsv", sep="\t", header=TRUE)
-colnames(Ychr) = c("FlyBaseID")
-Ychr$Chr <- rep("Y", dim(Ychr)[1])
-
-
-chr2L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2L.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr2L) = c("FlyBaseID")
-chr2L$Chr <- rep("2L", dim(chr2L)[1])
-chr2R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/2R.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr2R) = c("FlyBaseID")
-chr2R$Chr <- rep("2R", dim(chr2R)[1])
-# 
-chr2 <- rbind(chr2L, chr2R)
-chr2$Chr <- rep("2", dim(chr2)[1])
-
-chr3L <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3L.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr3L) = c("FlyBaseID")
-chr3L$Chr <- rep("3L", dim(chr3L)[1])
-chr3R <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/3R.chromosome.genes.tsv", sep="\t", header=FALSE)
-colnames(chr3R) = c("FlyBaseID")
-chr3R$Chr <- rep("3R", dim(chr3R)[1])
-#
-chr3 <- rbind(chr3L, chr3R)
-chr3$Chr <- rep("3", dim(chr3)[1])
-
-Chrs <- rbind(Xchr, Ychr, chr2, chr3) # Not all genes; just X, Y, 2, and 3.
-Chrs$Chr <- as.factor(Chrs$Chr)
-
-Chrs_All <- rbind(Xchr, Ychr, chr2L, chr2R, chr3L, chr3R)
-Chrs_All$Chr <- as.factor(Chrs_All$Chr)
-##########
+source("Chromosome_df.R")
 
 
 # set up external data from Mishra et al. 2022
 ########
-jseq.ASE = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
+jseq.Mishra = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
                       sep = "\t", header = TRUE)
-colnames(jseq.ASE)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
+colnames(jseq.Mishra)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
 
-# ------ First for the ASE reference 
+# ------ First for the Mishra reference 
 # remove genes that were not assayed in males and females
-jseq.ASE = jseq.ASE[!is.na(jseq.ASE$expr_F) & !is.na(jseq.ASE$expr_M),]
-dim(jseq.ASE)
+jseq.Mishra = jseq.Mishra[!is.na(jseq.Mishra$expr_F) & !is.na(jseq.Mishra$expr_M),]
+dim(jseq.Mishra)
 
 # remove novel counting bins
-#   for the purpose of comparing ASE with the SSAV populations, we want to make sure that the counting bins
+#   for the purpose of comparing Mishra with the SSAV populations, we want to make sure that the counting bins
 #   used are the same.
-jseq.ASE = jseq.ASE %>% filter(!str_detect(countbinID, "N"))
-dim(jseq.ASE) # check how many novel splice sites were removed
+jseq.Mishra = jseq.Mishra %>% filter(!str_detect(countbinID, "N"))
+dim(jseq.Mishra) # check how many novel splice sites were removed
 
 # assign genes with significant sex-specific splicing
-jseq.ASE <- jseq.ASE %>% mutate(SSS = ifelse(geneWisePadj < 0.01, TRUE, FALSE))
+jseq.Mishra <- jseq.Mishra %>% mutate(SSS = ifelse(geneWisePadj < 0.01, TRUE, FALSE))
 ########
 
 
 # set list of genes to filter out based on FPKM calculated from Mishra et al's data
 ######
 ## calculate FPKM
-# load metadata file for ASE samples
-decoder.ASE <- read.table("JunctionSeq/SDIU_ase/QoRTs.decoder.file.for.JunctionSeq.txt", header=T, stringsAsFactors = F)
-colnames(decoder.ASE)[1]="unique.ID"
-decoder.ASE$rep = rep(seq(1:3),4)
+# load metadata file for Mishra samples
+decoder.Mishra <- read.table("JunctionSeq/SDIU_ase/QoRTs.decoder.file.for.JunctionSeq.txt", header=T, stringsAsFactors = F)
+colnames(decoder.Mishra)[1]="unique.ID"
+decoder.Mishra$rep = rep(seq(1:3),4)
 
 # make list containing the paths to sample count files
-countFiles.ASE <- paste0("JunctionSeq/SDIU_ase/count.files/",decoder.ASE$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+countFiles.Mishra <- paste0("JunctionSeq/SDIU_ase/count.files/",decoder.Mishra$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
 
 # use this function to read and combine all sample counts and create a counts matrix
 # data.files is a list containing the paths to sample count files
@@ -138,16 +99,16 @@ makeCountMatrix <- function(data.files, decoder.file){
   return(count.file)
 }
 
-ASE.count.matrix <- makeCountMatrix(countFiles.ASE, decoder.ASE)
+Mishra.count.matrix <- makeCountMatrix(countFiles.Mishra, decoder.Mishra)
 
 # get column metadata from decoder file
-ASE.colData <- decoder.ASE %>% 
+Mishra.colData <- decoder.Mishra %>% 
   remove_rownames %>% 
   column_to_rownames(var="unique.ID")
 
 # make DESeq2 object to calculate fpkm
-dds.ASE <- DESeqDataSetFromMatrix(countData = ASE.count.matrix, 
-                                  colData = ASE.colData, 
+dds.Mishra <- DESeqDataSetFromMatrix(countData = Mishra.count.matrix, 
+                                  colData = Mishra.colData, 
                                   design = ~ rep + sex)
 
 # get gene lengths from GTF file 
@@ -159,29 +120,29 @@ dds.ASE <- DESeqDataSetFromMatrix(countData = ASE.count.matrix,
 load("JunctionSeq/SDIU_ase/Drosophila_melanogaster.BDGP6.28.102.exonLengths.RData", verbose = T)
 
 exonic <- GRangesList(exonic)
-exonic <- exonic[names(exonic) %in% rownames(ASE.count.matrix)] # keep only gene lengths that are in the count matrix
-rowRanges(dds.ASE) <- exonic # add gene length data to DESeq2 object
-FPKM.ASE <- fpkm(dds.ASE) # get FPKM measures
+exonic <- exonic[names(exonic) %in% rownames(Mishra.count.matrix)] # keep only gene lengths that are in the count matrix
+rowRanges(dds.Mishra) <- exonic # add gene length data to DESeq2 object
+FPKM.Mishra <- fpkm(dds.Mishra) # get FPKM measures
 
 # separate the counts to males and females
-FPKM.ASE.fem <- data.frame(FPKM.ASE) %>% 
+FPKM.Mishra.fem <- data.frame(FPKM.Mishra) %>% 
   select(., contains("F_")) %>%
   mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for females
-FPKM.ASE.fem[FPKM.ASE.fem==0] <- NA # set genes not present as NAs
+FPKM.Mishra.fem[FPKM.Mishra.fem==0] <- NA # set genes not present as NAs
 
-FPKM.ASE.male <- data.frame(FPKM.ASE) %>% 
+FPKM.Mishra.male <- data.frame(FPKM.Mishra) %>% 
   select(., contains("M_")) %>%
   mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for males
-FPKM.ASE.male[FPKM.ASE.male==0] <- NA # set genes not present as NAs
+FPKM.Mishra.male[FPKM.Mishra.male==0] <- NA # set genes not present as NAs
 
 
 ###### 25% FILTER
 # list of genes with FPKM > the 25% cut-off in females
-filter.low.exp.genes.fem.q25 <- rownames(FPKM.ASE.fem[!is.na(FPKM.ASE.fem$totalCounts) &
-                                                        FPKM.ASE.fem$totalCounts  > quantile(FPKM.ASE.fem$totalCounts, 0.25, na.rm=T),])
+filter.low.exp.genes.fem.q25 <- rownames(FPKM.Mishra.fem[!is.na(FPKM.Mishra.fem$totalCounts) &
+                                                        FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.25, na.rm=T),])
 # list of genes with FPKM > the 25% cut-off in males
-filter.low.exp.genes.male.q25 <- rownames(FPKM.ASE.male[!is.na(FPKM.ASE.male$totalCounts) &
-                                                          FPKM.ASE.male$totalCounts  > quantile(FPKM.ASE.male$totalCounts, 0.25, na.rm=T),])
+filter.low.exp.genes.male.q25 <- rownames(FPKM.Mishra.male[!is.na(FPKM.Mishra.male$totalCounts) &
+                                                          FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.25, na.rm=T),])
 # combine list of genes that passed filtering
 filter.low.exp.genes.q25 <- unique(c(filter.low.exp.genes.fem.q25, filter.low.exp.genes.male.q25))
 # remove Y chr genes that somehow gets there(?) could be from spermatheca in females?
@@ -192,11 +153,11 @@ length(filter.low.exp.genes.q25) # check how many genes are left
 
 ###### 10% FILTER
 # list of genes with FPKM > the 10% cut-off in females
-filter.low.exp.genes.fem.q10 <- rownames(FPKM.ASE.fem[!is.na(FPKM.ASE.fem$totalCounts) &
-                                                        FPKM.ASE.fem$totalCounts  > quantile(FPKM.ASE.fem$totalCounts, 0.10, na.rm=T),])
+filter.low.exp.genes.fem.q10 <- rownames(FPKM.Mishra.fem[!is.na(FPKM.Mishra.fem$totalCounts) &
+                                                        FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.10, na.rm=T),])
 # list of genes with FPKM > the 10% cut-off in males
-filter.low.exp.genes.male.q10 <- rownames(FPKM.ASE.male[!is.na(FPKM.ASE.male$totalCounts) &
-                                                          FPKM.ASE.male$totalCounts  > quantile(FPKM.ASE.male$totalCounts, 0.10, na.rm=T),])
+filter.low.exp.genes.male.q10 <- rownames(FPKM.Mishra.male[!is.na(FPKM.Mishra.male$totalCounts) &
+                                                          FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.10, na.rm=T),])
 
 # combine list of genes that passed filtering
 filter.low.exp.genes.q10 <- unique(c(filter.low.exp.genes.fem.q10, filter.low.exp.genes.male.q10))
@@ -216,8 +177,6 @@ length(filter.low.exp.genes.q25) # list of genes that passed the 25% filter
 # --------------- analyse differences in splicing profiles
 # using count.files (read counts per exon, generated by QoRTs. See JunctionSeq_Linux.sh)
 
-
-
 ####### set up decoder files for each sample group ########
 ##### load decoder files
 
@@ -229,8 +188,8 @@ decoder <- read.table("JunctionSeq/QoRTs.decoder.file.for.JunctionSeq.txt", head
 
 # decoder files for external datasets
 # Mishra et al. 2022
-decoder.ASE <- read.table("JunctionSeq/SDIU_ase/QoRTs.decoder.file.for.JunctionSeq.txt", header=T, stringsAsFactors = F)
-colnames(decoder.ASE)[1]="unique.ID"
+decoder.Mishra <- read.table("JunctionSeq/SDIU_ase/QoRTs.decoder.file.for.JunctionSeq.txt", header=T, stringsAsFactors = F)
+colnames(decoder.Mishra)[1]="unique.ID"
 
 # Singh & Agrawal 2023
 decoder.Osada <- read.table("JunctionSeq/SDIU_singh/QoRTs.decoder.SinghAgrawal.body.txt", header = FALSE, sep = "\t")
@@ -255,10 +214,10 @@ A.f.factors <- SSAV.factors  %>% filter(str_detect(sample.ID, "\\_F_"))
 A.m.factors <- SSAV.factors  %>% filter(str_detect(sample.ID, "A[[:digit:]]\\_M_"))
 C.m.factors <- SSAV.factors  %>% filter(str_detect(sample.ID, "C[[:digit:]]\\_M_"))
 
-ASE.factors <- read.delim("JunctionSeq/SDIU_ase/RAL.size.Factors.GEO.txt", header = T, sep="\t")
+Mishra.factors <- read.delim("JunctionSeq/SDIU_ase/RAL.size.Factors.GEO.txt", header = T, sep="\t")
 # separate by sex
-F.ASE.factors <- ASE.factors  %>% filter(str_detect(sample.ID, "\\F_"))
-M.ASE.factors <- ASE.factors  %>% filter(str_detect(sample.ID, "\\M_"))
+F.Mishra.factors <- Mishra.factors  %>% filter(str_detect(sample.ID, "\\F_"))
+M.Mishra.factors <- Mishra.factors  %>% filter(str_detect(sample.ID, "\\M_"))
 
 Osada.factors <- read.delim("JunctionSeq/SDIU_singh/RAL.size.Factors.GEO.txt", header=T, sep="\t")
 # separate by sex
@@ -311,15 +270,15 @@ countFiles.C.m.Red <- paste0("JunctionSeq/count.files/", C.m.Red.decoder$unique.
 countFiles.C.m.NR <- paste0("JunctionSeq/count.files/", C.m.NR.decoder$unique.ID, "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
 
 
-# Mishra et al. 2022 ASE data for reference
-M.decoder.ASE <- decoder.ASE[decoder.ASE$sex=="M",]
-M.decoder.ASE <- merge(M.decoder.ASE, M.ASE.factors, by = 1)
+# Mishra et al. 2022 Mishra data for reference
+M.decoder.Mishra <- decoder.Mishra[decoder.Mishra$sex=="M",]
+M.decoder.Mishra <- merge(M.decoder.Mishra, M.Mishra.factors, by = 1)
 
-F.decoder.ASE <- decoder.ASE[decoder.ASE$sex=="F",]
-F.decoder.ASE <- merge(F.decoder.ASE, F.ASE.factors, by =1)
+F.decoder.Mishra <- decoder.Mishra[decoder.Mishra$sex=="F",]
+F.decoder.Mishra <- merge(F.decoder.Mishra, F.Mishra.factors, by =1)
 
-countFiles.m.ASE <- paste0("JunctionSeq/SDIU_ase/count.files/",M.decoder.ASE$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
-countFiles.f.ASE <- paste0("JunctionSeq/SDIU_ase/count.files/",F.decoder.ASE$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+countFiles.m.Mishra <- paste0("JunctionSeq/SDIU_ase/count.files/",M.decoder.Mishra$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+countFiles.f.Mishra <- paste0("JunctionSeq/SDIU_ase/count.files/",F.decoder.Mishra$unique.ID,"/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
 
 
 
@@ -540,9 +499,9 @@ male.ctr.exp <- merge(C.m.Red.norm.exp, C.m.NR.norm.exp, by = c("FlyBaseID", "co
 
 # male and female profiles in external populations
 ######
-# using ASE data
-male.exp_ASE <- GeomNormCounts(countFiles.m.ASE, M.decoder.ASE)
-fem.exp_ASE <- GeomNormCounts(countFiles.f.ASE, F.decoder.ASE)
+# using Mishra data
+male.exp_ASE <- GeomNormCounts(countFiles.m.Mishra, M.decoder.Mishra)
+fem.exp_ASE <- GeomNormCounts(countFiles.f.Mishra, F.decoder.Mishra)
 
 # Singh & Agrawal (Osada) data
 male.exp_Osada <- GeomNormCounts(countFiles.m.Osada, M.decoder.Osada)
@@ -564,12 +523,12 @@ fem.exp_MCcom <- GeomNormCounts(countFiles.f.MCcom, F.decoder.MCcom)
 
 # Get a subset of SSS genes that are more consistently dimorphic
 #######
-ASE.sig.SSS <- read.delim("JunctionSeq/SDIU_ase/JSresults/ASE.sig.SSS_genes.txt", header = F, skip = 1)
-ASE.sig.SSS <- ASE.sig.SSS$V1
+Mishra.sig.SSS <- read.delim("JunctionSeq/SDIU_ase/JSresults/ASE.sig.SSS_genes.txt", header = F, skip = 1)
+Mishra.sig.SSS <- Mishra.sig.SSS$V1
 
-ASE.sig.SSS_filt25 <- ASE.sig.SSS[
-  ASE.sig.SSS %in% filter.low.exp.genes.q25]
-length(ASE.sig.SSS_filt25)
+Mishra.sig.SSS_filt25 <- Mishra.sig.SSS[
+  Mishra.sig.SSS %in% filter.low.exp.genes.q25]
+length(Mishra.sig.SSS_filt25)
 
 
 # checking for irregularites in MC population profiles
@@ -581,17 +540,17 @@ for(i in 1:dim(MC_data)[1]){
   count_F <- get(paste0(MC_data[i,2]))
   count_M <- get(paste0(MC_data[i, 3]))
   
-  Male.ASE.dist.MCf <- compareSplicingProfiles(male.exp_ASE, count_F)
-  Male.ASE.dist.MCm <- compareSplicingProfiles(male.exp_ASE, count_M)
-  Fem.ASE.dist.MCf <- compareSplicingProfiles(fem.exp_ASE, count_F)
-  Fem.ASE.dist.MCm <- compareSplicingProfiles(fem.exp_ASE, count_M)
+  Male.Mishra.dist.MCf <- compareSplicingProfiles(male.exp_ASE, count_F)
+  Male.Mishra.dist.MCm <- compareSplicingProfiles(male.exp_ASE, count_M)
+  Fem.Mishra.dist.MCf <- compareSplicingProfiles(fem.exp_ASE, count_F)
+  Fem.Mishra.dist.MCm <- compareSplicingProfiles(fem.exp_ASE, count_M)
   
   # dot plots to check how many points fall into the "irregular" category, but for the MC populations
   # "irregular" meaning that when looking at males (females), 
   # the points fall closer to the reference females (males)
-  test.M <- merge(Male.ASE.dist.MCm, Male.ASE.dist.MCf, by = "FlyBaseID")
-  test.F <- merge(Fem.ASE.dist.MCm, Fem.ASE.dist.MCf, by = "FlyBaseID")
-  # plot(test.F[test.F$FlyBaseID %in% ASE.sig.SSS_filt25 & 
+  test.M <- merge(Male.Mishra.dist.MCm, Male.Mishra.dist.MCf, by = "FlyBaseID")
+  test.F <- merge(Fem.Mishra.dist.MCm, Fem.Mishra.dist.MCf, by = "FlyBaseID")
+  # plot(test.F[test.F$FlyBaseID %in% Mishra.sig.SSS_filt25 & 
   #                  !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y), ], 
   #         x = "percent.dissim.x", y = "percent.dissim.y", 
   #         colx = "black", coly = "black",colNonCon = "black",xlab = "to males",
@@ -599,10 +558,10 @@ for(i in 1:dim(MC_data)[1]){
   
   # get a list of all irregular genes from each MC population treatment
   # list of genes in females where expression profile is more dissimilar to female ref than male ref
-  fem <- test.F[test.F$FlyBaseID %in% ASE.sig.SSS_filt25 & 
+  fem <- test.F[test.F$FlyBaseID %in% Mishra.sig.SSS_filt25 & 
                   !is.na(test.F$percent.dissim.x) & !is.na(test.F$percent.dissim.y) &
                   test.F$percent.dissim.x <= test.F$percent.dissim.y, ]$FlyBaseID
-  male <- test.M[test.M$FlyBaseID %in% ASE.sig.SSS_filt25 & 
+  male <- test.M[test.M$FlyBaseID %in% Mishra.sig.SSS_filt25 & 
                    !is.na(test.M$percent.dissim.x) & !is.na(test.M$percent.dissim.y) &
                    test.M$percent.dissim.x >= test.M$percent.dissim.y, ]$FlyBaseID
   
@@ -622,12 +581,12 @@ length(male.com)
 all.exclude <- unique(c(fem.sim, fem.abs, fem.com, male.sim, male.abs, male.com)) 
 
 # subset of genes that are more consistently dimorphic:
-# 1) SSS in the ASE population
+# 1) SSS in the Mishra population
 # 2) fall into the right "sex-profile" (i.e., not "irregular") when seen in the MC populations
 # Extra filtering to removing genes near the DsRed marker
 DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
-subset.sss <- (ASE.sig.SSS_filt25[!ASE.sig.SSS_filt25 %in% all.exclude &
-                                    !ASE.sig.SSS_filt25 %in% DsRed_genes$V1])
+subset.sss <- (Mishra.sig.SSS_filt25[!Mishra.sig.SSS_filt25 %in% all.exclude &
+                                    !Mishra.sig.SSS_filt25 %in% DsRed_genes$V1])
 length(all.exclude)
 length(subset.sss)
 write_delim(data.frame(subset.sss), file = "JunctionSeq/dimorphic.subset.list.txt", delim = ",", col_names = F)
@@ -642,16 +601,16 @@ subset.sss <- subset.sss$V1
 # -------- male comparison -------------
 ########
 # expression of Red Experimental males 
-# to reference ASE males
+# to reference Mishra males
 A.m.Red.v.Males_ase <- compareSplicingProfiles(A.m.Red.norm.exp, male.exp_ASE)
-# to reference ASE females
+# to reference Mishra females
 A.m.Red.v.Fem_ase <- compareSplicingProfiles(A.m.Red.norm.exp, fem.exp_ASE)
 # calculate Phi for Red males
 A.m.Red.Phi <- CalculatePhi(A.m.Red.v.Males_ase, A.m.Red.v.Fem_ase) 
 
 # ---
 # expression of NR Experimental males
-A.m.NR.v.Males_ase <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp_ASE) # with ASE data
+A.m.NR.v.Males_ase <- compareSplicingProfiles(A.m.NR.norm.exp, male.exp_ASE) # with Mishra data
 A.m.NR.v.Fem_ase <- compareSplicingProfiles(A.m.NR.norm.exp, fem.exp_ASE)
 A.m.NR.Phi <- CalculatePhi(A.m.NR.v.Males_ase, A.m.NR.v.Fem_ase)
 #######

@@ -116,13 +116,13 @@ propSBGE(A.m.geno, "SBGE_comp")
 propSBGE(A.f.geno, "SBGE_comp")
 
 # Fig 2
-bin_All <- plotSBGEprop(SSAV.geno, "SBGE_comp", "SBGE (ASE)")
+bin_All <- plotSBGEprop(SSAV.geno, "SBGE_comp", "SBGE (Mishra)")
 
 # Fig S3.A
-bin_A.m <- plotSBGEprop(A.m.geno, "SBGE_comp", "SBGE (ASE)") + coord_cartesian(ylim = c(0, 0.1))
+bin_A.m <- plotSBGEprop(A.m.geno, "SBGE_comp", "SBGE (Mishra)") + coord_cartesian(ylim = c(0, 0.1))
 
 # Fig S3.B
-bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (ASE)")
+bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (Mishra)")
 
 
 ########
