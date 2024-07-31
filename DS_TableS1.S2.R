@@ -31,7 +31,7 @@ source("Chromosome_df.R")
 # set up external SSS data from Mishra et al. 2022
 ########
 jseq.Mishra = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
-                      sep = "\t", header = TRUE)
+                         sep = "\t", header = TRUE)
 colnames(jseq.Mishra)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
 
 # ------ First for the Mishra reference 
@@ -233,9 +233,9 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   # assign overlap with SSS genes as defined with the Mishra et al. 2022 data set
   tmp.JS.table = tmp.JS.table %>% 
     dplyr::mutate(Mishra.SSS = ifelse(FlyBaseID %in% jseq.Mishra[!is.na(jseq.Mishra$SSS) & 
-                                                                jseq.Mishra$SSS,]$FlyBaseID, 
-                                   TRUE, ifelse(is.na(jseq.Mishra$SSS), NA, FALSE)))
-
+                                                                   jseq.Mishra$SSS,]$FlyBaseID, 
+                                      TRUE, ifelse(is.na(jseq.Mishra$SSS), NA, FALSE)))
+  
   
   # any overlap with differentially expressed genes?
   tmp.JS.table = tmp.JS.table %>% 
@@ -245,20 +245,20 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   
   # number of genes assayed with sig SSS status defined from Mishra et al. 2022 datset
   fishers.test.RedNR.splice.results$N.sig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
-                                                                                    tmp.JS.table$Mishra.SSS])
+                                                                                       tmp.JS.table$Mishra.SSS])
   # number of genes assayed with non sig SSS status defined from Mishra et al. 2022 datset
   fishers.test.RedNR.splice.results$N.nonsig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
-                                                                                       !tmp.JS.table$Mishra.SSS])
+                                                                                          !tmp.JS.table$Mishra.SSS])
   
   # number of genes assayed that also has sig SSS status defined from Mishra et al. 2022 datset
   fishers.test.RedNR.splice.results$N.DS.nonsig.Mishra[i] <- length(tmp.JS.table$FlyBaseID[!is.na(tmp.JS.table$Mishra.SSS) &
-                                                                                          !tmp.JS.table$Mishra.SSS &
-                                                                                          !is.na(tmp.JS.table$sig.hit) &
-                                                                                          tmp.JS.table$sig.hit ])
+                                                                                             !tmp.JS.table$Mishra.SSS &
+                                                                                             !is.na(tmp.JS.table$sig.hit) &
+                                                                                             tmp.JS.table$sig.hit ])
   # do fisher test for overlap between SSS and DS genes
   if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$Mishra.SSS) > 0){
-      fishers.test.RedNR.splice.results$SSS.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$Mishra.SSS)$p.val
-  
+    fishers.test.RedNR.splice.results$SSS.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$Mishra.SSS)$p.val
+    
   }
   
   
@@ -280,7 +280,7 @@ for(i in 1:dim(SSAV.sample.types)[1]){
                                                                                          tmp.JS.table$sig.hit ])
   # do fisher test for overlap between DE and DS genes
   if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$DE.Sig) > 0){
-      fishers.test.RedNR.splice.results$DE.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$DE.Sig)$p.val
+    fishers.test.RedNR.splice.results$DE.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$DE.Sig)$p.val
   }
   
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
@@ -292,5 +292,3 @@ fishers.test.RedNR.splice.results # print table of results
 # write.table(fishers.test.RedNR.splice.results,
 #             file = "Results/splicing.Red.NR.fisher.tests_filtered.csv", 
 #             sep = ",", quote = FALSE, row.names = F)
-
-

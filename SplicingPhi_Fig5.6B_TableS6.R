@@ -39,7 +39,7 @@ source("Chromosome_df.R")
 # set up external data from Mishra et al. 2022
 ########
 jseq.Mishra = read.table("JunctionSeq/SDIU_ase/JSresults/SDIU_ASEallGenes.results.txt",
-                      sep = "\t", header = TRUE)
+                         sep = "\t", header = TRUE)
 colnames(jseq.Mishra)[2]="FlyBaseID" # change column name to reflect the rest of the dataset
 
 # ------ First for the Mishra reference 
@@ -108,8 +108,8 @@ Mishra.colData <- decoder.Mishra %>%
 
 # make DESeq2 object to calculate fpkm
 dds.Mishra <- DESeqDataSetFromMatrix(countData = Mishra.count.matrix, 
-                                  colData = Mishra.colData, 
-                                  design = ~ rep + sex)
+                                     colData = Mishra.colData, 
+                                     design = ~ rep + sex)
 
 # get gene lengths from GTF file 
 # (done on server, scp to local so load this to env if you also did it that way)
@@ -139,10 +139,10 @@ FPKM.Mishra.male[FPKM.Mishra.male==0] <- NA # set genes not present as NAs
 ###### 25% FILTER
 # list of genes with FPKM > the 25% cut-off in females
 filter.low.exp.genes.fem.q25 <- rownames(FPKM.Mishra.fem[!is.na(FPKM.Mishra.fem$totalCounts) &
-                                                        FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.25, na.rm=T),])
+                                                           FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.25, na.rm=T),])
 # list of genes with FPKM > the 25% cut-off in males
 filter.low.exp.genes.male.q25 <- rownames(FPKM.Mishra.male[!is.na(FPKM.Mishra.male$totalCounts) &
-                                                          FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.25, na.rm=T),])
+                                                             FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.25, na.rm=T),])
 # combine list of genes that passed filtering
 filter.low.exp.genes.q25 <- unique(c(filter.low.exp.genes.fem.q25, filter.low.exp.genes.male.q25))
 # remove Y chr genes that somehow gets there(?) could be from spermatheca in females?
@@ -154,10 +154,10 @@ length(filter.low.exp.genes.q25) # check how many genes are left
 ###### 10% FILTER
 # list of genes with FPKM > the 10% cut-off in females
 filter.low.exp.genes.fem.q10 <- rownames(FPKM.Mishra.fem[!is.na(FPKM.Mishra.fem$totalCounts) &
-                                                        FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.10, na.rm=T),])
+                                                           FPKM.Mishra.fem$totalCounts  > quantile(FPKM.Mishra.fem$totalCounts, 0.10, na.rm=T),])
 # list of genes with FPKM > the 10% cut-off in males
 filter.low.exp.genes.male.q10 <- rownames(FPKM.Mishra.male[!is.na(FPKM.Mishra.male$totalCounts) &
-                                                          FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.10, na.rm=T),])
+                                                             FPKM.Mishra.male$totalCounts  > quantile(FPKM.Mishra.male$totalCounts, 0.10, na.rm=T),])
 
 # combine list of genes that passed filtering
 filter.low.exp.genes.q10 <- unique(c(filter.low.exp.genes.fem.q10, filter.low.exp.genes.male.q10))
@@ -586,7 +586,7 @@ all.exclude <- unique(c(fem.sim, fem.abs, fem.com, male.sim, male.abs, male.com)
 # Extra filtering to removing genes near the DsRed marker
 DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
 subset.sss <- (Mishra.sig.SSS_filt25[!Mishra.sig.SSS_filt25 %in% all.exclude &
-                                    !Mishra.sig.SSS_filt25 %in% DsRed_genes$V1])
+                                       !Mishra.sig.SSS_filt25 %in% DsRed_genes$V1])
 length(all.exclude)
 length(subset.sss)
 write_delim(data.frame(subset.sss), file = "JunctionSeq/dimorphic.subset.list.txt", delim = ",", col_names = F)
@@ -856,9 +856,9 @@ for(i in 1:dim(Phi.test.table)[1]){
   
   test <- merge(RedData, NRData, by = "FlyBaseID")
   Phi.test.table$pval[i] <- t.test(test$phi.x, 
-                                     test$phi.y, paired = T)$p.value
+                                   test$phi.y, paired = T)$p.value
   Phi.test.table$diff[i] <- t.test(test$phi.x, 
-                                     test$phi.y, paired = T)$estimate
+                                   test$phi.y, paired = T)$estimate
   
   rm(test)
 }
@@ -875,91 +875,91 @@ Phi.test.table
 ########
 Fig5A.A.m <- splicing.MF.diff.dot.plot(A.m.Red.Phi[A.m.Red.Phi$FlyBaseID %in% subset.sss,],
                                        A.m.NR.Phi[A.m.NR.Phi$FlyBaseID %in% subset.sss,], 
-                                                  plotCol = "phi", color = "#0072B2") +
+                                       plotCol = "phi", color = "#0072B2") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
 Fig5A.C.m <- splicing.MF.diff.dot.plot(C.m.Red.Phi[C.m.Red.Phi$FlyBaseID %in% subset.sss,],
                                        C.m.NR.Phi[C.m.NR.Phi$FlyBaseID %in% subset.sss,],
-                                                  plotCol = "phi", color = "#666666") +
+                                       plotCol = "phi", color = "#666666") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
 Fig5A.A.f <- splicing.MF.diff.dot.plot(A.f.Red.Phi[A.f.Red.Phi$FlyBaseID %in% subset.sss,],
                                        A.f.NR.Phi[A.f.NR.Phi$FlyBaseID %in% subset.sss,], 
-                                                  plotCol = "phi", color = "#D55E00") +
+                                       plotCol = "phi", color = "#D55E00") +
   coord_cartesian(xlim = c(-1.1, 1.1), ylim = c(-1.1, 1.1))
 
 
 
 Fig_5A <- ggarrange(NA,
                     Fig5A.A.f + ggtitle(expression(bold("Exp. Females"))) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
-                               panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
-                       NA,  
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                            panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
+                    NA,  
                     Fig5A.A.m + ggtitle(expression(bold("Exp. Males"))) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
-                               panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
-                       NA, 
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
+                            panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
+                    NA, 
                     Fig5A.C.m + ggtitle(expression(bold("Ctrl. Males"))) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
-                               panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
-                       widths = c(0.025, 1, 0.05, 1, 0.05, 1),
-                       ncol = 6)
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
+                            panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
+                    widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+                    ncol = 6)
 
 
 Fig_5A <- annotate_figure(Fig_5A, left = text_grob(expression(bold(italic(phi)["NonRed"])), 
-                                                      rot = 90, size = 40),
+                                                   rot = 90, size = 40),
                           bottom = text_grob(expression(bold(italic(phi)["Red"])), 
                                              size = 40))
 
 
 Fig5B.A.m <- splicing.MFdiff.plot(A.m.Red.Phi[A.m.Red.Phi$FlyBaseID %in% subset.sss,],
                                   A.m.NR.Phi[A.m.NR.Phi$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#0072B2") +
+                                  plotCol = "phi", color = "#0072B2") +
   annotate("label", label = expression(atop(bar(x)*" = 0.049", italic("P")*" < 10"^-5*"***")), 
            x =  1.05, y = 315, size = 8.5, label.padding=unit(1, "lines"))
 
 Fig5B.A.f <- splicing.MFdiff.plot(A.f.Red.Phi[A.f.Red.Phi$FlyBaseID %in% subset.sss,],
                                   A.f.NR.Phi[A.f.NR.Phi$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#D55E00") +
+                                  plotCol = "phi", color = "#D55E00") +
   annotate("label", label = expression(atop(bar(x)*" = -0.008", italic("P")*" = 0.014"*"*")),
            x =  -1.05, y = 625, size = 8.5,  label.padding=unit(1, "lines"))
 
 Fig5B.C.m <- splicing.MFdiff.plot(C.m.Red.Phi[C.m.Red.Phi$FlyBaseID %in% subset.sss,],
                                   C.m.NR.Phi[C.m.NR.Phi$FlyBaseID %in% subset.sss,], 
-                                          plotCol = "phi", color = "#666666")+
+                                  plotCol = "phi", color = "#666666")+
   annotate("label", label = expression(atop(bar(x)*" = -0.015", italic("P")*" < 10"^-5*"***")), 
            x =  -1.05, y = 405, size = 8.5,  label.padding=unit(1, "lines"))
 
 
 Fig_5B <- ggarrange(NA,
-                       Fig5B.A.f + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
-                               panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
-                       NA,  
-                       Fig5B.A.m  + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
-                               panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
-                       NA, 
-                       Fig5B.C.m  + coord_cartesian(xlim=c(-2,2)) +
-                         theme(axis.title.x = element_blank(), 
-                               axis.title.y = element_blank(),
-                               plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
-                               panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
-                       widths = c(0.025, 1, 0.05, 1, 0.05, 1),
-                       ncol = 6)
+                    Fig5B.A.f + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#D55E00"),
+                            panel.border = element_rect(colour = "#D55E00", fill=NA, size=3)),
+                    NA,  
+                    Fig5B.A.m  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size= 30, vjust = 1.5, color = "#0072B2"),
+                            panel.border = element_rect(colour = "#0072B2", fill=NA, size=3)),
+                    NA, 
+                    Fig5B.C.m  + coord_cartesian(xlim=c(-2,2)) +
+                      theme(axis.title.x = element_blank(), 
+                            axis.title.y = element_blank(),
+                            plot.title = element_text(hjust = 0.5, size = 30, vjust = 1.5, color = "#666666"),
+                            panel.border = element_rect(colour = "#666666", fill=NA, size=3)),
+                    widths = c(0.025, 1, 0.05, 1, 0.05, 1),
+                    ncol = 6)
 
 Fig_5B <- annotate_figure(Fig_5B, left = text_grob("Count", 
-                                                      rot = 90, size = 40),
+                                                   rot = 90, size = 40),
                           bottom = text_grob(expression(bold(italic(Delta))*bold(italic(phi))), 
                                              size = 40))
 
