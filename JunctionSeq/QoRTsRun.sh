@@ -72,7 +72,7 @@ cut -f 1 $SAMPLE_INFO | parallel -j 5 \
 
 echo "Done running QoRTs :)"
 
-
+# ----------------------------------------------
 # run this like so:
 nohup ./QoRTs_run.sh -f /plas1/michelle.liu/SSAV/sample_INFO.tsv \
   -b /plas1/michelle.liu/SSAV/sortedBAM \
