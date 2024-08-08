@@ -100,9 +100,10 @@ Fig_7
 
 
 
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig7_main.pdf",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig7_main.png",   # The directory you want to save the file in
     width = 7.5, # 12, 24, 20 The width of the plot in inches
-    height = 14) # 10, 20, 13 The height of the plot in inches
+    height = 14, # 10, 20, 13 The height of the plot in inches
+    units = "in", res = 300)
 
 annotate_figure(Fig_7 + theme(plot.margin = margin(10,10,10,0)), left = text_grob("Frequency", 
                                             rot = 90, size = 40),

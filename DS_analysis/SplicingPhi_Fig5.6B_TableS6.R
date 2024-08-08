@@ -12,7 +12,7 @@
 # see: Amardeep Singh's JunctionSeq.Script.R,
 # or Michelle's modified version for these populations "JunctionSeqRun.R"
 
-rm(list=ls())
+# rm(list=ls()) # don't do this. This script should ideally be run in tandem with ExpCtrlEffect_Fig6A.S8.R to generate Fig 6
 setwd("~/Desktop/UofT/SSAV_RNA/")
 
 
@@ -922,19 +922,19 @@ Fig5B.A.m <- splicing.MFdiff.plot(A.m.Red.Phi[A.m.Red.Phi$FlyBaseID %in% subset.
                                   A.m.NR.Phi[A.m.NR.Phi$FlyBaseID %in% subset.sss,], 
                                   plotCol = "phi", color = "#0072B2") +
   annotate("label", label = expression(atop(bar(x)*" = 0.049", italic("P")*" < 10"^-5*"***")), 
-           x =  1.05, y = 315, size = 8.5, label.padding=unit(1, "lines"))
+           x =  1.05, y = 315, size = 8.5, label.padding=unit(0.5, "lines"))
 
 Fig5B.A.f <- splicing.MFdiff.plot(A.f.Red.Phi[A.f.Red.Phi$FlyBaseID %in% subset.sss,],
                                   A.f.NR.Phi[A.f.NR.Phi$FlyBaseID %in% subset.sss,], 
                                   plotCol = "phi", color = "#D55E00") +
   annotate("label", label = expression(atop(bar(x)*" = -0.008", italic("P")*" = 0.014"*"*")),
-           x =  -1.05, y = 625, size = 8.5,  label.padding=unit(1, "lines"))
+           x =  -1.05, y = 625, size = 8.5,  label.padding=unit(0.5, "lines"))
 
 Fig5B.C.m <- splicing.MFdiff.plot(C.m.Red.Phi[C.m.Red.Phi$FlyBaseID %in% subset.sss,],
                                   C.m.NR.Phi[C.m.NR.Phi$FlyBaseID %in% subset.sss,], 
                                   plotCol = "phi", color = "#666666")+
   annotate("label", label = expression(atop(bar(x)*" = -0.015", italic("P")*" < 10"^-5*"***")), 
-           x =  -1.05, y = 405, size = 8.5,  label.padding=unit(1, "lines"))
+           x =  -1.05, y = 405, size = 8.5,  label.padding=unit(0.5, "lines"))
 
 
 Fig_5B <- ggarrange(NA,
@@ -965,18 +965,19 @@ Fig_5B <- annotate_figure(Fig_5B, left = text_grob("Count",
 
 
 # comment in to save plot
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig5_main.pdf",   # The directory you want to save the file in
-#     width = 21, # 12, 24, 20 The width of the plot in inches
-#     height = 14) # 10, 20, 13 The height of the plot in inches
-# 
-# ggarrange(Fig_5A, 
-#           NA, 
-#           Fig_5B, 
-#           nrow = 3, heights = c(1, 0.07, 1),
-#           labels = c("A)", NA, "B)"),
-#           font.label = list(size = 40))
-# 
-# dev.off()
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig5_main.png",   # The directory you want to save the file in
+    width = 21, # 12, 24, 20 The width of the plot in inches
+    height = 14, # 10, 20, 13 The height of the plot in inches
+    units = "in", res = 300)
+    
+ggarrange(Fig_5A,
+          NA,
+          Fig_5B,
+          nrow = 3, heights = c(1, 0.07, 1),
+          labels = c("A)", NA, "B)"),
+          font.label = list(size = 40))
+
+dev.off()
 
 ########
 

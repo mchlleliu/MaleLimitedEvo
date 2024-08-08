@@ -226,9 +226,10 @@ AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
 
 
 # Save the plots
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S2.pdf",   # The directory you want to save the file in
-    width = 20, # The width of the plot in inches
-    height = 20) # The height of the plot in inches
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S2.png",   # The directory you want to save the file in
+    width = 17, # The width of the plot in inches
+    height = 17, # The height of the plot in inches
+    units = "in", res = 200) 
 ggarrange(AfAm_male_cand, NA, AmAf_fem_cand,
           NA, NA, NA,
           CmAm_male_cand, NA, CmAf_fem_cand,

@@ -216,6 +216,14 @@ Fig1_suppl <- ggplot(data = mating.activity.TB) +
         panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 
+# Save Fig.S1
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S1.png",   # The directory you want to save the file in
+    width = 15, # 20 15 The width of the plot in inches
+    height = 8, # 12 8 The height of the plot in inches
+    units = "in", res = 300)
+Fig1_suppl
+dev.off()
+
 
 
 
@@ -499,9 +507,11 @@ male_time.block <- ggplot(data = markerxtimeblock) +
 
 
 # Save Fig.1
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig1_main.pdf",   # The directory you want to save the file in
-#     width = 20, # 20 15 The width of the plot in inches
-#     height = 12) # 12 8 The height of the plot in inches
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig1_main.png",   # The directory you want to save the file in
+    width = 20, # 20 15 The width of the plot in inches
+    height = 12, # 12 8 The height of the plot in inches
+    units = "in", res = 300)
+
 ggarrange(plot.globfx,
           NA,
           ggarrange(male_time.block + theme(axis.text.x = element_blank()),
@@ -512,5 +522,5 @@ ggarrange(plot.globfx,
           ncol = 3, widths = c(0.75, 0.075, 1.5),
           labels = "A)", font.label = list(size = 30), hjust = -0.01
 )
-# Fig1_suppl
-# dev.off()
+
+dev.off()

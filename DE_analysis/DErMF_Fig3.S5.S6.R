@@ -279,7 +279,7 @@ colnames(boot_All_SBGE_rMF_A.m)[1] <- "Sig"
 boot_All_SBGE_rMF_A.m$SBGE_comp <- "a.all"
 boot_All_SBGE_rMF_A.m <- rbind(boot_All_SBGE_rMF_A.m, boot_rMF_SBGE_A.m)
 
-Fig3A_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.m,
+Fig5A_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.m,
                            perm_dat = perm_All_SBGE_rMF_A.m, 
                            x_col = "rMF", SBGE_cat = "SBGE_comp") +
   scale_x_discrete(labels = c("All", "Highly FB", "Female-Biased", 
@@ -299,7 +299,7 @@ colnames(boot_All_SBGE_rMF_A.f)[1] <- "Sig"
 boot_All_SBGE_rMF_A.f$SBGE_comp <- "a.all"
 boot_All_SBGE_rMF_A.f <- rbind(boot_All_SBGE_rMF_A.f, boot_rMF_SBGE_A.f)
 
-Fig3B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
+Fig5B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
                            perm_dat = perm_All_SBGE_rMF_A.f, 
                            x_col = "rMF", SBGE_cat = "SBGE_comp") +
   scale_x_discrete(labels = c("All", "Highly FB", "Female-Biased", 
@@ -313,24 +313,25 @@ Fig3B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 # Save figures
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig3_main.pdf",   # The directory you want to save the file in
-#     width = 17, # The width of the plot in inches
-#     height = 9) # 9 18 The height of the plot in inches
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S5.png",   # The directory you want to save the file in
+    width = 17, # The width of the plot in inches
+    height = 18, # 9 18 The height of the plot in inches
+    units = "in", res = 300)
 
 # Suppl. Figure S5
-# ggarrange(Fig3A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
-#           Fig3B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
-#           labels = c("A)", "B)"),
-#           nrow = 2, heights = c(1, 0.9),
-#           common.legend = TRUE, legend = "bottom",
-#           font.label = list(size = 30), hjust = -0.01)
+ggarrange(Fig5A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
+          Fig5B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
+          labels = c("A)", "B)"),
+          nrow = 2, heights = c(1, 0.9),
+          common.legend = TRUE, legend = "bottom",
+          font.label = list(size = 30), hjust = -0.01)
 
 # Fig. 3
-Fig3_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1),
-                  axis.text.x = element_text(size = 25))
+# Fig3_main + theme(axis.title.x = element_blank(), legend.text = element_text(size = 30, vjust = 1),
+#                   axis.text.x = element_text(size = 25))
 
 
-# dev.off()
+dev.off()
 
 
 
@@ -396,11 +397,12 @@ Fig_S6 <- pointSEplot(boot_dat = boot_All_exp_rMF,
 
 
 # save plot
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/rMF_Fig_S6.pdf",   # The directory you want to save the file in
-#     width = 12, # 12, 24, 20 The width of the plot in inches
-#     height = 7) # 10, 20, 13 The height of the plot in inches
-
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/rMF_Fig_S6.png",   # The directory you want to save the file in
+    width = 12, # 12, 24, 20 The width of the plot in inches
+    height = 7, # 10, 20, 13 The height of the plot in inches
+    units = "in", res = 300)
+    
 Fig_S6
 
-# dev.off()
+dev.off()
 ########

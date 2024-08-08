@@ -40,6 +40,7 @@ colnames(tmp.NR) <- c("NR.exp_trt", "NR.se_trt", "NR.padj", "FlyBaseID")
 corr.plot <- merge(tmp.Red, tmp.NR, by = "FlyBaseID")
 # combine Red and NonRed data to create a plotting dataset
 
+
 corr.plot <- merge(corr.plot, Mishra, by = "FlyBaseID")
 # add in SBGE values from Mishra et al. 2022 data
 ########
@@ -109,7 +110,6 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 }
 
 
-# \\\**/// some lines need to be commented in or out depending on which figure (6A or S8) is being generated
 # plot_corr: add a column to specify colour for each point based on where they are located,
 #                 for points in the concordant quadrants (I and III)
 # variables: dat = data.frame object containing the values to be plotted
@@ -124,11 +124,6 @@ colour_quadrant <-  function(dat, x, y, colx, coly, colNonCon){
 #            title = of graph
 plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
   # count the percentages
-  
-  # # comment in if plotting Fig. 6A
-  # dat[[x]] = abs(dat[[x]])
-  # dat[[y]] = abs(dat[[y]])
-  # 
   quad_n <- quad_count(dat, x, y, lim)
   # manage the colour of points
   quad_col <- colour_quadrant(dat, x, y, colx, coly, colNonCon)
@@ -187,13 +182,14 @@ Figure_S8 <- plot_corr(corr.plot,
 
 
 # comment in to save plot
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S8.pdf",   # The directory you want to save the file in
-#     width = 10, 
-#     height = 10)
-# 
-# Figure_S8
-# 
-# dev.off()
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S8.png",   # The directory you want to save the file in
+    width = 10,
+    height = 10,
+    units = "in", res = 300)
+
+Figure_S8
+
+dev.off()
 
 ######
 
@@ -201,6 +197,7 @@ Figure_S8 <- plot_corr(corr.plot,
 
 # plotting Fig. 6A
 ######
+source("Fig6_effectFuns.R")
 # remember to edit the plotting function (plot_corr) accordingly
 # get only genes where Red and NonRed samples evolved in the same regulatory direction 
 # (i.e., both Red and NR UPregulated relative to control or both DOWNregulated)
@@ -228,7 +225,7 @@ Figure_6A <- plot_corr(concordant,
 
 
 # put together figure above and figure from the corresponding analysis on splicing changes
-# (see: "Fig5.6B_TableS6_DS.R" to generate Figure 6B)
+# (see: "SplicingPhi_Fig5.6B_TableS6.R" to generate Figure 6B)
 Figure6 <- ggarrange(NA,NA,NA,NA,NA, 
                      NA, Figure_6A + ggtitle(expression(bold("Differential Expression"))) +
                        theme(axis.title.x = element_blank(), 
@@ -246,15 +243,16 @@ Figure6 <- ggarrange(NA,NA,NA,NA,NA,
 
 
 # comment in to save figure 6
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig6_main.pdf",   # The directory you want to save the file in
-#     width = 20, # 20; The width of the plot in inches
-#     height = 10) # 30; The height of the plot in inches
-# 
-# annotate_figure(Figure6, left = text_grob("Experimental vs. Control Difference: \nNonRed Males", 
-#                                           rot = 90, size = 30, vjust = 1),
-#                 bottom = text_grob("Experimental vs. Control Difference: \nRed Males", 
-#                                    size = 30))
-# 
-# dev.off()
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig6_main.png",   # The directory you want to save the file in
+    width = 20, # 20; The width of the plot in inches
+    height = 10, # 30; The height of the plot in inches
+    units = "in", res = 300)
+    
+annotate_figure(Figure6, left = text_grob("Experimental vs. Control Difference: \nNonRed Males",
+                                          rot = 90, size = 30, vjust = 1),
+                bottom = text_grob("Experimental vs. Control Difference: \nRed Males",
+                                   size = 30))
+
+dev.off()
 ######
 

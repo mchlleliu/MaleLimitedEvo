@@ -111,7 +111,7 @@ binPlot_RedNR <- function(dat, perm_dat){
                                                         ifelse(pval < 0.001, "***", 
                                                                ifelse(pval < 0.01, "**" ,
                                                                       ifelse(pval < 0.05, "*", "ns"))))),
-              aes(x =SBGE_comp, y = 1.6, label = sig1), size = 7.5,
+              aes(x =SBGE_comp, y = 1.6, label = sig1), size = 7.5, # change y = 2 for figure S7
               position = position_dodge(width = 0.8), show.legend = FALSE) +
     
     # add number of genes per category
@@ -124,7 +124,7 @@ binPlot_RedNR <- function(dat, perm_dat){
     # segment lines between SBGE categories
     geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), color = "grey") +
     scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) + # "Highly ant.", "Antagonistic", "Uncorrelated", "Concordant", "Highly con." .... "Strong pur.", "Purifying sel.", "Neutral", "Positive sel.", "Strong pos."
-    # scale_y_continuous(limits = c(-1.6, 1.6), breaks = c(-1.5, -1.0, 0, 1.0, 1.5)) +
+    # scale_y_continuous(limits = c(-2, 2), breaks = c(-2, -1.0, 0, 1.0, 2)) + # comment in for figure S7
     
     # default theme settings:
     theme_classic() +
@@ -151,11 +151,11 @@ Fig_4 <- binPlot_RedNR(All.geno, permed_All.geno) +
               textsize = 10, size = 0.75, vjust = 1.85, color = "darkblue")
 
 # Comment in to save plot
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_main.pdf",  # The directory you want to save the file in
-#     width = 15, # 15 The width of the plot in inches
-#     height = 8 ) # 8 20 The height of the plot in inches
-# Fig_4
-# dev.off()
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_main.png",  # The directory you want to save the file in
+    width = 15, # 15 The width of the plot in inches
+    height = 8 , units = "in", res = 300) # 8 20 The height of the plot in inches
+Fig_4
+dev.off()
 
 
 
@@ -279,16 +279,16 @@ FigS7_C <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 # comment in to save plot
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S7.pdf",  # The directory you want to save the file in
-#     width = 15, height = 20 )
-# ggarrange(FigS7_A + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-#           NA,
-#           FigS7_B + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
-#           NA, 
-#           FigS7_C, 
-#           NA,
-#           labels = c("A)", NA, "B)", NA, "C)", NA),
-#           heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
-#           font.label = list(size = 25),
-#           common.legend = TRUE, legend = "bottom")
-# dev.off()
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S7.png",  # The directory you want to save the file in
+    width = 15, height = 20,  units = "in", res = 300)
+ggarrange(FigS7_A + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          NA,
+          FigS7_B + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          NA,
+          FigS7_C,
+          NA,
+          labels = c("A)", NA, "B)", NA, "C)", NA),
+          heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,
+          font.label = list(size = 25),
+          common.legend = TRUE, legend = "bottom")
+dev.off()

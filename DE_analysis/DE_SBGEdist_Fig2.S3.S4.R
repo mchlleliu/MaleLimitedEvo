@@ -22,6 +22,7 @@ library(plyr)
 library(dplyr)
 library(broom)
 library(ggplot2)
+library(mgcv)
 ########
 
 # Get Mishra et al.'s data 
@@ -128,20 +129,21 @@ bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (Mishra)")
 
 
 # comment in to save plots
-pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig2_main_filtered.pdf",   # The directory you want to save the file in
-    width = 14, # 14 24 The width of the plot in inches
-    height = 10) # 10 20 The height of the plot in inches
-
-# main Figure 2
-bin_All + coord_cartesian(ylim = c(0,0.15))
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S3.png",   # The directory you want to save the file in
+    width = 24, # 14 24 The width of the plot in inches
+    height = 10, # 10 20 The height of the plot in inches
+    units = "in", res = 300)
+    
+# # main Figure 2
+# bin_All + coord_cartesian(ylim = c(0,0.15))
 
 
 # Figure S3
-# ggarrange(bin_A.m, NA, bin_A.f,
-#           labels = c("A)", NA, "B)"),
-#           widths = c(1, 0.05, 1),
-#           ncol = 3,
-#           font.label = list(size = 30), hjust = -0.01)
+ggarrange(bin_A.m, NA, bin_A.f,
+          labels = c("A)", NA, "B)"),
+          widths = c(1, 0.05, 1),
+          ncol = 3,
+          font.label = list(size = 30), hjust = -0.01)
 
 dev.off()
 
@@ -363,6 +365,7 @@ SBGE_dist <- SBGE_dist +
 Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                                NA, NA,
                                SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)) +
+                                 theme(axis.title.y = element_text(size=24, margin = margin(0,15,0,0), color = "black")) +
                                  coord_cartesian(xlim=c(-1,1)),
                                nrow = 3, heights = c(1, 0.005, 0.30), ncol = 2, widths = c(1, 0.05)) 
 
@@ -370,10 +373,11 @@ Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
 
 
 # Comment in to save plot (Fig. S4)
-# pdf(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.pdf",   # The directory you want to save the file in
-#     width = 24, # 14 18 24 The width of the plot in inches
-#     height = 20) # 10 20 20 The height of the plot in inches
-# 
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.png",   # The directory you want to save the file in
+    width = 24, # 14 18 24 The width of the plot in inches
+    height = 20, # 10 20 20 The height of the plot in inches
+    units = "in", res = 300)
+    
 ggarrange(NA, Fig2_CKsuppl_all, NA,
           NA, NA, NA,
           NA, ggarrange(Fig2_CKsuppl_male, NA, Fig2_CKsuppl_fem,
@@ -384,8 +388,8 @@ ggarrange(NA, Fig2_CKsuppl_all, NA,
           nrow = 3, ncol = 3,
           heights = c(1.5, 0.05, 1), widths = c(0.05, 1, 0.05),
           font.label = list(size = 30), hjust = -0.01)
-# 
-# dev.off()
+
+dev.off()
 
 
 
