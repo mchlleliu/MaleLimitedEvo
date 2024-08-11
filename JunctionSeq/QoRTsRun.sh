@@ -138,7 +138,7 @@ echo "Quantify novel splice junctions"
 # ---- Linux ----
 # Create novel junction splice sites and generate count files with novel junctions
 # input: - directory where the counts per sample QoRTs output are stored
-#        - path to GTF or GFF
+#        - path to GTF or GFF (again, note that this is NOT the flat gff)
 #        - where you want the count files (now containing novel exons) to be stored 
 java -Xmx10G -jar $QoRTs mergeNovelSplices --minCount 20 --stranded \
     $OUT_DIR/ \
