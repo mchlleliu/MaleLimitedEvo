@@ -16,7 +16,6 @@ option_list <- list(make_option(c("-q","--qorts_dir"), default = getwd(), metava
 
 # get arguments
 opt <- parse_args(OptionParser(option_list=option_list), positional_arguments = TRUE)
-print(opt)
 
 decoder <- opt$options$filenames
 decoder <- read.table(decoder, header=FALSE)
