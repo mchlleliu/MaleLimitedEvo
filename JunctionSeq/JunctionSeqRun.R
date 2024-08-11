@@ -1,76 +1,52 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2024
 #                        Original Author: Amardeep Singh
-#                       Michelle's notes + editted pipeline
+#                       (Michelle's notes + editted pipeline)
 #             DsRed experimental evolution - transcriptomics analysis
-#                 Running JunctionSeq to quantify isoform usage
-# 
+#           Running JunctionSeq to test for differential isoform usage
 # 
 ###################################
 
-require(QoRTs)
+# make sure to run "QoRTsRun.sh" and "GetSizeFactors.R" to generate the count files needed
 
-# Read QoRTs outputs into R to generate a sizeFactor by which to normalize read counts
-# Tell QoRTs which directory to look into for directory that contain outputs. Each directory should be named to correspond to a sample (which should be decoded by the decoder file) and give it the location of your decoder file
-qorts.results <- read.qc.results.data("/plas1/michelle.liu/SSAV/QoRTsCheck/", 
-                                      decoder.files="/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/QoRTs.decoder.file.txt", 
-                                      calc.DESeq2=TRUE)
-
-# Save size factors for each sample in a text file
-get.size.factors(qorts.results, outfile ="/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/RAL.size.Factors.GEO.txt")
-
-
-### go back to counting through the command line
-# ........
-
-
-# after the Linux pipeline is done... run JunctionSeq using R
 rm(list=ls())
+require(dplyr)
+require(QoRTs)
 require(DESeq2)
 require(JunctionSeq)
+require(stringr)
 require(BiocParallel) # This is a package used for paralellization of jobs
 
 # Set global variables
 numCores = 10
 FDRThreshold = 0.01
-mappedReadsThreshold = 50 # mean normalized read-pair counts?
-
-
-# Load in decoder files and add fields for conditions
-
-# Run this only once to edit the decoder file
-# decoder.file =  read.delim("/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/QoRTs.decoder.file.txt", header = TRUE, stringsAsFactors=FALSE)
-# sex.tmp = gsub("[A,C]..","", decoder.file$unique.ID)
-# decoder.file$sex =  gsub("\\_.*","", sex.tmp)
-# decoder.file$geno = gsub("[A,C]....","", decoder.file$unique.ID)
-# decoder.file$pop = gsub("[[:digit:]]\\_.*","", decoder.file$unique.ID)
-# write.table(decoder.file, "/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/QoRTs.decoder.file.for.JunctionSeq.txt", quote = F, row.names = FALSE, col.names = TRUE, sep = "\t")
+mappedReadsThreshold = 50 
 
 # Load flat GFF generated earlier
-flat_GFF <- "/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/count.files/withNovel.forJunctionSeq.gff.gz"
+flat_GFF <- "/plas1/michelle.liu/SSAV/QoRTs/sampleINFO.size.Factors.txt"
 
-# Loading in decoder file
-decoder <- read.table("/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/QoRTs.decoder.file.for.JunctionSeq.txt", 
-                      header = TRUE, stringsAsFactors = FALSE)
-
+# Loading in sample info with factors (i.e., decoder file)
+decoder <- read.table("/plas1/michelle.liu/SSAV/sample_INFO.tsv", header = FALSE)
+decoder <- decoder[,-2] # don't need the second column (fastq file prefix)
+colnames(decoder) <- c("unique.ID", "trt", "rep", "sex", "geno")
 
 # separate sample groups
-A.f.decoder <- decoder[decoder$sex == "F",]
-A.m.decoder <- decoder[decoder$sex == "M" & decoder$pop == "A",]
-C.m.decoder <- decoder[decoder$sex == "M" & decoder$pop == "C",]
+A.f.decoder <- decoder[str_detect(decoder[,1], "F"),]
+A.m.decoder <- decoder[str_detect(decoder[,1], "M") & str_detect(decoder[,1], "A"),]
+C.m.decoder <- decoder[str_detect(decoder[,1], "M") & str_detect(decoder[,1], "C"),]
 
-# set up pathways to the count files
+# paths to the count files
 #######
-countFiles.A.f <- paste0("/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/count.files/", 
-                         A.f.decoder$unique.ID, "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
-
-countFiles.A.m <- paste0("/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/count.files/", 
-                         A.m.decoder$unique.ID, "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
-
-countFiles.C.m <- paste0("/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/count.files/", 
-                         C.m.decoder$unique.ID, "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+qorts_dir = "/plas1/michelle.liu/SSAV/QoRTs/"
+countFiles.A.f <- paste0(qorts_dir, A.f.decoder$unique.ID, 
+                         "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+countFiles.A.m <- paste0(qorts_dir, A.m.decoder$unique.ID, 
+                         "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
+countFiles.C.m <- paste0(qorts_dir, C.m.decoder$unique.ID,
+                         "/QC.spliceJunctionAndExonCounts.withNovel.forJunctionSeq.txt.gz")
 #######
+
 
 ###  Run the differential exon usage (DEU) analysis:
 # Create a design dataframe which has a column for the condition you are testing
@@ -105,9 +81,9 @@ count.set.object <- testForDiffUsage(count.set.object, nCores = numCores)
 # Calculate effect sizes and parameter estimates
 count.set.object <- estimateEffectSizes(count.set.object, nCores = numCores)
 
-# Save output to file
+# Save output to file (change prefix to fit which focal contrast)
 writeCompleteResults(count.set.object, 
-                     outfile.prefix="/plas1/michelle.liu/SSAV/JunctionSeq/C.m.geno/C.m.geno.splicing", 
+                     outfile.prefix="/plas1/michelle.liu/SSAV/JunctionSeq/A.f.geno", 
                      gzip.output = TRUE, 
                      FDR.threshold = FDRThreshold, 
                      save.allGenes = TRUE, 
