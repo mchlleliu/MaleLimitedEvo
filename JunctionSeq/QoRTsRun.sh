@@ -1,90 +1,123 @@
 #!/bin/bash
-# Script to run QoRTs
+# Script to run QoRTs to generate count file of exons and splice junctions
+# These files eventually are used for the JunctionSeq analysis done on R (see "JunctionSeqRun.R")
+# Requires "GetSizeFactors.R"
 
+# usage:
+# ./QoRTs_run.sh -f /path/to/sample_INFO/file -i /path/to/input/BAM/directory -g /path/to/GFF -o /path/to/output/directory
 
-
-# flags:
-# -f: path to file (from home) containing sample information. The 2nd column of this file should contain the file prefix
-# -b: directory containing Aligned BAM files
-# -g: path to reference GFF file
-# -o: output directory
-# -h: help
+# arguments:
+# -f | --filenames: path to file (from home) containing sample information. The 2nd column of this file should contain the file prefix
+# -i | --input_dir: directory containing Aligned BAM files
+# -g | --gff path to reference GFF file
+# -o | --output_dir: output directory
+# -h | --help: help
 
 # default path to sorted BAM files
-BAM_PATH="."
+IN_DIR="."
 OUT_DIR="."
 
+QoRTs="/plas1/michelle.liu/bin/QoRTs-STABLE.jar"
+
+VALID_ARGS=$(getopt -o f:i:g:o:h --long filenames:,input_dir:,gff:,output_dir:,help -- "$@")
+# if argument invalid, exit program
+if [[ $? -ne 0 ]]; then
+    exit 1;
+fi
+
 # while do loop to read flags and set variables
-while getopts "f:b:g:o:h" flag
-do
+while [ : ]; do
   # Look through the possible cases where $OPTARG is a variable made by getopts
-  case "${flag}" in
-    f) SAMPLE_INFO=$OPTARG
-       echo "Sample file is: $SAMPLE_INFO"
-       ;;
-    b) BAM_DIR=$OPTARG
-       echo "BAM directory is: $BAM_DIR" >&2
-       ;;
-    g) PATH_TO_GFF=$OPTARG
-	echo "Reference GFF file is: $PATH_TO_GFF" >&2
-	;;
-	o) OUT_DIR=$OPTARG
-	echo "Outputting to: $OUT_DIR" >&2
-	;;
-    h) echo "flags:"
-	echo "-f: path to file (from home) containing sample information. The 2nd column of this file should contain the file"
-	echo "-b: directory containing Aligned BAM files"
-	echo "-g: path to reference GFF file"
-	echo "-o: output directory"
-	echo "-h: help"
-	exit 1
-	;;
+  case "$1" in
+    -f | --filenames) 
+        SAMPLE_INFO=$2
+        echo "Sample info file is: $SAMPLE_INFO"
+        shift 2
+        ;;
+    -i | --input_dir) 
+        IN_DIR=$2
+        echo "input BAM directory is: $IN_DIR" >&2
+        shift 2
+        ;;
+    -g | --gff) 
+        PATH_TO_GFF=$2
+	      echo "Reference GFF file is: $PATH_TO_GFF" >&2
+	      shift 2
+	      ;;
+	  -o | --output_dir) 
+	      OUT_DIR=$2
+	      echo "Outputting to: $OUT_DIR" >&2
+	      shift 2
+	      ;;
+	   # Help flag prints example for how to run script then exits program
+    -h | --help) 
+    echo "arguments & flags:"
+	  echo "-f | --filenames: path to file (from home) containing sample information. The 1st column of this file should contain the sample ID/file prefix"
+	  echo "-i | --input_dir: directory containing input BAM files"
+  	echo "-g | --gff: path to reference GFF file"
+	  echo "-o | --output_dir: output directory"
+  	echo "-h | --help: print this help message"
+  	echo ""
+  	echo "usage:"
+    echo "./QoRTs_run.sh -f /path/to/sample_INFO/file -i /path/to/input/BAM/directory -g /path/to/GFF -o /path/to/output/directory"
+	  exit 1
+	      ;;
     # Exit the program if flag is unknown
-   \?) echo "Invalid option: -$OPTARG" >&2
-       exit 1
-       ;;
+    -- ) shift; break ;;
+    * ) break ;;
   esac
 done
 
 
+
+# actual pipeline code starts here
+
 # --------- make a flat gff -----------
-# this is used to tell JunctionSeq to only test annotated splice junctions
-# allocate 5G for java.
-# --stranded option should be the same option used in the count-generation step
-# input (path to reference gtf)
-# output file name
-# edit this to reflect the path to where you store QoRTs
-java -Xmx5G -jar /plas1/michelle.liu/bin/QoRTs-STABLE.jar makeFlatGff --stranded $PATH_TO_GFF $OUT_DIR/JunctionSeq.flat.gff.gz
+echo "Generating flattened annotation..."
+# Overlapping genes are "flattened" so that each exon and splice junction is assigned a unique identifier.
+#   this is generated for the statistical test of differential isoform usage performed by JunctionSeq, but ...
+#   NOTE below that QoRTs use the unflattned GFF/GTF to count number of the reads overlapping each feature.
+# Options:
+#   allocate 5G for java.
+#   --stranded flag should be the same option used in the count-generation step
+#   input (path to reference gtf)
+#   output file name
+java -jar -Xmx5G $QoRTs makeFlatGff --stranded $PATH_TO_GFF $OUT_DIR/JunctionSeq.flat.gff.gz
+
+echo "Flat annotation generated."
 
 
 
-# As Amardeep has noted, QoRTs seem to be memory hungry
+# --------- count reads overlapping each feature -----------
+echo "Quantifying exons and splice junctions using QoRTs..."
+
+# QoRTs seem to be memory hungry
 # You may get some warnings like "NOTE: Unmatched Read Buffer Size > 100000 [Mem usage:[808MB / 3500MB]]"
 # this is generally not a problem but to deal with this, you can either:
 # increase allocated memory (modify the -XmxN tag), or
 # sort your bam files by name (samtools sort -n -O bam -o file.sort.bam file.bam) and use the --nameSorted QoRTs parameter
 
 cut -f 1 $SAMPLE_INFO | parallel -j 5 \
-	"mkdir $OUT_DIR/{} && java -Xmx10G -jar /plas1/michelle.liu/bin/QoRTs-STABLE.jar QC \
+	"mkdir $OUT_DIR/{} && java -Xmx10G -jar $QoRTs QC \
 		--stranded --maxReadLength 101 \
-			$BAM_DIR/{}.name.sorted.bam $PATH_TO_GFF $OUT_DIR/{}/"
+			$IN_DIR/{}_Aligned.out.bam $PATH_TO_GFF $OUT_DIR/{}/"
 
 
-echo "Done running QoRTs :)"
-
-# ----------------------------------------------
-# run this like so:
-nohup ./QoRTs_run.sh -f /plas1/michelle.liu/SSAV/sample_INFO.tsv \
-  -b /plas1/michelle.liu/SSAV/sortedBAM \
-  -g /plas1/michelle.liu/Dmel_BDGP6.28/Drosophila_melanogaster.BDGP6.28.102.gtf \
-  -o /plas1/michelle.liu/SSAV/QoRTsCheck
+echo "Done running QoRTs."
 
 
 
 
-# For the next step, you would need to dip into R to get QoRTs to calculate the RAL size factors for the sample.
-# Check the R script "JunctionSeqRun.R" for this step. below is a comment-out version
+# ------ Obtaining count files again, but this time with novel junctions ------
+# (Note: This isn't very relevant in the final analysis that we did, because we did not include the novel sites that could not be compared between sample groups)
 
+# For this next step, you would need to dip into R to get QoRTs to calculate the RAL size factors for the sample.
+echo "Obtaining sample size factors for read count normalization..."
+
+# here I am calling the R script that has been modified to work with this current script
+Rscript ./GetSizeFactors.R -q $OUT_DIR/ -f $SAMPLE_INFO -o $OUT_DIR/
+
+# below is the original comment-out version (without adjustments for shell-calling)
 # ---- R Code ---
 # require(QoRTs)
 
@@ -97,21 +130,23 @@ nohup ./QoRTs_run.sh -f /plas1/michelle.liu/SSAV/sample_INFO.tsv \
 ## Save size factors for each sample in a text file
 # get.size.factors(qorts.results, outfile ="/plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/RAL.size.Factors.GEO.txt");
 
+echo "Sample size factors obtained."
 
+
+echo "Quantify novel splice junctions"
 # Back to command line
 # ---- Linux ----
-# Create novel junction splice sites and count them as well.
-# (This isn't very relevant in the final analysis that we did, because we did not include the novel sites that could not be compared between sample groups)
+# Create novel junction splice sites and generate count files with novel junctions
 # input: - directory where the counts per sample QoRTs output are stored
 #        - path to GTF or GFF
 #        - where you want the count files (now containing novel exons) to be stored 
-java -Xmx20G -jar /plas1/michelle.liu/bin/QoRTs-STABLE.jar mergeNovelSplices --minCount 20 --stranded \
-    /plas1/michelle.liu/SSAV/QoRTsCheck \
-    /plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/RAL.size.Factors.GEO.txt \
-    /plas1/michelle.liu/Dmel_BDGP6.28/Drosophila_melanogaster.BDGP6.28.102.gtf \
-    /plas1/michelle.liu/Dmel_BDGP6.28/JunctionSeq.files/count.files
+java -Xmx10G -jar $QoRTs mergeNovelSplices --minCount 20 --stranded \
+    $OUT_DIR/ \
+    $OUT_DIR/sampleINFO.size.Factors.txt \
+    $PATH_TO_GFF \
+    $OUT_DIR/
 
+echo "Done!"
 
 
 # the rest of the analysis with JunctionSeq is done in R. Check "JunctionSeqRun.R"
-
