@@ -1,0 +1,4 @@
+sample_INFO.tsv is a tab-separated file (with no header) that contains columns denoting sampleID, prefix, and condition. This file is used in bash and R scripts to generate exon count tables (See JunctionSeq/). 
+
+Column names:
+unique.ID fastq.Prefix  trt rep sex geno
