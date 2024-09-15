@@ -489,7 +489,7 @@ A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
 A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
 
 # combine results for exp. populations
-All.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
+Exp.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
 colnames(Exp.geno) <- c("FlyBaseID", "A.m.exp_geno", "A.m.se_geno", "A.m.padj", "A.m.TopSig", "A.m.Sig",
                           "A.f.exp_geno", "A.f.se_geno", "A.f.padj", "A.f.Sig")
 str(Exp.geno)
