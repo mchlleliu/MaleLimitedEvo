@@ -83,18 +83,18 @@ rm(test, Osada) # clear from ENV
 # load JunctionSeq results from our samples
 #######
 # SSAV samples
-jseq.A.f.geno = read.table("JunctionSeq/A.f.geno/A.f.geno.splicingallGenes.results.txt", 
+jseq.A.f.geno = read.table("Results/A.f.geno.DS.results.tsv", 
                            sep = "\t", header = TRUE)
-jseq.A.m.geno = read.table("JunctionSeq/A.m.geno/A.m.geno.splicingallGenes.results.txt", 
+jseq.A.m.geno = read.table("Results/A.m.geno.DS.results.tsv", 
                            sep = "\t", header = TRUE)
-jseq.C.m.geno = read.table("JunctionSeq/C.m.geno/C.m.geno.splicingallGenes.results.txt", 
+jseq.C.m.geno = read.table("Results/C.m.geno.DS.results.tsv", 
                            sep = "\t", header = TRUE)
 colnames(jseq.A.f.geno)[2]="FlyBaseID" 
 colnames(jseq.A.m.geno)[2]="FlyBaseID" 
 colnames(jseq.C.m.geno)[2]="FlyBaseID" 
 
 # remove genes close to the DsRed marker
-DsRed_genes <- read.delim(file="~/Desktop/UofT/SSAV_RNA/Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
+DsRed_genes <- read.delim(file="Data/dmel_2R_DsRed_ids.tsv", header=FALSE)
 jseq.A.f.geno <- jseq.A.f.geno[!(jseq.A.f.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.A.m.geno <- jseq.A.m.geno[!(jseq.A.m.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.C.m.geno <- jseq.C.m.geno[!(jseq.C.m.geno$FlyBaseID %in% DsRed_genes$V1),]
