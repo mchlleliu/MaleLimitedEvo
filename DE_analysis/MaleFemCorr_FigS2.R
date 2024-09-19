@@ -155,9 +155,9 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
 # set up data frames for correlation plot
 ########
 # load datasets if not loaded yet
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
+A.f.geno <- read.delim("Results/A.f.geno_DE.candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_DE.candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_DE.candidates.tsv")
 
 tmp.males <- A.m.geno
 colnames(tmp.males) <- c("m.exp_geno", "m.se_geno", "m.padj", "FlyBaseID", "m.TopSig", "m.Sig")

@@ -33,7 +33,7 @@ source("Mishra_et.al_SBGE.R")
 ## prepare dataset
 ########
 # load results if not loaded in env.
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_DE.candidates.tsv")
 
 
 # combine with Gonad specificity data

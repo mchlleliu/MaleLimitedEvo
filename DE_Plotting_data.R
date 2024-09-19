@@ -23,10 +23,10 @@ source("Mishra_et.al_SBGE.R")
 # (make sure you have the correct files/path to them)
 #########
 # load results if not loaded in env.
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+A.f.geno <- read.delim("Results/A.f.geno_DE.candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_DE.candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_DE.candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_DE.candidates.tsv")
 
 
 # include SBGE categories (using Mishra et al. 2022 dataset)
