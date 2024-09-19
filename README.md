@@ -5,9 +5,9 @@ Repository of Code and Data associated with Grieshop et al. 202X: (DOI)
 
 ## Notes
 ### Abbreviations used:
-*SSAV*: "Segregating Sexually Antagonistic Variants". The moniker given to the Experimental DsRed populations
-*A.m/f*: Experimental males/females. (These populations were first initialized as treatment "A", hence the name)
-*C.m*: Control males
+**SSAV**: "Segregating Sexually Antagonistic Variants". The moniker given to the Experimental DsRed populations
+**A.m/f**: Experimental males/females. (These populations were first initialized as treatment "A", hence the name)
+**C.m**: Control males
 
 
 ### sample_INFO.tsv file
