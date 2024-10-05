@@ -189,16 +189,16 @@ for(i in 1:7){
 mating.activity.TB <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
 #######
 
-
+library(ggplot2)
 # Fig. S1: Mating activity by timeblock
-Fig1_suppl <- ggplot(data = mating.activity.TB) + 
+Fig6_suppl <- ggplot(data = mating.activity.TB) + 
   geom_errorbar(aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
                     ymax = Mating_by_block+Mating_by_block_errbar),  color = 'black', size=1, width = 0.5) +
   geom_point(aes(x=X1.7, y = Mating_by_block), color = "black", size = 7.5) +
   ylab("Average Number of \nObserved Matings") +
-  scale_x_continuous(breaks = 1:7, labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
-                                              "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
-                                              "Morning\nDay 15")) + 
+  scale_x_continuous(breaks = 1:7, labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
+                                              "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
+                                              "Morning\nDay 3")) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   
   # some theme settings
@@ -216,12 +216,12 @@ Fig1_suppl <- ggplot(data = mating.activity.TB) +
         panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 
-# Save Fig.S1
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S1.png",   # The directory you want to save the file in
+# Save Fig.S6
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S6.png",   # The directory you want to save the file in
     width = 15, # 20 15 The width of the plot in inches
     height = 8, # 12 8 The height of the plot in inches
     units = "in", res = 300)
-Fig1_suppl
+Fig6_suppl
 dev.off()
 
 
@@ -412,7 +412,7 @@ plot.globfx <- ggplot(all.main_eff) +
   scale_x_discrete(labels = c("Male","Female")) +
   scale_colour_manual(values = c("#0072B2", "#D55E00")) + # "Chr-2", "Chr-3", "X-Chr"
   scale_y_continuous(limits = c(-0.25,0.25)) +
-  labs(y = "Change in Mating Probability \nAssociated with Red Chromosome") +
+  labs(y = expression(atop("Change in Mating Probability", paste("Associated with ",italic("Red")," Chromosome")))) +
   
   # other plot theme settings
   theme_classic() +
@@ -448,13 +448,13 @@ fem_time.block <- ggplot(data = markerxtimeblock) +
   #plot point estimates
   geom_point(aes(x =X1.7,  y=femaletimeblock_mean), color = "#D55E00", size = 7.5) + 
   # set axes
-  xlab("Time Block") + ylab("Proportion of Red \nFemales among Maters") + 
+  xlab("Time Block") + ylab(expression(atop(paste("Proportion of ", italic("Red")), paste("\nFemales among Maters")))) + 
   ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
-                     labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
-                                "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
-                                "Morning\nDay 15")) + 
+                     labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
+                                "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
+                                "Morning\nDay 3")) + 
   
   # other plot theme settings
   theme_classic() +
@@ -481,13 +481,13 @@ male_time.block <- ggplot(data = markerxtimeblock) +
   geom_errorbar(aes(x=X1.7, ymin = maletimeblock_mean-maletimeblock_Errbars, 
                     ymax = maletimeblock_mean+maletimeblock_Errbars), color = "#0072B2", size = 1.5, width = 0.5) +
   geom_point(aes(x =X1.7,  y=maletimeblock_mean), color = "#0072B2", size = 7.5) +
-  xlab("Time Block") + ylab("Proportion of Red \nMales among Maters") + 
+  xlab("Time Block") + ylab(expression(atop(paste("Proportion of ", italic("Red")), paste("\nMales among Maters")))) + 
   ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
-                     labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
-                                "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
-                                "Morning\nDay 15")) + 
+                     labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
+                                "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
+                                "Morning\nDay 3")) + 
   theme_classic() +
   theme(plot.title.position = c("panel"),
         legend.title = element_blank(),
