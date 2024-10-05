@@ -55,7 +55,7 @@ str(All.geno)
 #########
 
 
-# Table S5. 
+# Table S7. 
 # Using all genes, permute log2FC Red/NR against 0 for each SBGE category
 ########
 ## One sample permutation test for differences n.e to 0 (see boot_permute.R for function)
@@ -98,7 +98,7 @@ binPlot_RedNR <- function(dat, perm_dat){
                alpha = 0.3, position = position_jitterdodge(jitter.width = 0.35)) +
     geom_boxplot(outlier.shape = NA, alpha = 0.8) + 
     labs(x = "Sex-biased Gene Expression", # "omegaA_MK" = expression(italic("\u03c9A")[MK]); "alpha_MK" = expression(italic("\u03b1")[MK])
-         y = expression(Log["2"]*"FC (Red/NonRed)")) +
+         y = expression(Log["2"]*"FC ("~italic(Red)~":"~italic(NonRed)~")")) +
     # title = "C-males") +
     scale_colour_manual(values = c("#D55E00", "#0072B2", "#888888"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2"
                         labels = c("Exp. Females", "Exp. Males", "Ctrl. Males")) + # "Chr-2", "Chr-3", "X-Chr"
@@ -111,7 +111,7 @@ binPlot_RedNR <- function(dat, perm_dat){
                                                         ifelse(pval < 0.001, "***", 
                                                                ifelse(pval < 0.01, "**" ,
                                                                       ifelse(pval < 0.05, "*", "ns"))))),
-              aes(x =SBGE_comp, y = 1.6, label = sig1), size = 7.5, # change y = 2 for figure S7
+              aes(x =SBGE_comp, y = 2, label = sig1), size = 7.5, # change y = 2 for figure S7
               position = position_dodge(width = 0.8), show.legend = FALSE) +
     
     # add number of genes per category
@@ -124,7 +124,7 @@ binPlot_RedNR <- function(dat, perm_dat){
     # segment lines between SBGE categories
     geom_vline(xintercept = c(1.5, 2.5, 3.5, 4.5), color = "grey") +
     scale_x_discrete(labels = c("Highly FB", "Female-Biased", "Unbiased", "Male-Biased", "Highly MB")) + # "Highly ant.", "Antagonistic", "Uncorrelated", "Concordant", "Highly con." .... "Strong pur.", "Purifying sel.", "Neutral", "Positive sel.", "Strong pos."
-    # scale_y_continuous(limits = c(-2, 2), breaks = c(-2, -1.0, 0, 1.0, 2)) + # comment in for figure S7
+    scale_y_continuous(limits = c(-2, 2), breaks = c(-2, -1.0, 0, 1.0, 2)) + # comment in for figure S7
     
     # default theme settings:
     theme_classic() +
@@ -151,7 +151,7 @@ Fig_4 <- binPlot_RedNR(All.geno, permed_All.geno) +
               textsize = 10, size = 0.75, vjust = 1.85, color = "darkblue")
 
 # Comment in to save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig4_main.png",  # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig4_main.png",  # The directory you want to save the file in
     width = 15, # 15 The width of the plot in inches
     height = 8 , units = "in", res = 300) # 8 20 The height of the plot in inches
 Fig_4
@@ -252,7 +252,7 @@ perm_A.m.C.m_MaleSig <- TwoPerm_SBGE(perm_dat = All.geno[All.geno$trt2 != "Af" &
 
 ### generate each plot
 #------- all DE genes, regardless of the sex it is DE in
-FigS7_A <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
+FigS12_A <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Sig,]$FlyBaseID,], 
                                   permed_All.geno_Sig) +
   # add permutation result from comparison b/t Exp. and Ctrl. males
   geom_signif(y_position = c(-1.18, -1.4, -1.3, -1.3), xmin = c(2, 3, 4, 5), 
@@ -261,7 +261,7 @@ FigS7_A <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% SSAV.geno[SSAV.geno$Si
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 #------- only candidate genes DE in males
-FigS7_B <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
+FigS12_B <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AmSig) +
   # add permutation result from comparison b/t Exp. and Ctrl. males
   geom_signif(y_position = c(-1.27, -1.255, -1.22), xmin = c(3, 4, 5), 
@@ -270,7 +270,7 @@ FigS7_B <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.m.geno[A.m.geno$Sig,
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 #------- only candidate genes DE in females
-FigS7_C <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
+FigS12_C <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,]$FlyBaseID,],
                                   permed_All.geno_AfSig) +
   # add permutation result from comparison b/t Exp. and Ctrl. males
   geom_signif(y_position = c(-1.1, -1.1, -1.25), xmin = c(2, 3, 4), 
@@ -279,13 +279,13 @@ FigS7_C <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig,
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 # comment in to save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S7.png",  # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S12.png",  # The directory you want to save the file in
     width = 15, height = 20,  units = "in", res = 300)
-ggarrange(FigS7_A + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+ggarrange(FigS12_A + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
           NA,
-          FigS7_B + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
+          FigS12_B + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
           NA,
-          FigS7_C,
+          FigS12_C,
           NA,
           labels = c("A)", NA, "B)", NA, "C)", NA),
           heights = c(1, 0.05, 1, 0.05, 1, 0.01), ncol =1, nrow = 6,

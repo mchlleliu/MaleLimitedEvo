@@ -313,12 +313,12 @@ Fig5B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 # Save figures
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S5.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S10.png",   # The directory you want to save the file in
     width = 17, # The width of the plot in inches
     height = 18, # 9 18 The height of the plot in inches
     units = "in", res = 300)
 
-# Suppl. Figure S5
+# Suppl. Figure S10
 ggarrange(Fig5A_suppl + theme(axis.text.x = element_blank()) + labs(x= ""),
           Fig5B_suppl + theme(axis.title.x = element_blank(), axis.text.x = element_text(size = 25)),
           labels = c("A)", "B)"),
@@ -335,7 +335,7 @@ dev.off()
 
 
 
-# (Figure S6)
+# (Figure S11)
 # ------------- rMF by exp. magnitude ----------------
 # expression magnitude was calculated in Singh & Agrawal 2023, using data from SEBIDA
 SinghAgrawal <- read.csv(file="~/Desktop/UofT/SSAV_RNA/Data/SBGEandSSSdataForMBE.csv", sep=",", header=TRUE)
@@ -383,8 +383,8 @@ boot_All_exp_rMF$exp <- "a.all"
 boot_All_exp_rMF <- rbind(boot_All_exp_rMF, boot_rMF_exp)
 
 
-# plot Figure S6.
-Fig_S6 <- pointSEplot(boot_dat = boot_All_exp_rMF,
+# plot Figure S11.
+Fig_S11 <- pointSEplot(boot_dat = boot_All_exp_rMF,
                       perm_dat = perm_All_exp_rMF, 
                       x_col = "rMF", SBGE_cat = "exp") +
   coord_cartesian(ylim = c(0,1)) +
@@ -397,7 +397,7 @@ Fig_S6 <- pointSEplot(boot_dat = boot_All_exp_rMF,
 
 
 # save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/rMF_Fig_S6.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/rMF_Fig_S11.png",   # The directory you want to save the file in
     width = 12, # 12, 24, 20 The width of the plot in inches
     height = 7, # 10, 20, 13 The height of the plot in inches
     units = "in", res = 300)
