@@ -4,7 +4,7 @@
 #                             Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
 #         Comparing gonad specificity between DE candidates vs non-candidates
-#                                   Table S4
+#                                   Table S6
 # 
 # 
 ###################################

@@ -22,6 +22,8 @@ library(ggblend)
 library(ggpubr)
 library(ggrepel)
 library(ggblend)
+library(grid)
+library(gridtext)
 #########
 
 
@@ -58,7 +60,7 @@ corr.plot <- merge(corr.plot, Mishra, by = "FlyBaseID")
 #         and plotting coordinates
 quad_count <- function(dat, x, y, lim = 5){
   
-  dat <- dat[dat[[x]] != dat[[y]],]
+  # dat <- dat[dat[[x]] != dat[[y]],]
   # 
   count <- dat %>%
     # Count how many with each combination of X and Y being positive
@@ -167,27 +169,27 @@ plot_corr <- function(dat, x, y, colx, coly, colNonCon, xlab, ylab, lim, title){
 
 
 
-# plotting Figure S8
+# plotting Figure S13
 ######
 # remember to edit the plotting function (plot_corr) accordingly
-Figure_S8 <- plot_corr(corr.plot, 
+Figure_S13 <- plot_corr(corr.plot, 
                        "Red.exp_trt", "NR.exp_trt", 
                        "red3", "black", "darkgrey",
                        "Log2FC Exp/Ctrl Red males", 
                        "Log2FC Exp/Ctrl NonRed males", 
                        2.5, "") +
-  labs(x = expression(atop(paste(log["2"]*"FC (Exp/Ctrl)"), paste("in Red Males"))),
-       y = expression(atop(paste(log["2"]*"FC (Exp/Ctrl)"), paste("in NonRed Males")))) +
+  labs(x = expression(atop(paste(log["2"]*"FC (Exp:Ctrl)"), paste("in ",italic("Red")," Males"))),
+       y = expression(atop(paste(log["2"]*"FC (Exp:Ctrl)"), paste("in ",italic("NonRed")," Males")))) +
   theme(title = element_blank())
 
 
 # comment in to save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S8.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S13.png",   # The directory you want to save the file in
     width = 10,
     height = 10,
     units = "in", res = 300)
 
-Figure_S8
+Figure_S13
 
 dev.off()
 
@@ -216,8 +218,8 @@ Figure_6A <- plot_corr(concordant,
                        "SSAV/Control in Red males", 
                        "SSAV/Control in NonRed males", 
                        1.78, "") +
-  labs(x = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in Red Males"))),
-       y = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in NonRed Males")))) +
+  labs(x = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in ",italic("Red")," Males"))),
+       y = expression(atop(paste("Absolute "*log["2"]*"FC"), paste("in ",italic("NonRed")," Males")))) +
   theme(title = element_blank())  +
   scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
   scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2)) +
@@ -243,15 +245,15 @@ Figure6 <- ggarrange(NA,NA,NA,NA,NA,
 
 
 # comment in to save figure 6
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig6_main.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig6_main.png",   # The directory you want to save the file in
     width = 20, # 20; The width of the plot in inches
     height = 10, # 30; The height of the plot in inches
     units = "in", res = 300)
     
-annotate_figure(Figure6, left = text_grob("Experimental vs. Control Difference: \nNonRed Males",
-                                          rot = 90, size = 30, vjust = 1),
-                bottom = text_grob("Experimental vs. Control Difference: \nRed Males",
-                                   size = 30))
+annotate_figure(Figure6, left = richtext_grob("<span style='font-size:30pt; color:black'>Experimental vs. Control Difference:<br>*NonRed* Males</span>",
+                                          rot = 90, vjust = 1),
+                bottom = richtext_grob("<span style='font-size:30pt; color:black'>Experimental vs. Control Difference:<br>*Red* Males</span>",
+                                       r = unit(50, "pt")))
 
 dev.off()
 ######

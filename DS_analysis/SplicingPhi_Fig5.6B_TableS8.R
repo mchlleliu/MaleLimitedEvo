@@ -831,7 +831,7 @@ splicing.MF.diff.dot.plot <- function(RedData, NRData, plotCol, color){
 
 
 # figures and t-tests comparing (M-F)/(M+F) metric (PHI)
-# generates Suppl. Table S6
+# generates Suppl. Table S8
 ######
 sampleTypes <- c("A.m", "A.f", "C.m")
 Phi.test.table <- data.frame(sampleType = sampleTypes) %>% 
@@ -912,9 +912,9 @@ Fig_5A <- ggarrange(NA,
                     ncol = 6)
 
 
-Fig_5A <- annotate_figure(Fig_5A, left = text_grob(expression(bold(italic(phi)["NonRed"])), 
+Fig_5A <- annotate_figure(Fig_5A, left = text_grob(expression(phi~italic(NonRed)), 
                                                    rot = 90, size = 40),
-                          bottom = text_grob(expression(bold(italic(phi)["Red"])), 
+                          bottom = text_grob(expression(phi~italic(Red)), 
                                              size = 40))
 
 
@@ -965,7 +965,7 @@ Fig_5B <- annotate_figure(Fig_5B, left = text_grob("Count",
 
 
 # comment in to save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig5_main.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig5_main.png",   # The directory you want to save the file in
     width = 21, # 12, 24, 20 The width of the plot in inches
     height = 14, # 10, 20, 13 The height of the plot in inches
     units = "in", res = 300)
