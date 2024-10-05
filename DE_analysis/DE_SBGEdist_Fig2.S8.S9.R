@@ -4,7 +4,7 @@
 #                             Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
 #                  Distribution of SA candidates by sex-bias
-#                         Figure 2, Figure S3, Figure S4
+#                         Figure 2, Figure S8, Figure S9
 # 
 # 
 ###################################
@@ -118,10 +118,10 @@ propSBGE(A.f.geno, "SBGE_comp")
 # Fig 2
 bin_All <- plotSBGEprop(SSAV.geno, "SBGE_comp", "SBGE (Mishra)")
 
-# Fig S3.A
+# Fig S8.A
 bin_A.m <- plotSBGEprop(A.m.geno, "SBGE_comp", "SBGE (Mishra)") + coord_cartesian(ylim = c(0, 0.1))
 
-# Fig S3.B
+# Fig S8.B
 bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (Mishra)")
 
 
@@ -129,7 +129,7 @@ bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (Mishra)")
 
 
 # comment in to save plots
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S3.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S8.png",   # The directory you want to save the file in
     width = 24, # 14 24 The width of the plot in inches
     height = 10, # 10 20 The height of the plot in inches
     units = "in", res = 300)
@@ -138,7 +138,7 @@ png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S3.png",   # The directory
 # bin_All + coord_cartesian(ylim = c(0,0.15))
 
 
-# Figure S3
+# Figure S8
 ggarrange(bin_A.m, NA, bin_A.f,
           labels = c("A)", NA, "B)"),
           widths = c(1, 0.05, 1),
@@ -262,7 +262,7 @@ SBGE_dist <- SBGE_dist +
             aes(x=x, y=y), fill="grey36")
 
 
-Fig2_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
+Fig9_CKsuppl_fem <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                               SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                               nrow = 2, heights = c(1, 0.30),
                               ncol = 2, widths = c(1, 0.01)) 
@@ -312,7 +312,7 @@ SBGE_dist <- SBGE_dist +
             aes(x=x, y=y), fill="grey36")
 
 
-Fig2_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
+Fig9_CKsuppl_male <- ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                                SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                                nrow = 2, heights = c(1, 0.30),
                                ncol = 2, widths = c(1, 0.01)) 
@@ -362,7 +362,7 @@ SBGE_dist <- SBGE_dist +
             aes(x=x, y=y), fill="grey36") 
 
 
-Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
+Fig9_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0.0005)), NA,
                                NA, NA,
                                SBGE_dist + scale_x_continuous(expand = c(0.0005, 0.0005)) +
                                  theme(axis.title.y = element_text(size=24, margin = margin(0,15,0,0), color = "black")) +
@@ -372,15 +372,15 @@ Fig2_CKsuppl_all <-  ggarrange(SA_dist + scale_x_continuous(expand = c(0.0005, 0
 ######
 
 
-# Comment in to save plot (Fig. S4)
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S4_CK.png",   # The directory you want to save the file in
+# Comment in to save plot (Fig. S9)
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S9_CK.png",   # The directory you want to save the file in
     width = 24, # 14 18 24 The width of the plot in inches
     height = 20, # 10 20 20 The height of the plot in inches
     units = "in", res = 300)
     
-ggarrange(NA, Fig2_CKsuppl_all, NA,
+ggarrange(NA, Fig9_CKsuppl_all, NA,
           NA, NA, NA,
-          NA, ggarrange(Fig2_CKsuppl_male, NA, Fig2_CKsuppl_fem,
+          NA, ggarrange(Fig9_CKsuppl_male, NA, Fig9_CKsuppl_fem,
                         labels = c("B)", NA, "C)"),
                         ncol = 3,
                         widths = c(1, 0.05, 1), font.label = list(size = 30), hjust = -0.01), NA,

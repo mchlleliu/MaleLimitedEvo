@@ -4,7 +4,7 @@
 #                              Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
 #     Correlation of Red/NR changes in Experimental samples vs Control samples
-#                                   Figure S2 
+#                                   Figure S7 
 #
 # 
 ###################################
@@ -226,7 +226,7 @@ AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
 
 
 # Save the plots
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S2.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S7.png",   # The directory you want to save the file in
     width = 17, # The width of the plot in inches
     height = 17, # The height of the plot in inches
     units = "in", res = 200) 
