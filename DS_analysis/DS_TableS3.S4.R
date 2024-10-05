@@ -208,7 +208,7 @@ SSAV.sample.types$DEdata <- c("A.m.geno", "A.f.geno", "C.m.geno", "SSAV.geno")
 #######
 
 
-# generate data for Table S1 and Table S2
+# generate data for Table S3 and Table S4
 # initialize data frame object to store results (wow that variable name do be long)
 fishers.test.RedNR.splice.results <- data.frame(sampleType = SSAV.sample.types$sampleType)
 
