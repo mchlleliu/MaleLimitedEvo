@@ -177,28 +177,50 @@ correction <- c(6, 8, 6, 6, 8, 6, 4)
 # Find the mean number of maters, correcting for the difference in time block length and sampling intensity
 for(i in 1:7){
   # This sum is the measure of total mating activity for the current time block
-  current_maters <- DsRed_Cagewise_NonRedMatedFemales[, i] + DsRed_Cagewise_NonRedMatedMales[, i] + DsRed_Cagewise_RedMatedFemales[, i] + DsRed_Cagewise_RedMatedMales[, i]
+  # adjust depending on which data is generated
+  current_maters <- DsRed_Cagewise_RedMatedFemales[, i] 
   # Add to the accumulating list
   Mating_by_block <- c(Mating_by_block, mean(current_maters/correction[i]*mean(correction)))
   Mating_by_block_errbar <- c(Mating_by_block_errbar, SD(current_maters/correction[i]*mean(correction))/sqrt(length(current_maters)))
   #Multiplying by mean(correction) to ensure that the correction factors are normalized
 }
 
+
+
 # the clean data set with results from the test
 # add additional column 1:7 for plotting the time blocks as x-axis
-mating.activity.TB <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
-#######
+mating.activity.TB_males <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
+mating.activity.TB_females <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
 
-library(ggplot2)
-# Fig. S1: Mating activity by timeblock
-Fig6_suppl <- ggplot(data = mating.activity.TB) + 
-  geom_errorbar(aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
-                    ymax = Mating_by_block+Mating_by_block_errbar),  color = 'black', size=1, width = 0.5) +
-  geom_point(aes(x=X1.7, y = Mating_by_block), color = "black", size = 7.5) +
-  ylab("Average Number of \nObserved Matings") +
-  scale_x_continuous(breaks = 1:7, labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
-                                              "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
-                                              "Morning\nDay 3")) + 
+# separate results for each genotype/sex (re-run above for loop with adjustments for number of current maters)
+mating.activity.TB_Red.fem <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "a.Red")
+mating.activity.TB_NonRed.fem <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "b.NonRed")
+mating.activity.TB_geno.Fem <- rbind(mating.activity.TB_Red.fem, mating.activity.TB_NonRed.fem)
+
+mating.activity.TB_Red.male <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "a.Red")
+mating.activity.TB_NonRed.male <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "b.NonRed")
+mating.activity.TB_geno.Male <- rbind(mating.activity.TB_Red.male, mating.activity.TB_NonRed.male)
+
+mating.activity.TB_geno.Fem <- mating.activity.TB_geno.Fem %>% 
+  mutate(color = ifelse(geno == "Red", "a.Red", "b.NonRed"))
+mating.activity.TB_geno.Fem$geno = mating.activity.TB_geno.Fem$color
+
+# Fig. S6: Mating activity by timeblock
+FigS6_A <- ggplot() + 
+  geom_errorbar(data = mating.activity.TB_males, aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
+                    ymax = Mating_by_block+Mating_by_block_errbar),  color = 'grey70', size=1, width = 0.5) +
+  geom_errorbar(data = mating.activity.TB_geno.Male, aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
+                                               ymax = Mating_by_block+Mating_by_block_errbar, group = geno, color = geno), 
+                alpha=0.8, size=1, width = 0.5, position = position_dodge(width = 0.65)) +
+  geom_point(data = mating.activity.TB_males, aes(x=X1.7, y = Mating_by_block), color = "grey70", size = 7.5) +
+  geom_point(data = mating.activity.TB_geno.Male, aes(x=X1.7, y = Mating_by_block, group = geno, color = geno), 
+             alpha = 0.8, size = 5, position = position_dodge(width = 0.65)) +
+  scale_colour_manual(values = c("red", "black"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2", "#E69F00", "#009E73"
+                      labels = c("Red", "NonRed")) + # "Chr-2", "Chr-3", "X-Chr"
+  ylab("Average Number of \nObserved Mating Males") +
+  scale_x_continuous(breaks = 1:7, labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
+                                              "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
+                                              "Morning\nDay 15")) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   
   # some theme settings
@@ -216,15 +238,58 @@ Fig6_suppl <- ggplot(data = mating.activity.TB) +
         panel.border = element_rect(colour = "black", fill=NA, size=1))
 
 
-# Save Fig.S6
+FigS6_A
+
+FigS6_B <- ggplot() + 
+  geom_errorbar(data = mating.activity.TB_females, aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
+                                                     ymax = Mating_by_block+Mating_by_block_errbar),  color = 'grey70', size=1, width = 0.5) +
+  geom_errorbar(data = mating.activity.TB_geno.Fem, aes(x=X1.7, ymin = Mating_by_block-Mating_by_block_errbar, 
+                                                         ymax = Mating_by_block+Mating_by_block_errbar, group = geno, color = geno), 
+                alpha=0.8, size=1, width = 0.5, position = position_dodge(width = 0.65)) +
+  geom_point(data = mating.activity.TB_females, aes(x=X1.7, y = Mating_by_block), color = "grey70", size = 7.5) +
+  geom_point(data = mating.activity.TB_geno.Fem, aes(x=X1.7, y = Mating_by_block, group = geno, color = geno), 
+             alpha = 0.8, size = 5, position = position_dodge(width = 0.65)) +
+  scale_colour_manual(values = c("red", "black"), # "red3", "steelblue3", "#888888" # "purple3", "chartreuse3", "orange2", "#E69F00", "#009E73"
+                      labels = c("Red", "NonRed")) + # "Chr-2", "Chr-3", "X-Chr"
+  ylab("Average Number of \nObserved Mating Females") +
+  scale_x_continuous(breaks = 1:7, labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
+                                              "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
+                                              "Morning\nDay 15")) + 
+  geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
+  
+  # some theme settings
+  theme_classic() +
+  theme(plot.title.position = c("panel"),
+        legend.title = element_blank(),
+        legend.position = c("none"),
+        legend.text = element_text(size=30, margin = margin(10,0,10,0), color = "black", vjust = -0.2),
+        axis.text.x = element_text(size=20, margin = margin(5,0,0,0), color = "black"),
+        axis.text.y = element_text(size=17.5, margin = margin(0,5,0,0), color = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size=30, margin = margin(0,10,0,0), color = "black"),
+        plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
+        plot.margin = margin(6,6,6,6),
+        panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+
+FigS6_B
+
+
+# Save figure S6
 png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S6.png",   # The directory you want to save the file in
-    width = 15, # 20 15 The width of the plot in inches
-    height = 8, # 12 8 The height of the plot in inches
+    width = 17, # 20 15 The width of the plot in inches
+    height = 15, # 12 8 The height of the plot in inches
     units = "in", res = 300)
-Fig6_suppl
+
+ggarrange(FigS6_A + theme(axis.text.x = element_blank()),
+          FigS6_B,
+          nrow = 2, heights = c(0.9, 1),
+          labels = c("A)", "B)"),
+          font.label = list(size = 30)
+          )
+
 dev.off()
-
-
+#######
 
 
 
@@ -452,9 +517,9 @@ fem_time.block <- ggplot(data = markerxtimeblock) +
   ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
-                     labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
-                                "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
-                                "Morning\nDay 3")) + 
+                     labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
+                                "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
+                                "Morning\nDay 15")) + 
   
   # other plot theme settings
   theme_classic() +
@@ -485,9 +550,9 @@ male_time.block <- ggplot(data = markerxtimeblock) +
   ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
-                     labels = c("Morning\nDay 1", "Afternoon\nDay 1", "Evening\nDay 1", 
-                                "Morning\nDay 2", "Afternoon\nDay 2", "Evening\nDay 2", 
-                                "Morning\nDay 3")) + 
+                     labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
+                                "Morning\nDay 14", "Afternoon\nDay 14", "Evening\nDay 14", 
+                                "Morning\nDay 15")) + 
   theme_classic() +
   theme(plot.title.position = c("panel"),
         legend.title = element_blank(),
@@ -524,3 +589,9 @@ ggarrange(plot.globfx,
 )
 
 dev.off()
+
+
+
+
+
+

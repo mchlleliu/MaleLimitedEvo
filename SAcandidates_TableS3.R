@@ -30,7 +30,7 @@ source("Chromosome_df.R")
 # Prepare dataset
 ########
 # load results if not loaded in env.
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv", header = T, sep = "\t")
+SSAV.geno <- read.delim("Results/All.geno_DE.candidates.tsv", header = T, sep = "\t")
 
 SSAV.geno <- merge(SSAV.geno, Chrs, by = "FlyBaseID", all = TRUE)
 SSAV.geno <- SSAV.geno[!is.na(SSAV.geno$Sig) & !is.na(SSAV.geno$Chr),]

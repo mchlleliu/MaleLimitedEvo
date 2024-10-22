@@ -279,7 +279,7 @@ FigS12_C <- binPlot_RedNR(All.geno[All.geno$FlyBaseID %in% A.f.geno[A.f.geno$Sig
               textsize = 10, size = 0.75, vjust = 1.8, color = "darkblue")
 
 # comment in to save plot
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S12.png",  # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S12.png",  # The directory you want to save the file in
     width = 15, height = 20,  units = "in", res = 300)
 ggarrange(FigS12_A + theme(axis.title.x = element_blank(), axis.text.x = element_blank()),
           NA,

@@ -183,8 +183,8 @@ CmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
                    "black", "black", "grey65",
                    "Red/NR in SSAV females", "Red/NR in Control males", 
                    2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Females"),
-       y = expression(Log["2"]*"FC (Red/NR) in Ctrl. Males"))
+  labs(x = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Females"),
+       y = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Ctrl. Males"))
 
 # SSAV females vs SSAV males
 corr.plot <- merge(tmp.females, tmp.males, by = "FlyBaseID", all = T)
@@ -193,8 +193,8 @@ AmAf_fem_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.f.geno[A.f.geno$
                    "black", "black", "grey65",
                    "Red/NR in SSAV females", "Red/NR in SSAV males", 
                    2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Females"),
-       y = expression(Log["2"]*"FC (Red/NR) in Exp. Males"))
+  labs(x = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Females"),
+       y = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Males"))
 
 ########
 
@@ -209,8 +209,8 @@ CmAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
                             "black", "black", "grey65",
                             "Red/NR in SSAV males", "Red/NR in Control males", 
                             2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Males"),
-       y = expression(Log["2"]*"FC (Red/NR) in Ctrl. Males"))
+  labs(x = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Males"),
+       y = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Ctrl. Males"))
 
 # SSAV males vs SSAV females
 corr.plot <- merge(tmp.males, tmp.females, by = "FlyBaseID", all = T)
@@ -219,8 +219,8 @@ AfAm_male_cand <- plot_corr(corr.plot[corr.plot$FlyBaseID %in% A.m.geno[A.m.geno
                             "black", "black", "grey65",
                             "Red/NR in Exp. Males", "Red/NR in Exp. Females", 
                             2.5, "") +
-  labs(x = expression(Log["2"]*"FC (Red/NR) in Exp. Males"),
-       y = expression(Log["2"]*"FC (Red/NR) in Exp. Females"))
+  labs(x = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Males"),
+       y = expression(Log["2"]*"FC ("~italic(Red)~"/"~italic(NR)~") in Exp. Females"))
 
 ########
 

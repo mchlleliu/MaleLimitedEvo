@@ -1,7 +1,6 @@
 # (Insert paper title here)
 Repository of Code and Data associated with Grieshop et al. 202X: (DOI)
-
-
+RNA-Seq reads associated with this publication can be found in: [#BioProject] (SRA link)
 
 ## Notes
 ### Abbreviations used:
