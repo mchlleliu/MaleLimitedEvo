@@ -1,4 +1,4 @@
-# (Insert paper title here)
+# Expression divergence in response to sex-biased selection
 Repository of Code and Data associated with Grieshop et al. 202X: (DOI)
 RNA-Seq reads associated with this publication can be found in: [#BioProject] (SRA link)
 
