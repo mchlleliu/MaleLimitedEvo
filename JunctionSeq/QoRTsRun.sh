@@ -97,10 +97,10 @@ echo "Quantifying exons and splice junctions using QoRTs..."
 # increase allocated memory (modify the -XmxN tag), or
 # sort your bam files by name (samtools sort -n -O bam -o file.sort.bam file.bam) and use the --nameSorted QoRTs parameter
 
-cut -f 1 $SAMPLE_INFO | parallel -j 5 \
+cut -f 2 $SAMPLE_INFO | parallel -j 5 \
 	"mkdir $OUT_DIR/{} && java -Xmx10G -jar $QoRTs QC \
 		--stranded --maxReadLength 101 \
-			$IN_DIR/{}_Aligned.out.bam $PATH_TO_GFF $OUT_DIR/{}/"
+			$IN_DIR/{}_query.bam $PATH_TO_GFF $OUT_DIR/{}/"
 
 
 echo "Done running QoRTs."
