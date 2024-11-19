@@ -33,7 +33,7 @@ done
 
 cd $INPUT_DIR
 
-SAMPLES=($(ls *_query.bam))
+SAMPLES=$(ls *_query.bam)
 
 parallel -j 10 htseq-count -s no \
   --nonunique none --format bam \
