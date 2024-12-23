@@ -1,3 +1,26 @@
+#!/bin/bash
+
+######################
+# Karl Grieshop
+# karl.grieshop@gmail.com
+# Agrawal lab
+# DsRed Exp. Evol. program
+# Transcriptomics project
+######################
+
+# Original files, named 1-36, can be found under the SRA accession PRJNA1184789
+
+# Those orignal file names were changed by running the following Bash script
+# from a directory containing a copy of the original data, 
+# 72 *fastq.gz files.
+
+# rename_files.sh requires the program "rename." Run:
+# rename --help 
+# to see that it's installed and to see syntax/usage.
+
+# The procedures executed by the bash script, 
+# and therefore the key to the changes made, are:
+
 rename 36_R C6_M_NR_R *.gz
 rename 35_R C6_M_Red_R *.gz
 rename 34_R C5_M_NR_R *.gz
@@ -34,3 +57,12 @@ rename 4_R A1_F_NR_R *.gz
 rename 3_R A1_F_Red_R *.gz
 rename 2_R A1_M_NR_R *.gz
 rename 1_R A1_M_Red_R *.gz
+
+# NOTE that these commands must be run in this order,
+# the order they appear in the bash script, otherwise
+# for example, if "rename 6_R A2_M_NR_R *.gz" were run
+# prior to "rename 36_R C6_M_NR_R *.gz" then files 
+# containing "6_R" (e.g. *36_R* or *16_R*) would all be
+# renamed to "A2_M_NR_R" - which would be very wrong.  
+
+# END
