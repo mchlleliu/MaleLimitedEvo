@@ -131,41 +131,6 @@ pointSEplot <- function(boot_dat, perm_dat, x_col, SBGE_cat = NA){
 source("boot_permute.R")
 
 
-## All DE Candidates vs Non-candidates
-########
-boot_testes_All <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$testesSpecificity),], 
-                                x_col = "testesSpecificity", 
-                                groupBy = "Sig",
-                                SBGE_cat = "SBGE_comp")
-boot_ovaries_All <- TwoBoot_SBGE(SSAV.geno[!is.na(SSAV.geno$ovariesSpecificity),], 
-                                x_col = "ovariesSpecificity", 
-                                groupBy = "Sig",
-                                SBGE_cat = "SBGE_comp")
-
-perm_testes_All <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$testesSpecificity),], 
-                                x_col = "testesSpecificity", 
-                                groupBy = "Sig",
-                                SBGE_cat = "SBGE_comp")
-perm_ovaries_All <- TwoPerm_SBGE(SSAV.geno[!is.na(SSAV.geno$ovariesSpecificity),], 
-                                x_col = "ovariesSpecificity", 
-                                groupBy = "Sig",
-                                SBGE_cat = "SBGE_comp")
-
-# plot ovaries specificity
-ovaries_All_SBGE <- pointSEplot(boot_dat = boot_ovaries_All, 
-                                perm_dat = perm_ovaries_All,
-                                x_col = "ovariesSpecificity", 
-                                SBGE_cat = "SBGE_comp") + coord_cartesian(ylim = c(0,1)) 
-
-# plot testes specificity
-testes_All_SBGE <- pointSEplot(boot_dat = boot_testes_All, 
-                               perm_dat = perm_testes_All,
-                              x_col = "testesSpecificity", 
-                              SBGE_cat = "SBGE_comp") + coord_cartesian(ylim = c(0,1)) 
-
-########
-
-
 ## most upregulated
 SSAV.geno <-  SSAV.geno %>% mutate(Most_A.m = ifelse(A.m.exp_geno > quantile(A.m.exp_geno, 0.75, na.rm = T), 
                                               TRUE, FALSE),
@@ -199,7 +164,7 @@ t5_HiMB_perm <- TwoPerm(High_MB[!is.na(High_MB$testesSpecificity) &
                                  !is.na(High_MB$t5_A.m) &
                                   !is.na(High_MB$exp_SBGE_ase),], 
                         x_col = "testesSpecificity", 
-                        groupBy = "t5_A.m")
+                        groupBy = "t5_A.m", n_perm = 1000)
 # plot
 t5_plot <- pointSEplot(boot_dat = t5_HiMB_boot %>% 
                          dplyr::rename("Sig" = "t5_A.m"), 
@@ -217,7 +182,7 @@ t10_HiMB_perm <- TwoPerm(High_MB[!is.na(High_MB$testesSpecificity) &
                                   !is.na(High_MB$t10_A.m) &
                                    !is.na(High_MB$exp_SBGE_ase),], 
                         x_col = "testesSpecificity", 
-                        groupBy = "t10_A.m")
+                        groupBy = "t10_A.m", n_perm = 10000)
 t10_plot <- pointSEplot(boot_dat = t10_HiMB_boot %>% 
                           dplyr::rename("Sig" = "t10_A.m"), 
                        perm_dat = t10_HiMB_perm,
