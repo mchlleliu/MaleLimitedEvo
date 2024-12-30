@@ -126,13 +126,13 @@ FPKM.Mishra <- fpkm(dds.Mishra) # get FPKM measures
 
 # separate the counts to males and females
 FPKM.Mishra.fem <- data.frame(FPKM.Mishra) %>% 
-  select(., contains("F_")) %>%
-  mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for females
+  dplyr::select(., contains("F_")) %>%
+  dplyr::mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for females
 FPKM.Mishra.fem[FPKM.Mishra.fem==0] <- NA # set genes not present as NAs
 
 FPKM.Mishra.male <- data.frame(FPKM.Mishra) %>% 
-  select(., contains("M_")) %>%
-  mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for males
+  dplyr::select(., contains("M_")) %>%
+  dplyr::mutate(totalCounts = rowSums(select_if(., is.numeric))) # get total counts for males
 FPKM.Mishra.male[FPKM.Mishra.male==0] <- NA # set genes not present as NAs
 
 
@@ -982,30 +982,6 @@ dev.off()
 ########
 
 
-# Plotting Fig.6B
-########
-# compare SSAV vs Controls
-A.m.C.m.Red <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
-A.m.C.m.NR <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
-test <- merge(A.m.C.m.Red, A.m.C.m.NR, by = "FlyBaseID")
-test <- na.omit(test)
-# test <- test[test$FlyBaseID %in% subset.sss,]
-
-# use the file "Figure6.R" to set up plotting functions
-source("Fig6_effectFuns.R")
-
-Figure_6B <- plot_corr(test, x="percent.dissim.x", y="percent.dissim.y", 
-                       colx = "red3", coly = "grey9", colNonCon = "grey",
-                       xlab = "Red", ylab = "NonRed", title = "", lim = 1.2) +
-  labs(x = expression(italic("d"["Red,C"])),
-       y = expression(italic("d"["NonRed,C"]))) +
-  theme(axis.title.x = element_text(vjust = 1.5, margin = margin(25,0,20,0)), 
-        axis.title.y = element_text(vjust = 1, margin = margin(0,20,0,20))) +
-  coord_cartesian(xlim = c(0,1), ylim = c(0,1))
-Figure_6B
-
-
-
 # Permute phi for A.m(Red-NR) vs C.m(Red-NR)
 A.m.Red.vs.NR <- data.frame(FlyBaseID = A.m.Red.Phi$FlyBaseID,
                             Phi.Red = A.m.Red.Phi$phi,
@@ -1026,4 +1002,34 @@ test <- test[test$FlyBaseID %in% subset.sss,]
 # run the R script "boot_permute.R" for permutation functions
 source("boot_permute.R")
 PairedTwoPerm(test, "diff.Am", "diff.Cm")
+
+
+
+# Comparing effect sizes of the experimental evolution in Red vs. NonRed
+# Plotting Fig.6B
 ########
+# compare Exp. vs Controls
+A.m.C.m.Red <- compareSplicingProfiles(A.m.Red.norm.exp, C.m.Red.norm.exp)
+A.m.C.m.NR <- compareSplicingProfiles(A.m.NR.norm.exp, C.m.NR.norm.exp)
+test <- merge(A.m.C.m.Red, A.m.C.m.NR, by = "FlyBaseID")
+test <- na.omit(test)
+# test <- test[test$FlyBaseID %in% subset.sss,]
+
+# use the file "Figure6.R" to set up plotting functions
+source("Fig6_effectFuns.R")
+
+Figure_6B <- plot_corr(test, x="percent.dissim.x", y="percent.dissim.y", 
+                       colx = "red3", coly = "grey9", colNonCon = "grey",
+                       xlab = "Red", ylab = "NonRed", title = "", lim = 1.2) +
+  labs(x = expression(italic("d"["Red,C"])),
+       y = expression(italic("d"["NonRed,C"]))) +
+  theme(axis.title.x = element_text(vjust = 1.5, margin = margin(25,0,20,0)), 
+        axis.title.y = element_text(vjust = 1, margin = margin(0,20,0,20))) +
+  coord_cartesian(xlim = c(0,1), ylim = c(0,1))
+Figure_6B
+
+
+########
+
+# paired t-test between Red and NonRed
+t.test(test$percent.dissim.x, test$percent.dissim.y, paired = TRUE, alternative = "less")

@@ -257,4 +257,5 @@ annotate_figure(Figure6, left = richtext_grob("<span style='font-size:30pt; colo
 
 dev.off()
 ######
-
+t.test(abs(corr.plot$Red.exp_trt), abs(corr.plot$NR.exp_trt), paired = TRUE, alternative = "less")
+t.test(abs(concordant$Red.exp_trt), abs(concordant$NR.exp_trt), paired = TRUE, alternative = "less")
