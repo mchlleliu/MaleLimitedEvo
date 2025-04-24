@@ -15,13 +15,13 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Contacts
 
-Karl Grieshop
-Email: [k.grieshop@uea.ac.uk](mailto:K.Grieshop@uea.ac.uk)
+Karl Grieshop<br />
+Email: [k.grieshop@uea.ac.uk](mailto:K.Grieshop@uea.ac.uk)<br />
 GitHub: [karlgrieshop](https://github.com/karlgrieshop)
 
 Michelle J. Liu  
 Email: [mchelle.liu@mail.utoronto.ca](mailto:mchelle.liu@mail.utoronto.ca)  
 GitHub: [mchlleliu](https://github.com/mchlleliu)
 
-Aneil F. Agrawal
+Aneil F. Agrawal<br />
 Email: [a.agrawal@utoronto.ca](mailto:a.agrawal@utoronto.ca)
