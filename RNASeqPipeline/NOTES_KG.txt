@@ -1,0 +1,31 @@
+### Comparison Summary
+
+After reviewing both `DSRed_workflow.txt` and `MaleLimitedEvo_Pipeline.sh`, the following points ensure that 
+there are no meaningful differences in the resultant .tsv files:
+
+1. **Genome Indexing**:
+   - `DSRed_workflow.txt` generates genome indices using STAR, which is now handled by 
+`MaleLimitedEvo_Reference_Genome.sh`.
+
+2. **Mapping RNA-seq Reads**:
+   - Both workflows use STAR with the same parameters (`--sjdbOverhang 100`, `--twopassMode Basic`, 
+`--readFilesCommand zcat`).
+
+3. **Generating Unmapped BAM**:
+   - Both workflows use `gatk FastqToSam` with the same parameters.
+
+4. **Merging BAM Files**:
+   - Both workflows use `gatk MergeBamAlignment` with the same parameters.
+
+5. **Marking Duplicates**:
+   - Both workflows use `gatk MarkDuplicates` without the `--java-options '-XX:ParallelGCThreads=1'` option.
+
+6. **Sorting BAM Files**:
+   - Both workflows use `gatk SortSam` with the same parameters.
+
+7. **HTSeq Count**:
+   - Both workflows use `HTSeq` with the same parameters (`-s no`, `--nonunique none`, `--format bam`, 
+`--secondary-alignments ignore`, `--supplementary-alignments ignore`).
+
+The `MaleLimitedEvo_Pipeline.sh` script is designed to produce the same .tsv files as the original 
+`DSRed_workflow.txt` while optimizing for HPC Slurm job scheduling and minimizing intermediate file outputs.
