@@ -28,7 +28,6 @@ A.m.geno <- read.delim("Results/A.m.geno_DE.candidates.tsv")
 C.m.geno <- read.delim("Results/C.m.geno_DE.candidates.tsv")
 SSAV.geno <- read.delim("Results/All.geno_DE.candidates.tsv")
 
-
 # include SBGE categories (using Mishra et al. 2022 dataset)
 A.m.geno <- merge(A.m.geno, Mishra, by = "FlyBaseID", all = TRUE)
 A.m.geno <- A.m.geno[!is.na(A.m.geno$Sig) & !is.na(A.m.geno$exp_SBGE_ase),]

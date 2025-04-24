@@ -267,7 +267,7 @@ Fig3_main <- pointSEplot(boot_dat = boot_All_SBGE_rMF,
 #######
 
 
-# Considering DE genes from male and female comparisons separately (Fig. S5):
+# Considering DE genes from male and female comparisons separately (Fig. S10):
 
 # Male candidates
 ######
@@ -313,9 +313,9 @@ Fig5B_suppl <- pointSEplot(boot_dat = boot_All_SBGE_rMF_A.f,
 
 
 # Save figures
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/Fig_S10.png",   # The directory you want to save the file in
-    width = 17, # The width of the plot in inches
-    height = 18, # 9 18 The height of the plot in inches
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/revision/Fig_S10_rMF3Mb.png",   # The directory you want to save the file in
+    width = 15, # 17 The width of the plot in inches
+    height = 16, # 9 18 The height of the plot in inches
     units = "in", res = 300)
 
 # Suppl. Figure S10

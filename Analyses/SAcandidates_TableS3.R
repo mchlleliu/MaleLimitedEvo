@@ -41,7 +41,6 @@ dim(SSAV.geno[!is.na(SSAV.geno$Sig),])
 jseq.All.geno <- read.delim(file="Results/jseq.All.geno.txt", sep = "\t", header = T)
 jseq.All.geno <- merge(jseq.All.geno, Chrs, by = "FlyBaseID") 
 
-
 # combined all candidates
 test_df <- merge(jseq.All.geno[,c("FlyBaseID", "Sig")], 
                  SSAV.geno[,c("FlyBaseID", "Sig")], 
@@ -166,5 +165,3 @@ DS.vs.Ruz.data
 SA.vs.Ruz <- TestEnrichment(test_df, df2 = "IsRuz", xlab = "SA", ylab = "Ruz")
 SA.vs.Ruz.data
 ##########
-
-

@@ -27,6 +27,8 @@ library(broom)
 #       myfun = test statistic function
 #       n_perm = number of permutations. default = 10,000
 #       alternative = alt. for hypothesis testing
+# e.g. usage:
+# OnePerm(df, "measurement")
 OnePerm <- function(perm_dat, x_col, 
                       myfun = mean, mu = 0, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
@@ -63,8 +65,11 @@ OnePerm <- function(perm_dat, x_col,
 # Function to permute based on SBGE category
 # args: perm_dat = the dataset containing a numeric column to permute
 #       x_col =string denoting the column containing the data to permute
-#       SBGE_cat = string denoting the column which specifies SBGE bins
+#       SBGE_cat = string denoting the column which specifies SBGE bins. 
+#                   Note that this does not have to be SBGE but could be any categorical variable
 #       n_perm = optional argument for number of permutations. default is 10,000
+# e.g. usage:
+# OnePerm_SBGE(df, "measurement", "SBGE_category")
 OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat, n_perm = 10000){
   dat <- data.frame() # initialize data.frame object to store results
   # make sure the column of categories is set to factor
@@ -92,9 +97,11 @@ OnePerm_SBGE <- function(perm_dat, x_col, SBGE_cat, n_perm = 10000){
 # Two sample permutation test for difference in means
 # args: perm_dat = the dataset containing a numeric column to permute
 #       x_col = string denoting the column containing the data to permute
-#       groupBy = logical column in the dataset which separates group 1 and group 2
+#       groupBy = string denoting the logical column in the dataset which separates group 1 and group 2
 #       n_perm = number of permutations. default = 10,000
 #       alternative = alt. for hypothesis testing
+# e.g. usage:
+# TwoPerm(df, "measurement", "SignificantOrNot", 1000)
 TwoPerm <- function(perm_dat, x_col, 
                       groupBy, n_perm = 10000,
                       alternative = c("two.sided","less","greater")){
@@ -138,6 +145,17 @@ TwoPerm <- function(perm_dat, x_col,
 }
 
 
+# PairedTwoPerm
+# Paired two sample permutation test for difference in means
+# args: perm_dat = the dataset containing a numeric column to permute. 
+#                   This dataset should have a column with a shared object (e.g. geneID) and 
+#                   two columns each denoting the data of interest for group 1 and group 2, respectively
+#       x1 = string denoting the column containing data for the first group
+#       x2 = string denoting the column containing data for the second group
+#       n_perm = number of permutations. default = 10,000
+#       alternative = alt. for hypothesis testing
+# e.g. usage:
+# PairedTwoPerm(df, "Red_expression", "NonRed_expression")
 PairedTwoPerm <- function(perm_dat, x1, x2, n_perm = 10000,
                           alternative = c("two.sided","less","greater")){
  
@@ -187,8 +205,11 @@ PairedTwoPerm <- function(perm_dat, x1, x2, n_perm = 10000,
 # Function to permute based on SBGE category
 # args: perm_dat = the dataset containing a numeric column to permute
 #       x_col = string denoting denoting the column containing the data to permute
-#       groupBy = logical column which separates group 1 and group 2
-#       SBGE_cat = column specifying SBGE bins
+#       groupBy = string denoting the logical column which separates group 1 and group 2
+#       SBGE_cat = string denoting a column with categorical variable consisting of several factors.
+#                   This is called "SBGE" here, but it could technically be used for any categorical variable
+# e.g. usage:
+# TwoPerm_SBGE(df, "measurement", "SignificantOrNot", "SBGE_category")
 TwoPerm_SBGE <- function(perm_dat, x_col, groupBy, SBGE_cat){
   dat <- data.frame() # initialize data.frame object to store results
   # make sure the column of categories is set to factor
@@ -219,12 +240,45 @@ TwoPerm_SBGE <- function(perm_dat, x_col, groupBy, SBGE_cat){
 
 # Bootstrapping functions
 ##########
+
+# Bootstrapped 95% confidence intervals for the mean of one group
+# args: boot_dat = dataset to bootstrap
+#       x_col = string denoting the column containing the data to bootstrap
+#       boot_n = number of bootstrap replicates. Default is 1,000
+#       myfun = test stat function. Default is mean
+# e.g. usage:
+# OneBoot(df, "measurement", 1000)
+OneBoot <- function(boot_dat, x_col,
+                    boot_n = 1000, 
+                    myfun = mean){
+  boot_tabs <- as_tibble(data_frame(bs = 1:boot_n) %>% # make boot_n bootstrap replicates
+                           dplyr::group_by(bs) %>% # for each bootstrap,
+                           # sample randomly x boot_n times from each group
+                           dplyr::mutate(data = list(boot_dat %>% 
+                                                     dplyr::sample_frac(size = 1, replace = T)))) %>% 
+    unnest(c(bs, data)) %>% # create separate rows for each bootstrap replicate in the list
+    dplyr::group_by(bs) %>% # group the data by bootstrap replicate
+    # for each bootstrap replicate, calculate the correlation
+    dplyr::do(tidy(mean(.[[x_col]])))
+  
+  # summarise bootstrap replicates
+  boot_SE <- boot_tabs %>%
+    dplyr::ungroup() %>%
+    dplyr::summarise(q05 = quantile(x, 0.025, na.rm = TRUE),
+                     q50 = quantile(x, 0.5, na.rm = TRUE),
+                     q95 = quantile(x, 0.975, na.rm = TRUE))
+  return(boot_SE)
+}
+
+
 # Bootstrapped 95% confidence intervals for two groups
 # args: boot_dat = dataset to bootstrap
 #       x_col = string denoting the column containing the data to bootstrap
-#       groupBy = logical column which separates group 1 and group 2
+#       groupBy = string denoting the logical column which separates group 1 and group 2
 #       boot_n = number of bootstrap replicates. Default is 1,000
 #       myfun = test stat function. Default is mean
+# e.g. usage:
+# TwoBoot(df, "measurement", "SignificantOrNot", 1000)
 TwoBoot <- function(boot_dat, x_col, groupBy, 
                     boot_n = 1000, 
                     myfun = mean){
@@ -252,6 +306,15 @@ TwoBoot <- function(boot_dat, x_col, groupBy,
 }
 
 
+
+# Function which calls the TwoBoot bootstrap function separately for each (SCGE) category. 
+# args: boot_dat = dataset to bootstrap
+#       x_col = string denoting the column containing the data to bootstrap
+#       groupBy = string denoting the logical column which separates group 1 and group 2
+#       SBGE_cat = string denoting a column with categorical variable consisting of several factors.
+#                   This is called "SBGE" here, but it could technically be used for any categorical variable
+# e.g. usage:
+# TwoBoot_SBGE(df, "measurement", "SignificantOrNot", "SexBias")
 TwoBoot_SBGE <- function(boot_dat, x_col, groupBy, SBGE_cat){
   dat <- data.frame() # initialize data.frame object to store results
   # make sure the column of categories is set to factor
