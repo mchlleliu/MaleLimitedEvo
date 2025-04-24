@@ -8,8 +8,24 @@
 # 
 ###################################
 
-rm(list=ls())
 setwd("~/Desktop/UofT/SSAV_RNA/")
+
+# packages
+#######
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(DescTools)
+
+
+library(lme4)
+library(lmerTest)
+library(car)
+library(ggplot2)
+library(sjPlot)
+library(glmmTMB)
+#######
+
 
 #Load in fitness data
 DsRed_Data <- read.csv("Fitness_Assay/DsRed_Data_Formatted.csv")
@@ -109,8 +125,6 @@ timeblock_maletab <-as.table(rbind(c(DsRed_CageBlind_RedMatedMales), c(DsRed_Cag
 dimnames(timeblock_maletab) <- list(Marker=c("Red","Non-Red"),
                                     Time_Block=c("Morn D1","AN D1", "E D1", "Morn D2","AN D2", "E D2", "Morn D3"))
 #Having carved up the data appropriately above, I make the table which will go into the GTest
-library(DescTools)
-#Remember to load the library with the GTest function
 (Xsq <- GTest(timeblock_maletab))
 #Then run the test
 
@@ -167,6 +181,7 @@ DsRed_Cagewise_RedMatedFemales <- DsRed_Input[1:dim(DsRed_Input)[1], setdiff(int
 DsRed_Cagewise_NonRedMatedFemales <- DsRed_Input[1:dim(DsRed_Input)[1], intersect(intersect(X2c,Yc),Zc), ]
 
 
+# RERUN FROM HERE
 #Examining if there is any relationship between total mating activity and time.
 Mating_by_block <- c()
 Mating_by_block_errbar <- c()
@@ -178,21 +193,25 @@ correction <- c(6, 8, 6, 6, 8, 6, 4)
 for(i in 1:7){
   # This sum is the measure of total mating activity for the current time block
   # adjust depending on which data is generated
-  current_maters <- DsRed_Cagewise_RedMatedFemales[, i] 
+  # change to : DsRed_Cagewise_RedMatedFemales, 
+  #             DsRed_Cagewise_NonRedMatedFemales, 
+  #             DsRed_Cagewise_RedMatedMales
+  #             DsRed_Cagewise_NonRedMatedMales
+  current_maters <- DsRed_Cagewise_NonRedMatedMales[, i] 
   # Add to the accumulating list
   Mating_by_block <- c(Mating_by_block, mean(current_maters/correction[i]*mean(correction)))
   Mating_by_block_errbar <- c(Mating_by_block_errbar, SD(current_maters/correction[i]*mean(correction))/sqrt(length(current_maters)))
   #Multiplying by mean(correction) to ensure that the correction factors are normalized
 }
 
-
-
 # the clean data set with results from the test
 # add additional column 1:7 for plotting the time blocks as x-axis
 mating.activity.TB_males <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
 mating.activity.TB_females <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7)
 
-# separate results for each genotype/sex (re-run above for loop with adjustments for number of current maters)
+
+# separate results for each genotype/sex 
+# NOTE: YOU WILL HAVE TO RE-RUN THE FOR LOOP ABOVE WITH THE CORRECT "CURRENT_MATERS" TO GENERATE EACH DATASET
 mating.activity.TB_Red.fem <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "a.Red")
 mating.activity.TB_NonRed.fem <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "b.NonRed")
 mating.activity.TB_geno.Fem <- rbind(mating.activity.TB_Red.fem, mating.activity.TB_NonRed.fem)
@@ -201,9 +220,9 @@ mating.activity.TB_Red.male <- data.frame(Mating_by_block, Mating_by_block_errba
 mating.activity.TB_NonRed.male <- data.frame(Mating_by_block, Mating_by_block_errbar, 1:7, geno = "b.NonRed")
 mating.activity.TB_geno.Male <- rbind(mating.activity.TB_Red.male, mating.activity.TB_NonRed.male)
 
-mating.activity.TB_geno.Fem <- mating.activity.TB_geno.Fem %>% 
-  mutate(color = ifelse(geno == "Red", "a.Red", "b.NonRed"))
-mating.activity.TB_geno.Fem$geno = mating.activity.TB_geno.Fem$color
+
+
+
 
 # Fig. S6: Mating activity by timeblock
 FigS6_A <- ggplot() + 
@@ -276,19 +295,19 @@ FigS6_B
 
 
 # Save figure S6
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S6.png",   # The directory you want to save the file in
-    width = 17, # 20 15 The width of the plot in inches
-    height = 15, # 12 8 The height of the plot in inches
-    units = "in", res = 300)
-
-ggarrange(FigS6_A + theme(axis.text.x = element_blank()),
-          FigS6_B,
-          nrow = 2, heights = c(0.9, 1),
-          labels = c("A)", "B)"),
-          font.label = list(size = 30)
-          )
-
-dev.off()
+# png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S6.png",   # The directory you want to save the file in
+#     width = 17, # 20 15 The width of the plot in inches
+#     height = 15, # 12 8 The height of the plot in inches
+#     units = "in", res = 300)
+# 
+# ggarrange(FigS6_A + theme(axis.text.x = element_blank()),
+#           FigS6_B,
+#           nrow = 2, heights = c(0.9, 1),
+#           labels = c("A)", "B)"),
+#           font.label = list(size = 30)
+#           )
+# 
+# dev.off()
 #######
 
 
@@ -326,18 +345,19 @@ block7 <- block7[!is.nan(block7)]
 # mean and SE across populations, replicate cage, and generations
 femaletimeblock_mean <- c(mean(block1), mean(block2), mean(block3), 
                           mean(block4), mean(block5), mean(block6), mean(block7))
-femaletimeblock_Errbars <- c(SD(block1)/sqrt(length(block1)), 
-                             SD(block2)/sqrt(length(block2)), 
-                             SD(block3)/sqrt(length(block3)), 
-                             SD(block4)/sqrt(length(block4)), 
-                             SD(block5)/sqrt(length(block5)), 
-                             SD(block6)/sqrt(length(block6)), 
-                             SD(block7)/sqrt(length(block7)))
+femaletimeblock_Errbars <- c(sd(block1)/sqrt(length(block1)), 
+                             sd(block2)/sqrt(length(block2)), 
+                             sd(block3)/sqrt(length(block3)), 
+                             sd(block4)/sqrt(length(block4)), 
+                             sd(block5)/sqrt(length(block5)), 
+                             sd(block6)/sqrt(length(block6)), 
+                             sd(block7)/sqrt(length(block7)))
 #Error bars Standard Error of the Mean (SEM): Standard Deviation / Sqrt(Num Samples)
 
 cor.test(proplist, blocklist)
 #The correlation test; also statistically significant when considering the individual data points.
 #here individual data points meaning that we did not collapse the populations, replicate cage, and generations.
+
 
 
 ## -- Doing the same thing for the MALE data as for the female data above
@@ -365,6 +385,7 @@ maletimeblock_Errbars <- c(SD(maleblock1)/sqrt(length(maleblock1)), SD(maleblock
 
 cor.test(maleproplist, maleblocklist)
 #For males, there is no correlation between the proportion of Red maters and time block.
+
 #######
 
 
@@ -383,12 +404,6 @@ cor.test(maleproplist, maleblocklist)
 # same for fixed effects (marker, generation/block- these have too few levels to fit as random). 
 # Sex is a fixed effect inherently; we don't draw from a pool of all possible sexes, we actually test all possible sexes in this species.
 
-library(lme4)
-library(lmerTest)
-library(car)
-library(ggplot2)
-library(sjPlot)
-library(glmmTMB)
 
 # 
 # the models below offer the best AIC and seem logically plausible.
@@ -463,22 +478,34 @@ fem.main_eff <- data.frame(list(female.glob.fx, female.main_eff_int[1], female.m
 colnames(fem.main_eff) <- c("glob.fx", "q0025", "q0975", "Sex")
 male.main_eff <- data.frame(list(glob.fx, main_eff_int[1], main_eff_int[2], "a.Male"), row.names = NULL)
 colnames(male.main_eff) <- c("glob.fx", "q0025", "q0975", "Sex")
+
 all.main_eff <- rbind(fem.main_eff, male.main_eff)
+
 
 # plot the global effects
 plot.globfx <- ggplot(all.main_eff) + 
+  
   # make horizontal line at 0
   geom_hline(yintercept = 0, size = 1) +
+  
   # plot error bars for coefficients
   geom_errorbar(aes(Sex, glob.fx, ymin=q0025, ymax=q0975, color=Sex), size = 2, width = 0.5) +
   # plot coefs
   geom_point(aes(x=Sex, y=glob.fx, color=Sex), size = 10) +
+  
   # axes settings
-  scale_x_discrete(labels = c("Male","Female")) +
+  scale_x_discrete(labels = c("Male", "Female")) +
   scale_colour_manual(values = c("#0072B2", "#D55E00")) + # "Chr-2", "Chr-3", "X-Chr"
   scale_y_continuous(limits = c(-0.25,0.25)) +
   labs(y = expression(atop("Change in Mating Probability", paste("Associated with ",italic("Red")," Chromosome")))) +
   
+  # add per population point estimate for males
+  geom_point(data = main_result, aes(x = "a.Male", y = mean.pop.fx), size = 6, alpha = 0.5,
+             position = position_jitter(width = 0.3, seed = 123), color = "#0072B2") +
+  # add per population point estimate for females
+  geom_point(data = female.main_result, aes(x = "b.Female", y = mean.female.pop.fx), size = 6, alpha = 0.5,
+             position = position_jitter(width = 0.3, seed = 123), color = "#D55E00") +
+
   # other plot theme settings
   theme_classic() +
   theme(plot.title.position = c("panel"),
@@ -492,6 +519,8 @@ plot.globfx <- ggplot(all.main_eff) +
         plot.title = element_text(size=40, margin = margin(0,0,0,0), color = "black"),
         plot.margin = margin(6,6,6,6),
         panel.border = element_rect(colour = "black", fill=NA, size=1))
+
+plot.globfx
 ########
 
 
@@ -501,20 +530,46 @@ plot.globfx <- ggplot(all.main_eff) +
 markerxtimeblock <- data.frame(femaletimeblock_mean, femaletimeblock_Errbars, 
                                maletimeblock_mean, maletimeblock_Errbars, 1:7)
 
+NM_Fem <- data.frame()
+for(i in 1:3){
+  for(j in 1:6){
+    NR_n <- dim(DsRed_F_NR_NM[DsRed_F_NR_NM$Population == j & DsRed_F_NR_NM$Generations == i,])[1]
+    Red_n <- dim(DsRed_F_R_NM[DsRed_F_R_NM$Population == j & DsRed_F_R_NM$Generations == i,])[1]
+    tmp <- data.frame(Red = Red_n, 
+                      NR = NR_n, 
+                      Red_fract = Red_n/(Red_n+NR_n), 
+                      Pop = j, 
+                      Gen = i)
+    NM_Fem <- rbind(NM_Fem, tmp)
+  }
+}
+
+# by population point estimate:
+fem_pop_time <- data.frame(
+  pop = rep(c(1:6), seq = 7),
+  mean_by_pop=unlist(femaletimeblock_mean_bypop), 
+  block = rep(c(1:7), each = 6))
+
 # plot female data
 fem_time.block <- ggplot(data = markerxtimeblock) + 
+  
+  # fraction of Red females out of ALL assayed (mated + unmated) females
+  geom_hline(yintercept = mean(NM_Fem$Red_fract), linetype = 2, size =1.5, color = "#eac798") +
+  
   # dashed regression line 
   geom_abline(aes(slope = lm(proplist~blocklist)$coefficients[2], 
                   intercept = lm(proplist~blocklist)$coefficients[1]),
               size = 1.5, alpha = 0.75, show.legend = F, color = "#D55E00") + 
+  
   # plot errorbar for point estimates
   geom_errorbar(aes(x=X1.7, ymin = femaletimeblock_mean-femaletimeblock_Errbars, 
                     ymax = femaletimeblock_mean+femaletimeblock_Errbars), color = "#D55E00", size = 1.5, width = 0.5) +
   #plot point estimates
   geom_point(aes(x =X1.7,  y=femaletimeblock_mean), color = "#D55E00", size = 7.5) + 
+  
   # set axes
   xlab("Time Block") + ylab(expression(atop(paste("Proportion of ", italic("Red")), paste("\nFemales among Maters")))) + 
-  ylim(0.44, 0.61) + 
+  #ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
                      labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
@@ -539,15 +594,35 @@ fem_time.block <- ggplot(data = markerxtimeblock) +
 
 
 # plot male data using the same settings
+
+NM_Male <- data.frame()
+for(i in 1:3){
+  for(j in 1:6){
+    NR_n <- dim(DsRed_M_NR_NM[DsRed_M_NR_NM$Population == j & DsRed_M_NR_NM$Generations == i,])[1]
+    Red_n <- dim(DsRed_M_R_NM[DsRed_M_R_NM$Population == j & DsRed_M_R_NM$Generations == i,])[1]
+    tmp <- data.frame(Red = Red_n, 
+                      NR = NR_n, 
+                      Red_fract = Red_n/(Red_n+NR_n), 
+                      Pop = j, 
+                      Gen = i)
+    NM_Male <- rbind(NM_Male, tmp)
+  }
+}
+
+# by population point estimate:
+male_pop_time <- data.frame(
+  pop = rep(c(1:6), seq = 7),
+  mean_by_pop=unlist(maletimeblock_mean_bypop), 
+  block = rep(c(1:7), each = 6))
+
+
 male_time.block <- ggplot(data = markerxtimeblock) + 
-  geom_abline(aes(slope = lm(maleproplist~maleblocklist)$coefficients[2], 
-                  intercept = lm(maleproplist~maleblocklist)$coefficients[1]),
-              size = 1.5, alpha = 0.75, show.legend = F, color = "#0072B2") + 
+  geom_hline(yintercept = mean(NM_Male$Red_fract), linetype = 2, size = 1.5, color = "#a0c3d7") + 
   geom_errorbar(aes(x=X1.7, ymin = maletimeblock_mean-maletimeblock_Errbars, 
                     ymax = maletimeblock_mean+maletimeblock_Errbars), color = "#0072B2", size = 1.5, width = 0.5) +
   geom_point(aes(x =X1.7,  y=maletimeblock_mean), color = "#0072B2", size = 7.5) +
   xlab("Time Block") + ylab(expression(atop(paste("Proportion of ", italic("Red")), paste("\nMales among Maters")))) + 
-  ylim(0.44, 0.61) + 
+  #ylim(0.44, 0.61) + 
   geom_vline(xintercept = c(seq(1.5, 6.5)), color = "grey") + 
   scale_x_continuous(breaks = 1:7, 
                      labels = c("Morning\nDay 13", "Afternoon\nDay 13", "Evening\nDay 13", 
@@ -572,7 +647,7 @@ male_time.block <- ggplot(data = markerxtimeblock) +
 
 
 # Save Fig.1
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig1_main.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/revision/Fig1_main_pop.png",   # The directory you want to save the file in
     width = 20, # 20 15 The width of the plot in inches
     height = 12, # 12 8 The height of the plot in inches
     units = "in", res = 300)
