@@ -8,9 +8,36 @@ RNA-Seq reads associated with this publication can be found on the SRA under Bio
 In six replicate populations of 1000 flies, a dominant marker (DsRed) was used to force a “Red” pool of genetically variable Chromosome 2 copies through exclusive father-to-son inheritance, while a complimentary pool of “NonRed” chromosomes was inherited primarily from mothers to daughters. After 100 generations, we demonstrated the effect of Red male-limited chromosomes in increasing male mating success. We analysed differentially expressed genes with and without Red chromosomes. 
 
 
-## License
+## Contents
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+### Directories
+1. **[Analyses](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/Analyses)**  
+   Contains scripts for performing differential expression (DE) and differential splicing (DS) analyses, generating figures, and statistical data exploration.
+
+2. **[DESeq2Run](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/DESeq2Run)**  
+   Resources and scripts for running DESeq2.
+
+3. **[JunctionSeq](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/JunctionSeq)**  
+   Scripts and resources for splicing analysis using JunctionSeq.
+
+4. **[RNASeqPipeline](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/RNASeqPipeline)**  
+   Contains the RNA-Seq analysis pipeline used to process raw sequencing data into normalized counts.
+
+5. **[Results](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/Results)**  
+   A directory for output files from DESeq2 and JunctionSeq, used in the analyses.
+
+### Files
+1. **[Chromosome_df.R](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/Chromosome_df.R)**  
+   Helper script for managing chromosome-related metadata, such as gene positions.
+
+2. **[README.md](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/README.md)**  
+   This README file, providing an overview of the repository contents.
+
+3. **[sample_INFO.tsv](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/sample_INFO.tsv)**  
+   Metadata file containing detailed information on RNA-Seq samples used in the analyses.
+
+---
+
 
 
 ## Contacts
