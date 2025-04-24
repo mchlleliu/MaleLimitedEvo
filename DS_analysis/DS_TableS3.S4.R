@@ -99,6 +99,12 @@ jseq.A.f.geno <- jseq.A.f.geno[!(jseq.A.f.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.A.m.geno <- jseq.A.m.geno[!(jseq.A.m.geno$FlyBaseID %in% DsRed_genes$V1),]
 jseq.C.m.geno <- jseq.C.m.geno[!(jseq.C.m.geno$FlyBaseID %in% DsRed_genes$V1),]
 
+# more stringent removal of genes near DsRed
+DsRed_genes <- read.delim(file="Data/dmel_2R_DsRed_3Mb.tsv", header=TRUE)
+jseq.A.f.geno <- jseq.A.f.geno[!(jseq.A.f.geno$FlyBaseID %in% DsRed_genes$DsRed_3Mb_cut),]
+jseq.A.m.geno <- jseq.A.m.geno[!(jseq.A.m.geno$FlyBaseID %in% DsRed_genes$DsRed_3Mb_cut),]
+jseq.C.m.geno <- jseq.C.m.geno[!(jseq.C.m.geno$FlyBaseID %in% DsRed_genes$DsRed_3Mb_cut),]
+
 # remove genes on the Y and on Chr 4
 jseq.A.f.geno <- merge(jseq.A.f.geno, Chrs, by = "FlyBaseID")
 jseq.A.m.geno <- merge(jseq.A.m.geno, Chrs, by = "FlyBaseID")
@@ -193,10 +199,10 @@ SSAV.sample.types <- rbind(SSAV.sample.types, c("A.all", "jseq.All.geno"))
 # do some Fisher's exact tests for association with sex-specific splicing in Mishra data:
 
 # load DE data to check for overlap in DE and DS genes ######
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
-C.m.geno <- read.delim("Results/C.m.geno_candidates.tsv")
-SSAV.geno <- read.delim("Results/All.geno_candidates.tsv")
+A.f.geno <- read.delim("Results/A.f.geno_DE.candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_DE.candidates.tsv")
+C.m.geno <- read.delim("Results/C.m.geno_DE.candidates.tsv")
+SSAV.geno <- read.delim("Results/All.geno_DE.candidates.tsv")
 
 # add chromosome position info
 A.f.geno <- merge(A.f.geno, Chrs, by = "FlyBaseID")
@@ -258,8 +264,9 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   # do fisher test for overlap between SSS and DS genes
   if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$Mishra.SSS) > 0){
     fishers.test.RedNR.splice.results$SSS.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$Mishra.SSS)$p.val
-    
   }
+  else
+    fishers.test.RedNR.splice.results$SSS.DS.pval[i] <- NA
   
   
   # number of genes assayed with significant DE status
@@ -282,6 +289,7 @@ for(i in 1:dim(SSAV.sample.types)[1]){
   if(sum(tmp.JS.table$sig.hit) > 0 & sum(tmp.JS.table$DE.Sig) > 0){
     fishers.test.RedNR.splice.results$DE.DS.pval[i] <- fisher.test(tmp.JS.table$sig.hit, tmp.JS.table$DE.Sig)$p.val
   }
+  else fishers.test.RedNR.splice.results$DE.DS.pval[i] <- NA
   
   assign(paste0(SSAV.sample.types[i, 1],".tmp.fisher"), tmp.JS.table)
 }

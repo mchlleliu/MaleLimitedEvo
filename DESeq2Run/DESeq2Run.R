@@ -37,7 +37,7 @@ library(tidyr)
 
 # Set up data frame of chromosome locations (using BDGP6.28, release 102)
 # this is used for filtering out Y-linked genes and Chr 4 genes
-source("Chromosome_df.R")
+source("~/Desktop/UofT/SSAV_RNA/Chromosome_df.R")
 
 
 # make data frame for DESeq2
@@ -87,6 +87,14 @@ str(sampleTable) # Check that factors are factors, else use e.g.: sampleTable$re
 # Split data frame up into different subsets 
 ##########
 
+# Just Males (A and C)
+Males <- sampleTable[(sampleTable$sex == "Male"),] 
+Males$sex <- droplevels(Males$sex)
+
+# Just Females (A)
+Females <- sampleTable[(sampleTable$sex == "Female"),] 
+Females$sex <- droplevels(Females$sex)
+
 # trt A data (list of sample names, and files)
 A <- sampleTable[(sampleTable$trt == "A"),] 
 A$trt <- droplevels(A$trt)
@@ -111,18 +119,6 @@ Red.m$geno <- droplevels(Red.m$geno)
 NR.m <- Males[(Males$geno == "NR"),]
 NR.m$geno <- droplevels(NR.m$geno)
 
-# A.f.C.m (contrast A females and C males)
-A.f.C.m <- rbind(A.f, C.m) # For contrasting A.f to C.m
-A.f.C.m_Red <- A.f.C.m[(A.f.C.m$geno == "Red"),] # within Red
-A.f.C.m_Red$geno <- droplevels(A.f.C.m_Red$geno)
-A.f.C.m_NR <- A.f.C.m[(A.f.C.m$geno == "NR"),] # within NR
-A.f.C.m_NR$geno <- droplevels(A.f.C.m_NR$geno)
-
-# A.f.nr_A.m.r (contrast A nonRed females and A red males)
-A.f.nr <- A.f[(A.f$geno == "NR"),]
-A.m.r <- A.m[(A.m$geno == "Red"),]
-A.f.nr_A.m.r <- rbind(A.f.nr, A.m.r)
-
 # A.Red
 A.Red <- A[(A$geno == "Red"),]
 A.Red$geno <- droplevels(A.Red$geno)
@@ -130,14 +126,6 @@ A.Red$geno <- droplevels(A.Red$geno)
 # A.NR
 A.NR <- A[(A$geno == "NR"),]
 A.NR$geno <- droplevels(A.NR$geno)
-
-# Just Males (A and C)
-Males <- sampleTable[(sampleTable$sex == "Male"),] 
-Males$sex <- droplevels(Males$sex)
-
-# Just Females (A)
-Females <- sampleTable[(sampleTable$sex == "Female"),] 
-Females$sex <- droplevels(Females$sex)
 
 # A.Red.m
 A.Red.m <- Males[(Males$geno == "Red") & Males$trt == "A",]
@@ -155,14 +143,6 @@ A.Red.f$geno <- droplevels(A.Red.f$geno)
 A.NR.f <- Females[(Females$geno == "NR"),]
 A.NR.f$geno <- droplevels(A.NR.f$geno)
 
-# A.Red.m.NR.f
-A.Red.m.NR.f <- rbind(A.Red.m, A.NR.f)
-A.Red.m.NR.f$geno <- droplevels(A.Red.m.NR.f$geno)
-
-# A.NR.m.Red.f
-A.NR.m.Red.f <- rbind(A.NR.m, A.Red.f)
-A.NR.m.Red.f$geno <- droplevels(A.NR.m.Red.f$geno)
-
 ##########
 
 
@@ -177,9 +157,6 @@ dds.all <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
 # For geno differences in A.f
 dds.A.f.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.f, 
                                            design = ~ rep + geno) 
-
-dds.A.f.geno_rep <- DESeqDataSetFromHTSeqCount(sampleTable = A.f, 
-                                           design = ~ geno + rep) 
 
 # For geno differences in A.m
 dds.A.m.geno <- DESeqDataSetFromHTSeqCount(sampleTable = A.m, 
@@ -197,45 +174,6 @@ dds.NR.m.trt <- DESeqDataSetFromHTSeqCount(sampleTable = NR.m,
 dds.Red.m.trt <- DESeqDataSetFromHTSeqCount(sampleTable = Red.m,
                                             design = ~ rep + trt)
 
-# Males
-dds.Males <- DESeqDataSetFromHTSeqCount(sampleTable = Males,
-                                        design = ~ rep + geno + trt) 
-
-# A.f versus C.m within Red
-dds.A.f.C.m_Red <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.C.m_Red,
-                                              design = ~ rep + sex) 
-
-# A.f versus C.m within Red
-dds.A.f.nr_A.m.r <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.nr_A.m.r,
-                                               design = ~ rep + sex) 
-
-# A.f versus C.m within NR
-dds.A.f.C.m_NR <- DESeqDataSetFromHTSeqCount(sampleTable = A.f.C.m_NR,
-                                             design = ~ rep + sex) 
-
-# Interaction
-dds.Int <- DESeqDataSetFromHTSeqCount(sampleTable = Males,
-                                      design = ~ rep + geno + trt + geno:trt) 
-
-# For sex differences in A.Red
-dds.A.Red.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.Red,
-                                            design = ~ rep + sex)
-
-dds.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A,
-                                      design = ~ rep + sex)
-
-# For sex differences in A.NR
-dds.A.NR.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR,
-                                           design = ~ rep + sex)
-
-# For SBGE in natural pair (Red males and NR females)
-dds.A.Red.m.NR.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.Red.m.NR.f,
-                                                   design = ~ rep + sex)
-
-# For SBGE in unnatural pair (Red females and NR males)
-dds.A.NR.m.Red.f.sex <- DESeqDataSetFromHTSeqCount(sampleTable = A.NR.m.Red.f,
-                                                   design = ~ rep + sex)
-
 ##########
 
 
@@ -248,18 +186,14 @@ minCountPerSample = 1 #min read count per sample
 minAvgPerCat = 10 #min average read per category
 
 # Specify the contrast
-focal.contrast <-  dds.sex # Change accordingly
+focal.contrast <- dds.A.m.geno # Change accordingly
 
-# Specify the samples for each category of the focal contrasts (some tricky ones commented here)
+# Specify the samples for each category of the focal contrasts
 # this is based on the order of the sample names
 
-# A.REDvNR
-# numerator <- samplename[seq(2, 24, by = 2)] #A-Red
-# denominator <- samplename[seq(1, 24, by = 2)] #A-NR
-
 # dds.A.m.geno
-# numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
-# denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
+numerator <- samplename[seq(4, 24, by = 4)] # A.red.males
+denominator <- samplename[seq(3, 24, by = 4)] # A.nr.males
 
 # dds.A.f.geno
 # numerator <- samplename[seq(2, 24, by = 4)] # A.red.females
@@ -277,29 +211,9 @@ focal.contrast <-  dds.sex # Change accordingly
 # numerator <- samplename[seq(3, 24, by = 4)] # A.NR.m
 # denominator <- samplename[seq(25, 36, by = 2)] # C.NR.m
 
-# dds.A.Red.sex
-# numerator <- samplename[seq(4, 24, by = 4)]
-# denominator <-samplename[seq(2, 24, by = 4)]
-
-# dds.A.NR.sex
-# numerator <- samplename[seq(3, 24, by = 4)]
-# denominator <-samplename[seq(1, 24, by = 4)]
-
-# # dds.A.Red.m.NR.f.sex
-# numerator <- samplename[seq(4, 24, by = 4)]
-# denominator <- samplename[seq(1, 24, by =4)]
-
-# dds.A.NR.m.Red.f.sex
-# numerator <- samplename[seq(3, 24, by = 4)]
-# denominator <- samplename[seq(2, 24, by =4)]
-
-# dds.A.sex
-numerator <- samplename[c(seq(3, 24, by = 4), seq(4, 24, by = 4))]
-denominator <-samplename[c(seq(1, 24, by = 4), seq(2, 24, by =4))]
-
 # Analysis details
 # print "str(sampleTable)" to see your options here
-factor.numerator.denominator = c("sex", "Male", "Female") # that is c("factor", "numerator", "denominator"); flip if desired
+factor.numerator.denominator = c("geno", "Red", "NR") # that is c("factor", "numerator", "denominator"); flip if desired
 alpha.threshold = 0.05 # this sets alpha for the adjusted pvalue; default is 0.1.
 ##########
 
@@ -433,10 +347,10 @@ write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_raw.tsv
 # \\||// #
 # Assign significant genes
 ##########
-C.m.geno <- read.delim("Results/C.m.geno_raw.tsv") # load DESeq2 result for comparison between control Red and control NonRed males
-
+Results.df <- read.delim("Results/A.f.geno_raw.tsv") # load DESeq2 result for comparison between control Red and control NonRed males
+  
 # Function to sort significant and non-significant genes by adding logical column
-assign_sig <- function(contrast_df){
+assign_sig <- function(contrast_df, alpha.threshold = 0.05){
   contrast_df <- na.omit(contrast_df)
   contrast_df$Sig = FALSE
   for(i in 1:nrow(contrast_df)){
@@ -476,8 +390,8 @@ dim(Results.df[Results.df$Sig,]) # ensure there is 350 here.
 
 
 ## change this to the correct file name
-# write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.m.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
-#             row.names = FALSE, col.names = TRUE)
+write.table(Results.df, file = "~/Desktop/UofT/SSAV_RNA/Results/A.f.geno_DE.candidates.tsv", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
 ##########
 
 
@@ -485,8 +399,8 @@ dim(Results.df[Results.df$Sig,]) # ensure there is 350 here.
 # Combine results from Red/NonRed comparisons in males and females
 ########
 setwd("~/Desktop/UofT/SSAV_RNA/")
-A.f.geno <- read.delim("Results/A.f.geno_candidates.tsv")
-A.m.geno <- read.delim("Results/A.m.geno_candidates.tsv")
+A.f.geno <- read.delim("Results/A.f.geno_DE.candidates.tsv")
+A.m.geno <- read.delim("Results/A.m.geno_DE.candidates.tsv")
 
 # combine results for exp. populations
 Exp.geno <- merge(A.m.geno, A.f.geno, by = "FlyBaseID", all = TRUE)
@@ -508,7 +422,7 @@ dim(Exp.geno.con) # how many concordant?
 
 
 ## save to file
-# write.table(Exp.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_candidates.tsv", sep = "\t", # Fix file name accordingly
-#             row.names = FALSE, col.names = TRUE)
+write.table(Exp.geno, file = "~/Desktop/UofT/SSAV_RNA/Results/All.geno_DE.candidates.tsv", sep = "\t", # Fix file name accordingly
+            row.names = FALSE, col.names = TRUE)
 ########
 

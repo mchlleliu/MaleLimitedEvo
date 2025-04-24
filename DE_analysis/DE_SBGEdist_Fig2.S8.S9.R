@@ -129,21 +129,21 @@ bin_A.f <- plotSBGEprop(A.f.geno, "SBGE_comp", "SBGE (Mishra)")
 
 
 # comment in to save plots
-png(file = "~/Desktop/UofT/SSAV_RNA/Plots/final_2/png_version/Fig_S8.png",   # The directory you want to save the file in
+png(file = "~/Desktop/UofT/SSAV_RNA/Plots/revision/Fig_2_3Mb.png",   # The directory you want to save the file in
     width = 24, # 14 24 The width of the plot in inches
     height = 10, # 10 20 The height of the plot in inches
     units = "in", res = 300)
     
 # # main Figure 2
-# bin_All + coord_cartesian(ylim = c(0,0.15))
+bin_All + coord_cartesian(ylim = c(0,0.15))
 
 
 # Figure S8
-ggarrange(bin_A.m, NA, bin_A.f,
-          labels = c("A)", NA, "B)"),
-          widths = c(1, 0.05, 1),
-          ncol = 3,
-          font.label = list(size = 30), hjust = -0.01)
+# ggarrange(bin_A.m, NA, bin_A.f,
+#           labels = c("A)", NA, "B)"),
+#           widths = c(1, 0.05, 1),
+#           ncol = 3,
+#           font.label = list(size = 30), hjust = -0.01)
 
 dev.off()
 
