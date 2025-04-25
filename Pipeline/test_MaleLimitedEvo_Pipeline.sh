@@ -74,10 +74,23 @@ export PATH=$JAVA_HOME/bin:$PATH
 # Add GATK to PATH
 export PATH=/gpfs/home/rpr23sxu/gatk-4.6.0.0:$PATH
 
-gatk FastqToSam -F1 ${FASTQ_DIR}/${SAMPLE}_R1.fastq.gz -F2 ${FASTQ_DIR}/${SAMPLE}_R2.fastq.gz -O /dev/stdout -SM ${SAMPLE} -LB ${SAMPLE} -PL Illumina -RG ${SAMPLE} 2>> ${OUTPUT_DIR}/${SAMPLE}_FastqToSam_error.log | \
-gatk MergeBamAlignment -ALIGNED ${OUTPUT_DIR}/${SAMPLE}Aligned.out.bam -UNMAPPED /dev/stdin -O /dev/stdout -R $GENOME_FASTA 2>> ${OUTPUT_DIR}/${SAMPLE}_MergeBam_error.log | \
-gatk MarkDuplicates -I /dev/stdin -O /dev/stdout -M ${OUTPUT_DIR}/${SAMPLE}_dpl.txt 2>> ${OUTPUT_DIR}/${SAMPLE}_MarkDuplicates_error.log | \
-gatk SortSam -I /dev/stdin -O ${OUTPUT_DIR}/${SAMPLE}_sorted.bam -SO queryname 2>> ${OUTPUT_DIR}/${SAMPLE}_SortSam_error.log
+# Generate unmapped BAM
+gatk FastqToSam -F1 ${FASTQ_DIR}/${SAMPLE}_R1.fastq.gz -F2 ${FASTQ_DIR}/${SAMPLE}_R2.fastq.gz \
+  -O ${OUTPUT_DIR}/${SAMPLE}_unmapped.bam -SM ${SAMPLE} -LB ${SAMPLE} -PL Illumina -RG ${SAMPLE} \
+  2>> ${OUTPUT_DIR}/${SAMPLE}_FastqToSam_error.log
+
+# Merge unmapped BAM with aligned BAM
+gatk MergeBamAlignment -ALIGNED ${OUTPUT_DIR}/${SAMPLE}Aligned.out.bam \
+  -UNMAPPED ${OUTPUT_DIR}/${SAMPLE}_unmapped.bam -O ${OUTPUT_DIR}/${SAMPLE}_merged.bam \
+  -R $GENOME_FASTA 2>> ${OUTPUT_DIR}/${SAMPLE}_MergeBam_error.log
+
+# Mark duplicates
+gatk MarkDuplicates -I ${OUTPUT_DIR}/${SAMPLE}_merged.bam -O ${OUTPUT_DIR}/${SAMPLE}_dedup.bam \
+  -M ${OUTPUT_DIR}/${SAMPLE}_dpl.txt 2>> ${OUTPUT_DIR}/${SAMPLE}_MarkDuplicates_error.log
+
+# Sort BAM file
+gatk SortSam -I ${OUTPUT_DIR}/${SAMPLE}_dedup.bam -O ${OUTPUT_DIR}/${SAMPLE}_sorted.bam \
+  -SO queryname 2>> ${OUTPUT_DIR}/${SAMPLE}_SortSam_error.log
 
 # Deactivate Conda environment for GATK
 conda deactivate
