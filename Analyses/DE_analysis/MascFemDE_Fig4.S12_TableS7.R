@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2024
+#                             Grieshop et al. 2025
 #                       Author: Michelle Liu, Karl Grieshop
 #             DsRed experimental evolution - transcriptomics analysis
 #      Masculinization/Feminiziation of Red/NonRed expression magnitude
