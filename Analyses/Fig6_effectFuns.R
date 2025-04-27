@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2024
+#                             Grieshop et al. 2025
 #                             Author: Michelle Liu
 #             DsRed experimental evolution - transcriptomics analysis
 #       Figure 6 (evolutionary changes Red vs NonRed) plotting functions
