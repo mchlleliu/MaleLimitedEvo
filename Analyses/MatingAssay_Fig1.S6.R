@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2025
 #                      Author: Ryan S. Frost, (Michelle Liu)
 #             DsRed experimental evolution - Transcriptomics analysis
 #                          Fitness Assay GLMM & Plots
