@@ -28,13 +28,10 @@ for downstream RNA-Seq analyses.
    A directory for output files from DESeq2 and JunctionSeq, used in the analyses.
 
 ### Files
-1. **[Chromosome_df.R](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/Chromosome_df.R)**  
-   Helper script for managing chromosome-related metadata, such as gene positions.
-
-2. **[README.md](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/README.md)**  
+1. **[README.md](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/README.md)**  
    This README file, providing an overview of the repository contents.
 
-3. **[sample_INFO.tsv](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/sample_INFO.tsv)**  
+2. **[sample_INFO.tsv](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/sample_INFO.tsv)**  
    Metadata file containing detailed information on RNA-Seq samples used in the analyses.
 
 ---

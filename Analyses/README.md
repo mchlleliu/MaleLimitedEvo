@@ -30,5 +30,8 @@ This directory contains scripts and subdirectories for performing various analys
 6. **[boot_permute.R](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/Analyses/boot_permute.R)**  
    Provides bootstrapping and permutation functions for statistical testing in various analyses. 
 
----
+7. **[Chromosome_df.R](https://github.com/mchlleliu/MaleLimitedEvo/blob/main/Analyses/Chromosome_df.R)**<\br>
+   Helper script for managing chromosome-related metadata, such as gene positions. This uses the input files generated from [Extract_Genes.sh](https://github.com/karlgrieshop/FastQProcessing/blob/main/ExtractGenes/Extract_Genes.sh)
+
+ ---
 
