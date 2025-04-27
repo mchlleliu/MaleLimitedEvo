@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2025
 #                             Author: Karl Grieshop
 #             DsRed experimental evolution - transcriptomics analysis
 #                      Load Mishra et al. 2022 data to assign SBGE
