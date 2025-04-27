@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2024
+#                             Grieshop et al. 2025
 #                        Original Author: Amardeep Singh
 #                       (Michelle's notes + editted pipeline)
 #             DsRed experimental evolution - transcriptomics analysis
