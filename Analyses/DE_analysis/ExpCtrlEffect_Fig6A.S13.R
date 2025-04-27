@@ -1,6 +1,6 @@
 ###################################
 #
-#                             Grieshop et al. 2023
+#                             Grieshop et al. 2025
 #                             Author: Michelle Liu  
 #             DsRed experimental evolution - transcriptomics analysis
 #          Correlation of Evolutionary changes in Red vs NonRed samples 
