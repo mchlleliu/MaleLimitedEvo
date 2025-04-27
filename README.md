@@ -20,8 +20,9 @@ In six replicate populations of 1000 flies, a dominant marker (DsRed) was used t
 3. **[JunctionSeq](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/JunctionSeq)**  
    Scripts and resources for splicing analysis using JunctionSeq.
 
-4. **[RNASeqPipeline](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/RNASeqPipeline)**  
-   Contains the RNA-Seq analysis pipeline used to process raw sequencing data into normalized counts.
+4. **[FastQProcessing](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/FastQProcessing)**  
+  Scripts and resources for processing FastQ files, including fetching reference genomes, sorting, and counting 
+for downstream RNA-Seq analyses.
 
 5. **[Results](https://github.com/mchlleliu/MaleLimitedEvo/tree/main/Results)**  
    A directory for output files from DESeq2 and JunctionSeq, used in the analyses.
