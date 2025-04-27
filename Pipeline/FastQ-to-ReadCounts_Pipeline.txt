@@ -1,0 +1,79 @@
+# FastQ-to-ReadCounts Pipeline
+
+## Software 
+# STAR: v2.7.9a
+# GATK: v4.2.3.0-1
+# HTSeq: v0.13.5
+# GNU parallel: Required for parallelizing sample processing.
+
+## Reference Genome and Annotation
+# Reference Genome: Drosophila melanogaster BDGP6.28, release 102
+# Annotation File: GTF file from the same release
+
+## Notes
+# This pipeline uses GNU parallel to process multiple samples simultaneously. Ensure that GNU parallel is installed and accessible in your environment.
+# If GNU parallel is unavailable or not preferred, you can remove parallelization. For example:
+
+# Change:
+# ## 4. Sort BAM Files by Query Name (using GNU parallel)
+# parallel gatk SortSam -I {} -O ../SortSam/{.}_query.bam -SO queryname ::: *.bam
+
+# To:
+# ## 4. Sort BAM Files by Query Name (without parallelization)
+for bam_file in *.bam
+do
+  gatk SortSam \
+    -I $bam_file \
+    -O ../SortSam/$(basename $bam_file .bam)_query.bam \
+    -SO queryname
+done
+
+
+
+## 1. Genome Indexing
+STAR --runThreadN 12 --runMode genomeGenerate --genomeSAindexNbases 12 \
+  --genomeDir ~/FlyBase_Ref \
+  --genomeFastaFiles ~/FlyBase_Ref/Drosophila_melanogaster.BDGP6.28.dna.toplevel.fa \
+  --sjdbGTFfile ~/FlyBase_Ref/Drosophila_melanogaster.BDGP6.28.102.gtf
+
+## 2. Read Alignment
+for i in $(ls *.fastq.gz | rev | cut -c 13- | rev | uniq)
+do
+  STAR --runThreadN 12 --genomeDir ~/FlyBase_Ref \
+    --sjdbGTFfile ~/FlyBase_Ref/Drosophila_melanogaster.BDGP6.28.102.gtf \
+    --sjdbOverhang 100 --readFilesIn ${i}_R1.fastq.gz ${i}_R2.fastq.gz \
+    --readFilesCommand zcat --outSAMtype BAM Unsorted \
+    --outFileNamePrefix ${i} --twopassMode Basic
+done
+
+## 3. Generate Unmapped BAM
+for i in $(ls *.fastq.gz | rev | cut -c 13- | rev | uniq)
+do
+  gatk FastqToSam -F1 ${i}_R1.fastq.gz -F2 ${i}_R2.fastq.gz \
+    -O ${i}_fastqtosam.bam -SM ${i} -LB ${i} -PL Illumina -RG ${i}
+done
+
+## 4. Sort BAM Files by Query Name
+parallel gatk SortSam -I {} -O ../SortSam/{.}_query.bam -SO queryname ::: *.bam
+
+## 5. Merge BAM Files
+ls *.bam | rev | cut -c 23- | rev | parallel -j 6 gatk MergeBamAlignment \
+  -ALIGNED {}_Aligned.out_query.bam -UNMAPPED ../FastqToSam/{}_fastqtosam.bam \
+  -O ../MergeBam/{}_merged.bam \
+  -R ~/FlyBase_Ref/Drosophila_melanogaster.BDGP6.28.dna.toplevel.fa
+
+## 6. Mark Duplicates
+parallel -j 18 gatk --java-options '-XX:ParallelGCThreads=1' MarkDuplicates \
+  -I {} -O ../MarkDuplicates/{.}_dpl.bam -M ../MarkDuplicates/{.}_dpl.txt ::: *_merged.bam
+
+## 7. Sort BAM Files Again
+for i in $(ls *.bam | rev | cut -c 5- | rev | uniq)
+do
+  gatk SortSam -I ${i}.bam -O ../SortSam_again/${i}_query.bam -SO queryname
+done
+
+## 8. Run HTSeq Count
+parallel -j 18 python -m HTSeq.scripts.count -s no --nonunique none --format bam \
+  --secondary-alignments ignore --supplementary-alignments ignore {} \
+  ~/FlyBase_Ref/Drosophila_melanogaster.BDGP6.28.102.gtf ">" ../ReadCounts_again/{.}.tsv ::: *_query.bam
+
