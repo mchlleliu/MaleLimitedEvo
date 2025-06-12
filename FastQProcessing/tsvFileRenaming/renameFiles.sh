@@ -23,10 +23,6 @@ TSV_DIR="/gpfs/home/rpr23sxu/Teaching/MaleLimitedEvo/FastQProcessing/RenamingFil
 
 cd $TSV_DIR
 
-# Note: This script is an example and does not produce the exact .tsv filenames
-# required for the R script in MaleLimitedEvo/DESeq2Run/DESeq2Run.R. Additional
-# adjustments may be needed to match the required filename format.
-
 ## Rename ReadCount folders (for easier sorting in R)
 
 for i in $(ls *.tsv)
