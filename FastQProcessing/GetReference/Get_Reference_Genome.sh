@@ -66,6 +66,14 @@ else
   echo "Samtools index file already exists. Skipping samtools indexing."
 fi
 
+# Check if the GATK sequence dictionary file already exists
+if [ ! -f "${REF_FILE%.fa}.dict" ] && [ ! -f "${REF_FILE%.fa}" ]; then
+  echo "GATK sequence dictionary file not found. Generating it..."
+  gatk CreateSequenceDictionary -R "$REF_FILE"
+else
+  echo "GATK sequence dictionary file already exists. Skipping dictionary generation."
+fi
+
 # Check if STAR genome indices already exist
 if [ ! -d "$GENOME_DIR" ]; then
   mkdir -p "$GENOME_DIR"
